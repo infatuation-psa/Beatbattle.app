@@ -1,0 +1,11 @@
+{{ define "Menu" }}
+<nav class="main-menu">
+    <div class="nav-inner">
+    <a href="/" class="nav-left">BEATBATTLE.APP</a>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="#">BATTLES</a></li>
+        <li class="nav-item">{{if .Name}}<a href="/logout/discord">{{ .Name }}</a>{{else}}<a href="/auth/discord">LOG IN</a>{{end}}</li>
+    </ul>
+    </div>
+</nav>
+{{ end }}

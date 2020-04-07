@@ -1,0 +1,184 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+footer {
+    text-align: center;
+    background-color: black;
+    padding: 1rem 0;
+    position: fixed;
+    color: white;
+    bottom: 0;
+    width: 100%;
+}
+
+.btn-link {
+    border: none;
+    outline: none;
+    background: none;
+    cursor: pointer;
+    color: #0000EE;
+    padding: 0;
+    text-decoration: underline;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.link, footer a {
+    color: red !important;
+}
+
+.link {
+    font-weight: bold;
+}
+
+* {
+    font-family: 'Inconsolata', monospace;
+}
+
+.container {
+    margin-left:auto;
+    margin-right:auto;
+    max-width: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-flow: column;
+}
+
+.main-menu, .battle-title {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.main-menu {
+    background-color: black;
+    color: white;
+}
+
+.battle-title {
+    color: black !important;
+    justify-content: space-between;
+}
+
+input {
+    display: inline-block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    box-sizing: border-box;
+}    
+
+input[type=button], input[type=submit], input[type=reset] {
+    background-color: red;
+    color: white;
+    border: 1px solid red;
+}
+
+input[type=url] {
+    border: 1px solid black;
+    border-right: none;
+}
+
+.submit-url {
+    width: 80%;
+}
+
+.submit-track {
+    width: 20%;
+}
+
+.submit-form {
+    display: flex;
+}
+
+.nav-download {
+    background-color: black;
+    color: white;   
+    border: 1px solid black;
+}
+
+.nav-disabled {
+    margin-left: 0.5rem;
+    color: black;
+    border: 1px solid black;
+}
+
+.nav-submit {
+    margin-left: 0.5rem;
+    background-color: red;
+    color: white;
+    border: 1px solid red;
+}
+
+.nav-submit:hover {
+    color: red;
+    background: none;
+}
+
+.nav-download:hover {
+    color: black;
+    background: none;
+}
+
+.battle-information {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    flex-flow: column;
+}
+
+.nav-inner {
+    width: 80%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+zg-caption {
+    background: black;
+}
+
+zing-grid {
+    --zg-icon-color: inherit;
+}
+  
+.nav-left {
+    display: inline-block;
+}
+
+a, a:visited, a:hover, a:active {
+    color:inherit;
+    text-decoration: none;
+}
+
+.nav-links {
+list-style: none;
+display: flex;
+}
+
+.nav-item {    
+    box-sizing: border-box;
+}
+
+.main-menu .nav-item a {
+    color: white;
+}
+
+.main-menu .nav-item:hover {
+    background-color: white;
+}
+
+.main-menu .nav-item:hover a {
+    color: black;
+    }
+
+.nav-item a {
+    text-transform: uppercase;
+    display: inline-block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+}
+

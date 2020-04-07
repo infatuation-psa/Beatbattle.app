@@ -1,0 +1,51 @@
+{{ define "Battle" }}
+  {{ template "Header" }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h2 class="nav-left">{{.Battle.Title}}</h2>
+          <ul class="nav-links">
+              <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">DOWNLOAD FILES</a></li>
+              {{if contains "Open" .Battle.Status}}
+                {{ if .EnteredBattle }}
+                <li class="nav-item nav-submit"><a href="/update/beat/{{.Battle.ChallengeID}}">UPDATE</a></li>
+                {{ else }}
+                <li class="nav-item nav-submit"><a href="/submit/beat/{{.Battle.ChallengeID}}">SUBMIT</a></li>
+                {{ end }}
+              {{ else }}
+                <li class="nav-item nav-disabled"><a>CLOSED</a></li>
+              {{end}}
+          </ul>
+        </nav>
+        <p><b>Host</b>: {{.Battle.Host}}<br />
+        <b>Rules:</b> {{.Battle.Rules}}<br />
+        <span class="deadline"><b>Status:</b> {{.Battle.Status}} | {{.Battle.MaxVotes}} Votes Per User</span></p>
+      </div>
+      <zing-grid caption="{{.Battle.Entries}} Entries" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+        <zg-colgroup>
+          {{if contains "Finished" .Battle.Status}}
+          <zg-column header="Discord" index="discord"></zg-column>
+          <zg-column header="Votes" index="votes" sort-desc></zg-column>
+          {{ end }}          
+          <zg-column header="track" index="url"></zg-column>
+          {{if contains "Voting" .Battle.Status}}
+          <zg-column header="Vote" index="vote">
+          <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>
+          </zg-column>
+          {{ end }}
+        </zg-colgroup>
+      </zing-grid>
+    </div>
+    <script>    
+    // window.onload event for Javascript to run after HTML
+    // because this Javascript is injected into the document head
+    window.addEventListener('load', () => {
+      // content after DOM load
+      const zgRef = document.querySelector('zing-grid');
+      const data = {{.Beats}};
+      zgRef.setData(data);
+    });
+    </script>
+  {{ template "Footer" }}
+{{ end }}

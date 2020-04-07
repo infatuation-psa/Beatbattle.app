@@ -1,0 +1,21 @@
+{{ define "Submit" }}
+  {{ template "Header" }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h2 class="nav-left">{{.Battle.Title}}</h2>
+          <ul class="nav-links">
+              <li class="nav-item nav-download"><a href="javascript:history.back()">BACK</a></li>
+          </ul>
+        </nav>
+        <p><b>Rules:</b> {{.Battle.Rules}}<br />
+        <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
+        <form method="POST" class="submit-form" action="/submit/beat/{{.Battle.ChallengeID}}">
+          <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track.">
+          <input type="submit" class="submit-track" value="SEND 🔥" />
+        </form>
+      </div>
+      </div>
+  {{ template "Footer" }}
+{{ end }}
