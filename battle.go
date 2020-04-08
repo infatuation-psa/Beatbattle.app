@@ -301,14 +301,14 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entries := 0
-	err := db.QueryRow("SELECT COUNT(?) FROM challenges WHERE status='entry'", user.ID).Scan(&entries)
+	err := db.QueryRow("SELECT COUNT(?) FROM challenges WHERE status='entry' AND ", user.ID).Scan(&entries)
 	if err != nil && err != sql.ErrNoRows {
 		panic(err.Error())
 	}
 
 	if entries >= 3 {
 		println(entries)
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/", 301)
 		return
 	}
 
@@ -354,6 +354,11 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 			for _, err := range err.(validator.ValidationErrors) {
 				fmt.Println(err.Namespace())
 			}
+			http.Redirect(w, r, "/", 301)
+			return
+		}
+
+		if RowExists(db, "SELECT challenge_id FROM challenges WHERE user_id = ? AND title = ?", user.ID, battle.Title) {
 			http.Redirect(w, r, "/", 301)
 			return
 		}

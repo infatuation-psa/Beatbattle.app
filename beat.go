@@ -36,9 +36,17 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	var user = GetUser(w, r)
 
+	URL := r.URL.RequestURI()
+	status := "enter"
+
+	if strings.Contains(URL, "update") {
+		status = "update"
+	}
+
 	m := map[string]interface{}{
 		"Battle": battle,
 		"User":   user,
+		"Status": status,
 	}
 
 	tmpl.ExecuteTemplate(w, "Submit", m)

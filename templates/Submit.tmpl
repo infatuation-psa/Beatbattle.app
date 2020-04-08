@@ -4,16 +4,30 @@
     <div class="container">
       <div class="battle-information">
         <nav class="battle-title">
-          <h1 class="nav-left">{{.Battle.Title}}</h1>
+          <h1 class="nav-left">
+          {{if eq .Status "update"}}
+          Update:
+          {{else}}
+          Enter:
+          {{end}}
+          <span style="font-weight: normal;"> {{.Battle.Title}}</span></h1>
           <ul class="nav-links">
-              <li class="nav-item nav-download"><a href="javascript:history.back()">BACK</a></li>
+              {{if eq .Status "update"}}
+                <li class="nav-item nav-download"><a href="javascript:history.back()">DELETE</a></li>
+              {{else}}
+                <li class="nav-item nav-download"><a href="javascript:history.back()">BACK</a></li>
+              {{end}}
           </ul>
         </nav>
         <p><b>Rules:</b> {{.Battle.Rules}}<br />
         <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
         <form method="POST" class="submit-form" action="/submit/beat/{{.Battle.ChallengeID}}">
           <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track.">
+          {{if eq .Status "update"}}
+          <input type="submit" class="submit-track" value="UPDATE 🔥" />
+          {{else}}
           <input type="submit" class="submit-track" value="SEND 🔥" />
+          {{end}}
         </form>
       </div>
       </div>

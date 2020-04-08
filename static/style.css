@@ -3,6 +3,14 @@ body, html {
     padding: 0;
 }
 
+input {
+    -webkit-appearance: none;
+    -webkit-border-radius: 0;
+    -moz-appearance: none;
+    appearance: none;
+    background: none;
+}
+
 h1, ul {
     margin: 0;
 }
@@ -232,6 +240,7 @@ display: flex;
 
 .main-menu .nav-item a {
     color: white;
+    white-space: nowrap;
 }
 
 .main-menu .nav-item:hover {
