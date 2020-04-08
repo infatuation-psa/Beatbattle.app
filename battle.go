@@ -264,3 +264,68 @@ func GetBattle(db *sql.DB, sqlStmt string, battleID int) Battle {
 
 	return battle
 }
+
+// SubmitBattle ...
+func SubmitBattle(w http.ResponseWriter, r *http.Request) {
+	var user = GetUser(w, r)
+	println("GAY")
+	tmpl.ExecuteTemplate(w, "SubmitBattle", user)
+}
+
+// InsertBattle ...
+func InsertBattle(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/auth/discord", 301)
+		return
+	}
+
+	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		http.Redirect(w, r, "/", 301)
+		return
+	}
+
+	redirectURL := "/battle/" + strconv.Itoa(battleID)
+
+	// TODO - BATTLE ID AND DEADLINE
+	isOpen := RowExists(db, "SELECT challenge_id FROM challenges WHERE challenge_id = ?", battleID)
+
+	if !isOpen {
+		http.Redirect(w, r, redirectURL, 301)
+		return
+	}
+
+	// IF HAS ENTERED, HANDLE UPDATING INSTEAD
+	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
+
+	if user.Authenticated && r.Method == "POST" {
+		if !strings.Contains(r.FormValue("track"), "soundcloud") {
+			http.Redirect(w, r, redirectURL, 301)
+			return
+		}
+
+		stmt := "INSERT INTO beats(discord, artist, beat_url, challenge_id, user_id) VALUES(?,?,?,?,?)"
+		if hasEntered {
+			stmt = "UPDATE beats SET discord=?, artist=?, beat_url=?, challenge_id=? WHERE user_id=?"
+		}
+
+		ins, err := db.Prepare(stmt)
+		if err != nil {
+			panic(err.Error())
+		}
+		defer ins.Close()
+
+		ins.Exec(user.Name, user.Name, r.FormValue("track"), battleID, user.ID)
+	} else {
+		print("Not post")
+		http.Redirect(w, r, redirectURL, 301)
+		return
+	}
+	// TODO - Redirect with alert for user.
+	http.Redirect(w, r, redirectURL, 301)
+	return
+}

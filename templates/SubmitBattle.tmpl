@@ -1,0 +1,30 @@
+{{ define "SubmitBattle" }}
+  {{ template "Header" }}
+    {{ template "Menu" . }}
+    <div class="container">
+      <div class="battle-information">
+        <form method="POST" action="/submit/battle/">
+        <nav class="battle-title">
+            <input type="text" class="heading-1 submit-header" id="track" name="TItle" placeholder="Battle Title">
+            <input type="submit" class="submit-track" value="SEND 🔥" />
+        </nav>
+        <input type="text" class="submit-border submit-nobox" id="rules" name="Rules" placeholder="Battle Rules">
+        <input type="text" class="submit-border submit-nobox" id="password" name="password" placeholder="Password (Optional)">
+        <div class="submit-border submit-label">
+            <span class="submit-text">Max Votes</span>
+            <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value=1>
+        </div>
+        <div class="submit-border submit-label">
+            <span class="submit-text">Deadline</span>
+            <input type="datetime-local" class="submit-nobox" id="deadline" name="deadline">
+        </div>
+        <div class="submit-border submit-label">
+            <span class="submit-text">Voting Deadline</span>
+            <input type="datetime-local" class="submit-nobox" id="votingdeadline" name="votingdeadline">
+        </div>
+        <input type="url" class="submit-border submit-nobox" id="attachment" name="attachment" placeholder="Battle Attachment (Optional)">
+        </form>
+      </div>
+      </div>
+  {{ template "Footer" }}
+{{ end }}

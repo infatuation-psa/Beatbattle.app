@@ -1,6 +1,10 @@
-html, body {
+body, html {
     margin: 0;
     padding: 0;
+}
+
+h1, ul {
+    margin: 0;
 }
 
 footer {
@@ -11,6 +15,61 @@ footer {
     color: white;
     bottom: 0;
     width: 100%;
+    z-index: 10;
+}
+
+h1, .heading-1 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: black;
+}
+
+.submit-nobox, .submit-header {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    width: 100%;
+}
+
+::placeholder {
+    color: #bbb;
+}
+
+.submit-nobox {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    font-size: 1rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+}
+
+.submit-label {
+    display: flex;
+    flex-flow: row wrap;
+}
+
+.submit-label span, .submit-label input {
+    place-self: center;
+    display: flex;
+}
+
+.submit-text {
+    color: #bbb;
+    margin-right: 0.75rem;
+}
+
+.submit-label input {
+    flex: 1;
+}
+
+.submit-border {
+    border-bottom: 1px solid black !important;
+    box-sizing: border-box;
 }
 
 .btn-link {
@@ -52,6 +111,7 @@ footer {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 1rem 0;
 }
 
 .main-menu {
@@ -149,6 +209,10 @@ zing-grid {
     display: inline-block;
 }
 
+.nav-left img {
+    height: 2rem;
+}
+
 a, a:visited, a:hover, a:active {
     color:inherit;
     text-decoration: none;
@@ -161,6 +225,9 @@ display: flex;
 
 .nav-item {    
     box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    text-align: center;
 }
 
 .main-menu .nav-item a {
@@ -182,3 +249,20 @@ display: flex;
     text-decoration: none;
 }
 
+ul {
+    padding-inline-start: 0px;
+}
+
+@media only screen and (max-width: 820px) {
+    h1, .heading-1 {
+        font-size: 1.2rem;
+    }
+
+    #zg-caption-user-text {
+        font-size: 1rem;
+    }
+
+    .nav-links {
+        font-size: 0.85rem;
+    }
+  }

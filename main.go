@@ -106,7 +106,9 @@ func main() {
 	router.Get("/update/beat/{id}", SubmitBeat)
 	router.Get("/battle/{id}", ViewBattle)
 	router.Post("/vote/{id}", AddVote)
+	router.Get("/submit/battle", SubmitBattle)
 	router.Get("/", ViewBattles)
+
 	http.Handle("/", router)
 
 	if os.Getenv("PORT") == ":443" {
