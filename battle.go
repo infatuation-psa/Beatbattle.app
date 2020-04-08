@@ -127,7 +127,7 @@ func ViewBattle(w http.ResponseWriter, r *http.Request) {
 
 		submission.Color = "black"
 		if binarySearch(submission.ID, lastVotes) {
-			submission.Color = "red"
+			submission.Color = "#ff5800"
 		}
 
 		if strings.Contains(submission.URL, "/s-") {
