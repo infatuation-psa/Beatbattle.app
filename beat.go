@@ -82,8 +82,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 		stmt := "INSERT INTO beats(discord, artist, beat_url, challenge_id, user_id) VALUES(?,?,?,?,?)"
 		if hasEntered {
-			println("hasEntered")
-			stmt = "UPDATE beats SET discord=?, artist=?, beat_url=?, challenge_id=? WHERE user_id=?"
+			stmt = "UPDATE beats SET discord=?, artist=?, beat_url=? WHERE challenge_id=? AND user_id=?"
 		}
 
 		ins, err := db.Prepare(stmt)

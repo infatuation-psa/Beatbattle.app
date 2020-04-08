@@ -258,6 +258,14 @@ ul {
         font-size: 1.2rem;
     }
 
+    .container {
+        max-width: 90%;
+    }
+
+    .nav-inner {
+        width: 90%;
+    }
+
     #zg-caption-user-text {
         font-size: 1rem;
     }
@@ -266,3 +274,5 @@ ul {
         font-size: 0.85rem;
     }
   }
+
+  /* TO-DO: FIX DEFAULT STYLING OF FORM ON MOBILE */

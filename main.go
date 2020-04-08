@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -26,26 +25,6 @@ ICON, TITLE FOR EACH PAGE TO BE DYNAMIC
 SUBMIT -> UPDATE when entry exists
 MOVE SOUNDCLOUD/URL PROCESSING WORKLOAD TO THE TEMPLATE WITH ZINGGRID (URL AS REFERENCE)
 ---------*/
-
-/*------
-Structs
-------*/
-
-// Battle ...
-type Battle struct {
-	Title          string    `gorm:"column:title" json:"title"`
-	Rules          string    `gorm:"column:rules" json:"rules"`
-	Deadline       time.Time `gorm:"column:deadline" json:"deadline"`
-	VotingDeadline time.Time `gorm:"column:voting_deadline" json:"voting_deadline"`
-	Attachment     string    `gorm:"column:attachment" json:"attachment"`
-	Host           string    `gorm:"column:host" json:"host"`
-	Status         string    `gorm:"column:status" json:"status"`
-	Password       string    `gorm:"column:password" json:"password"`
-	UserID         string    `gorm:"column:user_id" json:"user_id"`
-	Entries        int       `json:"entries"`
-	ChallengeID    int       `gorm:"column:challenge_id" json:"challenge_id"`
-	MaxVotes       int       `gorm:"column:maxvotes" json:"maxvotes"`
-}
 
 /*-------
 Variables
@@ -107,6 +86,7 @@ func main() {
 	router.Get("/battle/{id}", ViewBattle)
 	router.Post("/vote/{id}", AddVote)
 	router.Get("/submit/battle", SubmitBattle)
+	router.Post("/submit/battle", InsertBattle)
 	router.Get("/", ViewBattles)
 
 	http.Handle("/", router)

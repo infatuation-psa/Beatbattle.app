@@ -8,7 +8,25 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-playground/validator"
 )
+
+// Battle ...
+type Battle struct {
+	Title          string    `gorm:"column:title" json:"title" validate:"required"`
+	Rules          string    `gorm:"column:rules" json:"rules" validate:"required"`
+	Deadline       time.Time `gorm:"column:deadline" json:"deadline" validate:"required"`
+	VotingDeadline time.Time `gorm:"column:voting_deadline" json:"voting_deadline" validate:"required"`
+	Attachment     string    `gorm:"column:attachment" json:"attachment"`
+	Host           string    `gorm:"column:host" json:"host" validate:"required"`
+	Status         string    `gorm:"column:status" json:"status" validate:"required"`
+	Password       string    `gorm:"column:password" json:"password"`
+	UserID         string    `gorm:"column:user_id" json:"user_id" validate:"required"`
+	Entries        int       `json:"entries"`
+	ChallengeID    int       `gorm:"column:challenge_id" json:"challenge_id"`
+	MaxVotes       int       `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
+}
 
 // ViewBattles - Retrieves all battles and displays to user. Homepage.
 func ViewBattles(res http.ResponseWriter, req *http.Request) {
@@ -268,7 +286,6 @@ func GetBattle(db *sql.DB, sqlStmt string, battleID int) Battle {
 // SubmitBattle ...
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	var user = GetUser(w, r)
-	println("GAY")
 	tmpl.ExecuteTemplate(w, "SubmitBattle", user)
 }
 
@@ -283,35 +300,65 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
-	if err != nil {
+	entries := 0
+	err := db.QueryRow("SELECT COUNT(?) FROM challenges WHERE status='entry'", user.ID).Scan(&entries)
+	if err != nil && err != sql.ErrNoRows {
+		panic(err.Error())
+	}
+
+	if entries >= 3 {
+		println(entries)
+		http.Redirect(w, r, "/auth/discord", 301)
+		return
+	}
+
+	// For time.Parse
+	layout := "2006-01-02T15:04"
+	deadline, err := time.Parse(layout, r.FormValue("deadline"))
+	if err != nil || deadline.Before(time.Now()) {
+		http.Redirect(w, r, "/", 301)
+		return
+	}
+	votingDeadline, err := time.Parse(layout, r.FormValue("votingdeadline"))
+	if err != nil || votingDeadline.Before(deadline) {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
-	redirectURL := "/battle/" + strconv.Itoa(battleID)
-
-	// TODO - BATTLE ID AND DEADLINE
-	isOpen := RowExists(db, "SELECT challenge_id FROM challenges WHERE challenge_id = ?", battleID)
-
-	if !isOpen {
-		http.Redirect(w, r, redirectURL, 301)
+	maxVotes, err := strconv.Atoi(r.FormValue("maxvotes"))
+	if err != nil || maxVotes < 1 || maxVotes > 10 {
+		http.Redirect(w, r, "/", 301)
 		return
 	}
 
-	// IF HAS ENTERED, HANDLE UPDATING INSTEAD
-	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
+	battle := &Battle{
+		Title:          r.FormValue("title"),
+		Rules:          r.FormValue("rules"),
+		Deadline:       deadline,
+		VotingDeadline: votingDeadline,
+		Attachment:     r.FormValue("attachment"),
+		Host:           user.Name,
+		Status:         "entry",
+		Password:       r.FormValue("password"),
+		UserID:         user.ID,
+		Entries:        0,
+		ChallengeID:    0,
+		MaxVotes:       maxVotes,
+	}
 
 	if user.Authenticated && r.Method == "POST" {
-		if !strings.Contains(r.FormValue("track"), "soundcloud") {
-			http.Redirect(w, r, redirectURL, 301)
+		v := validator.New()
+		err = v.Struct(battle)
+
+		if err != nil {
+			for _, err := range err.(validator.ValidationErrors) {
+				fmt.Println(err.Namespace())
+			}
+			http.Redirect(w, r, "/", 301)
 			return
 		}
 
-		stmt := "INSERT INTO beats(discord, artist, beat_url, challenge_id, user_id) VALUES(?,?,?,?,?)"
-		if hasEntered {
-			stmt = "UPDATE beats SET discord=?, artist=?, beat_url=?, challenge_id=? WHERE user_id=?"
-		}
+		stmt := "INSERT INTO challenges(title, rules, deadline, attachment, host, status, password, user_id, voting_deadline, maxvotes) VALUES(?,?,?,?,?,?,?,?,?,?)"
 
 		ins, err := db.Prepare(stmt)
 		if err != nil {
@@ -319,13 +366,16 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		}
 		defer ins.Close()
 
-		ins.Exec(user.Name, user.Name, r.FormValue("track"), battleID, user.ID)
+		fmt.Println(battle)
+
+		ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, user.Name,
+			battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
 	} else {
 		print("Not post")
-		http.Redirect(w, r, redirectURL, 301)
+		http.Redirect(w, r, "/", 301)
 		return
 	}
 	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, redirectURL, 301)
+	http.Redirect(w, r, "/", 301)
 	return
 }
