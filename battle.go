@@ -167,12 +167,14 @@ func ViewBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
+	isOwner := RowExists(db, "SELECT challenge_id FROM challenges WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
 
 	m := map[string]interface{}{
 		"Battle":        battle,
 		"Beats":         string(e),
 		"User":          user,
 		"EnteredBattle": hasEntered,
+		"IsOwner":       isOwner,
 	}
 
 	tmpl.ExecuteTemplate(w, "Battle", m)
@@ -287,6 +289,10 @@ func GetBattle(db *sql.DB, sqlStmt string, battleID int) Battle {
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	var user = GetUser(w, r)
 	tmpl.ExecuteTemplate(w, "SubmitBattle", user)
+}
+
+// UpdateBattle ...
+func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 }
 
 // InsertBattle ...

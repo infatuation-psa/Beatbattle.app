@@ -1,0 +1,21 @@
+{{ define "UpdateBeat" }}
+  {{ template "Header" }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h1 class="nav-left">Update: <span style="font-weight: normal;">{{.Battle.Title}}</span></h1>
+          <ul class="nav-links">
+            <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your battle entry?')" href="/delete/beat/{{.Battle.ChallengeID}}">DELETE</a></li>
+          </ul>
+        </nav>
+        <p><b>Rules:</b> {{.Battle.Rules}}<br />
+        <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
+        <form method="POST" class="submit-form" action="/submit/beat/{{.Battle.ChallengeID}}">
+          <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track.">
+          <input type="submit" class="submit-track" value="UPDATE 🔥" />
+        </form>
+      </div>
+      </div>
+  {{ template "Footer" }}
+{{ end }}

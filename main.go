@@ -77,18 +77,23 @@ func main() {
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 
 	router.PathPrefix("/static/").Handler(static)
+
+	// Handlers for auth
 	router.Get("/auth/{provider}/callback", Callback)
 	router.Get("/auth/{provider}", Auth)
 	router.Get("/logout/{provider}", Logout)
+
+	// Handlers
 	router.Get("/submit/beat/{id}", SubmitBeat)
 	router.Post("/submit/beat/{id}", InsertBeat)
 	router.Get("/update/beat/{id}", SubmitBeat)
+	router.Get("/delete/beat/{id}", DeleteBeat)
 	router.Get("/battle/{id}", ViewBattle)
 	router.Post("/vote/{id}", AddVote)
 	router.Get("/submit/battle", SubmitBattle)
 	router.Post("/submit/battle", InsertBattle)
-	router.Get("/", ViewBattles)
 
+	router.Get("/", ViewBattles)
 	http.Handle("/", router)
 
 	if os.Getenv("PORT") == ":443" {

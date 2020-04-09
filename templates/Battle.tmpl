@@ -6,6 +6,14 @@
         <nav class="battle-title">
           <h1 class="nav-left">{{.Battle.Title}}</h1>
           <ul class="nav-links">
+            {{if .IsOwner}}
+              <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/delete/battle/{{.Battle.ChallengeID}}">DELETE</a></li>
+              {{if contains "Finished" .Battle.Status}}
+                <li class="nav-item nav-disabled"><a>CLOSED</a></li>
+              {{else}}              
+                <li class="nav-item nav-submit"><a href="/update/battle/{{.Battle.ChallengeID}}">EDIT</a></li>
+              {{end}}
+            {{else}}
               <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
               {{if contains "Open" .Battle.Status}}
                 {{ if .EnteredBattle }}
@@ -16,11 +24,12 @@
               {{ else }}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{end}}
+            {{end}}
           </ul>
         </nav>
         <p><b>Host</b>: {{.Battle.Host}}<br />
         <b>Rules:</b> {{.Battle.Rules}}<br />
-        <span class="deadline"><b>Status:</b> {{.Battle.Status}} | {{.Battle.MaxVotes}} Votes Per User</span></p>
+        <span class="deadline"><b>Status:</b> {{.Battle.Status}} | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User</span></p>
       </div>
       <zing-grid caption="{{.Battle.Entries}} Entries" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>

@@ -25,7 +25,8 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		panic(err.Error())
+		http.Redirect(w, r, "/", 301)
+		return
 	}
 
 	battle := GetBattle(db, "SELECT * FROM challenges WHERE challenge_id = ?", battleID)
@@ -36,20 +37,20 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	var user = GetUser(w, r)
 
-	URL := r.URL.RequestURI()
-	status := "enter"
-
-	if strings.Contains(URL, "update") {
-		status = "update"
-	}
-
 	m := map[string]interface{}{
 		"Battle": battle,
 		"User":   user,
-		"Status": status,
 	}
 
-	tmpl.ExecuteTemplate(w, "Submit", m)
+	URL := r.URL.RequestURI()
+
+	tpl := "SubmitBeat"
+	if strings.Contains(URL, "update") {
+		tpl = "UpdateBeat"
+	}
+
+	print(tpl)
+	tmpl.ExecuteTemplate(w, tpl, m)
 }
 
 // InsertBeat ...
@@ -102,6 +103,55 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		ins.Exec(user.Name, user.Name, r.FormValue("track"), battleID, user.ID)
 	} else {
 		print("Not post")
+		http.Redirect(w, r, redirectURL, 301)
+		return
+	}
+	// TODO - Redirect with alert for user.
+	http.Redirect(w, r, redirectURL, 301)
+	return
+}
+
+// DeleteBeat ...
+func DeleteBeat(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/auth/discord", 301)
+		return
+	}
+
+	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		http.Redirect(w, r, "/", 301)
+		return
+	}
+
+	redirectURL := "/battle/" + strconv.Itoa(battleID)
+
+	// TODO - BATTLE ID AND DEADLINE
+	isOpen := RowExists(db, "SELECT challenge_id FROM challenges WHERE challenge_id = ?", battleID)
+
+	if !isOpen {
+		http.Redirect(w, r, redirectURL, 301)
+		return
+	}
+
+	// IF HAS ENTERED, HANDLE UPDATING INSTEAD
+	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
+
+	if user.Authenticated && hasEntered {
+		stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
+
+		ins, err := db.Prepare(stmt)
+		if err != nil {
+			panic(err.Error())
+		}
+		defer ins.Close()
+
+		ins.Exec(user.ID, battleID)
+	} else {
 		http.Redirect(w, r, redirectURL, 301)
 		return
 	}
