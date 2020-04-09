@@ -28,7 +28,7 @@
           <zg-column header="Discord" index="discord"></zg-column>
           <zg-column header="Votes" index="votes" sort-desc></zg-column>
           {{ end }}          
-          <zg-column header="track" index="url"></zg-column>
+          <zg-column header="Track" index="url"></zg-column>
           {{if contains "Voting" .Battle.Status}}
           <zg-column header="Vote" index="vote">
           <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>

@@ -301,7 +301,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entries := 0
-	err := db.QueryRow("SELECT COUNT(?) FROM challenges WHERE status='entry' AND ", user.ID).Scan(&entries)
+	err := db.QueryRow("SELECT COUNT(challenge_id) FROM challenges WHERE status=? AND user_id=?", "entry", user.ID).Scan(&entries)
 	if err != nil && err != sql.ErrNoRows {
 		panic(err.Error())
 	}
@@ -319,6 +319,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
+
 	votingDeadline, err := time.Parse(layout, r.FormValue("votingdeadline"))
 	if err != nil || votingDeadline.Before(deadline) {
 		http.Redirect(w, r, "/", 301)
