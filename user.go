@@ -15,8 +15,14 @@ import (
 func Callback(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
-		log.Println("SESSION ISSUE1")
-		Logout(w, r)
+		session.Options.MaxAge = -1
+		println("session issue 1")
+		err = session.Save(r, w)
+		if err != nil {
+			println("session issue 1 level")
+		}
+		w.Header().Set("Location", "/login")
+		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -26,8 +32,14 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	if handler != "reddit" {
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			log.Println("SESSION ISSUE2")
-			Logout(w, r)
+			session.Options.MaxAge = -1
+			println("err 1 level")
+			err = session.Save(r, w)
+			if err != nil {
+				println("err 2 level")
+			}
+			w.Header().Set("Location", "/login")
+			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
 		}
 		Account.Provider = user.Provider
@@ -44,16 +56,27 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		println(code)
 		token, err := redditAuth.GetToken(state, code)
 		if err != nil {
-			fmt.Print(err)
-			log.Println("REDDIT ISSUE1")
-			Logout(w, r)
+			session.Options.MaxAge = -1
+			println("reddit issue 1")
+			err = session.Save(r, w)
+			if err != nil {
+				println("reddit issue 1 level")
+			}
+			w.Header().Set("Location", "/login")
+			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
 		}
 		client := redditAuth.GetAuthClient(token)
 		user, err := client.GetMe()
 		if err != nil {
-			log.Println("REDDIT ISSUE2")
-			Logout(w, r)
+			session.Options.MaxAge = -1
+			println("reddit issue 2")
+			err = session.Save(r, w)
+			if err != nil {
+				println("reddit issue 2 level")
+			}
+			w.Header().Set("Location", "/login")
+			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
 		}
 		Account.Provider = "reddit"
@@ -139,7 +162,6 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	session.Values["user"] = User{}
 	session.Options.MaxAge = -1
 
 	err = session.Save(req, res)
@@ -160,7 +182,6 @@ func GenericLogout(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	session.Values["user"] = User{}
 	session.Options.MaxAge = -1
 
 	err = session.Save(req, res)
