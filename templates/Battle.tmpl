@@ -7,19 +7,19 @@
           <h1 class="nav-left">{{.Battle.Title}}</h1>
           <ul class="nav-links">
             {{if .IsOwner}}
-              <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/delete/battle/{{.Battle.ChallengeID}}">DELETE</a></li>
+              <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/delete/battle/{{.Battle.ID}}">DELETE</a></li>
               {{if contains "Finished" .Battle.Status}}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{else}}              
-                <li class="nav-item nav-submit"><a href="/update/battle/{{.Battle.ChallengeID}}">EDIT</a></li>
+                <li class="nav-item nav-submit"><a href="/update/battle/{{.Battle.ID}}">EDIT</a></li>
               {{end}}
             {{else}}
               <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
               {{if contains "Open" .Battle.Status}}
                 {{ if .EnteredBattle }}
-                <li class="nav-item nav-submit"><a href="/update/beat/{{.Battle.ChallengeID}}">UPDATE</a></li>
+                <li class="nav-item nav-submit"><a href="/update/beat/{{.Battle.ID}}">UPDATE</a></li>
                 {{ else }}
-                <li class="nav-item nav-submit"><a href="/submit/beat/{{.Battle.ChallengeID}}">SUBMIT</a></li>
+                <li class="nav-item nav-submit"><a href="/submit/beat/{{.Battle.ID}}">SUBMIT</a></li>
                 {{ end }}
               {{ else }}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
@@ -34,7 +34,7 @@
       <zing-grid caption="{{.Battle.Entries}} Entries" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if contains "Finished" .Battle.Status}}
-          <zg-column header="Discord" index="discord"></zg-column>
+          <zg-column header="Artist" index="artist"></zg-column>
           <zg-column header="Votes" index="votes" sort-desc></zg-column>
           {{ end }}          
           <zg-column header="Track" index="url"></zg-column>

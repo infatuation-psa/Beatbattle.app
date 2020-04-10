@@ -1,0 +1,16 @@
+
+
+{{ define "Login" }}
+  {{ template "Header" }}
+    <div class="login">
+        <a href="/" class="logo"><img src="/static/logo.svg"></a>
+        <div class="container-inner">
+            <h1>Log In</h1>
+            <ul class="nav-links">
+                <li class="nav-item"><a href="/auth/discord">DISCORD</a></li>
+                <li class="nav-item"><a href="/auth/reddit">REDDIT</a></li>
+            </ul>
+        </div>
+    </div>
+  {{ template "Footer" }}
+{{ end }}

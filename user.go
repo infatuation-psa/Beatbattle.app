@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,50 +12,120 @@ import (
 )
 
 // Callback ...
-func Callback(res http.ResponseWriter, req *http.Request) {
-	session, err := store.Get(req, "beatbattle")
+func Callback(w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, "beatbattle")
 	if err != nil {
 		log.Println("SESSION ISSUE1")
-		Logout(res, req)
+		Logout(w, r)
 		return
 	}
 
-	user, err := gothic.CompleteUserAuth(res, req)
-	if err != nil {
-		log.Println("SESSION ISSUE2")
-		Logout(res, req)
-		return
+	Account := User{}
+
+	handler := r.URL.Query().Get(":provider")
+	if handler != "reddit" {
+		user, err := gothic.CompleteUserAuth(w, r)
+		if err != nil {
+			log.Println("SESSION ISSUE2")
+			Logout(w, r)
+			return
+		}
+		Account.Provider = user.Provider
+		Account.Name = user.Name
+		Account.Avatar = user.AvatarURL
+		Account.ProviderID = user.UserID
+		Account.Authenticated = true
 	}
 
-	sessionUser := &User{
-		ID:            user.UserID,
-		Name:          user.Name,
-		Avatar:        user.AvatarURL,
-		Authenticated: true,
+	if handler == "reddit" {
+		state := r.URL.Query().Get("state")
+		println(state)
+		code := r.URL.Query().Get("code")
+		println(code)
+		token, err := redditAuth.GetToken(state, code)
+		if err != nil {
+			fmt.Print(err)
+			log.Println("REDDIT ISSUE1")
+			Logout(w, r)
+			return
+		}
+		client := redditAuth.GetAuthClient(token)
+		user, err := client.GetMe()
+		if err != nil {
+			log.Println("REDDIT ISSUE2")
+			Logout(w, r)
+			return
+		}
+		Account.Provider = "reddit"
+		Account.Name = user.Name
+		Account.Avatar = ""
+		Account.ProviderID = user.ID
+		Account.Authenticated = true
 	}
 
-	session.Values["user"] = sessionUser
+	db := dbConn()
+	defer db.Close()
 
-	err = session.Save(req, res)
+	userID := 0
+	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+	if err != nil && err != sql.ErrNoRows {
+		panic(err.Error())
+	}
+
+	// If user doesn't exist, add to db
+	if userID == 0 {
+		sql := "INSERT INTO users(provider, provider_id, nickname) VALUES(?,?,?)"
+
+		stmt, err := db.Prepare(sql)
+		if err != nil {
+			panic(err.Error())
+		}
+		defer stmt.Close()
+
+		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name)
+
+		err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+		if err != nil {
+			// Something is wrong lmao
+			http.Redirect(w, r, "/", 301)
+		}
+	}
+
+	Account.ID = userID
+	session.Values["user"] = Account
+	fmt.Print(Account)
+
+	err = session.Save(r, w)
 	if err != nil {
 		log.Println("SESSION ISSUE3")
-		Logout(res, req)
+		Logout(w, r)
 		return
 	}
 
 	// TODO - Save last url in a cookie and redirect to that instead.
-	res.Header().Set("Location", "/")
-	res.WriteHeader(http.StatusTemporaryRedirect)
+	w.Header().Set("Location", "/")
+	w.WriteHeader(http.StatusTemporaryRedirect)
 
 	// debug - tmpl.ExecuteTemplate(res, "UserTemplate", user)
 }
 
+// Login ...
+func Login(w http.ResponseWriter, r *http.Request) {
+	tmpl.ExecuteTemplate(w, "Login", "")
+}
+
 // Auth ...
-func Auth(res http.ResponseWriter, req *http.Request) {
-	if gothUser, err := gothic.CompleteUserAuth(res, req); err == nil {
-		tmpl.ExecuteTemplate(res, "UserTemplate", gothUser)
+func Auth(w http.ResponseWriter, r *http.Request) {
+	handler := r.URL.Query().Get(":provider")
+	if handler == "reddit" {
+		http.Redirect(w, r, redditAuth.GetAuthenticationURL(), 307)
+		return
+	}
+
+	if gothUser, err := gothic.CompleteUserAuth(w, r); err == nil {
+		tmpl.ExecuteTemplate(w, "UserTemplate", gothUser)
 	} else {
-		gothic.BeginAuthHandler(res, req)
+		gothic.BeginAuthHandler(w, r)
 	}
 }
 
@@ -83,7 +154,9 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 
 // User struct.
 type User struct {
-	ID            string
+	ID            int
+	Provider      string
+	ProviderID    string
 	Name          string
 	Avatar        string
 	Authenticated bool
@@ -92,7 +165,7 @@ type User struct {
 // GetUser ...
 func GetUser(res http.ResponseWriter, req *http.Request) User {
 	var user User
-	user.ID = "unset"
+	user.ID = 0
 
 	session, err := store.Get(req, "beatbattle")
 	if err != nil {
@@ -133,7 +206,8 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var battleID int
-	var userID string
+	var userID int
+
 	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE beat_id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil && err != sql.ErrNoRows {
 		panic(err.Error())
@@ -147,9 +221,10 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
+	// Get Battle status & max votes.
 	status := ""
 	maxVotes := 1
-	err = db.QueryRow("SELECT status, maxVotes FROM challenges WHERE challenge_id = ?", battleID).Scan(&status, &maxVotes)
+	err = db.QueryRow("SELECT status, maxVotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
 	if err != nil && err != sql.ErrNoRows {
 		panic(err.Error())
 	}

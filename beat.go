@@ -8,9 +8,8 @@ import (
 
 // Beat struct.
 type Beat struct {
-	ID          int    `gorm:"column:beat_id" json:"id"`
-	Discord     string `gorm:"column:discord" json:"discord"`
-	Artist      string `gorm:"column:artist" json:"artist,omitempty"`
+	ID          int    `gorm:"column:id" json:"id"`
+	Artist      string `json:"artist"`
 	URL         string `gorm:"column:beat_url" json:"url"`
 	Votes       int    `gorm:"column:votes" json:"votes"`
 	ChallengeID int    `gorm:"column:challenge_id" json:"challenge_id,omitempty"`
@@ -29,7 +28,9 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	battle := GetBattle(db, "SELECT * FROM challenges WHERE challenge_id = ?", battleID)
+	// TODO - Change this GetBattle statement or change GetBattle, this doesn't need a * sql statement.
+
+	battle := GetBattle(db, battleID)
 	if battle.Title == "" {
 		http.Redirect(w, r, "/", 301)
 		return
@@ -73,15 +74,12 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
 	// TODO - BATTLE ID AND DEADLINE
-	isOpen := RowExists(db, "SELECT challenge_id FROM challenges WHERE challenge_id = ?", battleID)
+	isOpen := RowExists(db, "SELECT id FROM challenges WHERE id = ?", battleID)
 
 	if !isOpen {
 		http.Redirect(w, r, redirectURL, 301)
 		return
 	}
-
-	// IF HAS ENTERED, HANDLE UPDATING INSTEAD
-	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
 
 	if user.Authenticated && r.Method == "POST" {
 		if !strings.Contains(r.FormValue("track"), "soundcloud") {
@@ -89,9 +87,11 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		stmt := "INSERT INTO beats(discord, artist, beat_url, challenge_id, user_id) VALUES(?,?,?,?,?)"
-		if hasEntered {
-			stmt = "UPDATE beats SET discord=?, artist=?, beat_url=? WHERE challenge_id=? AND user_id=?"
+		stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
+
+		// If has entered, update instead.
+		if RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
+			stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
 		}
 
 		ins, err := db.Prepare(stmt)
@@ -100,7 +100,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		}
 		defer ins.Close()
 
-		ins.Exec(user.Name, user.Name, r.FormValue("track"), battleID, user.ID)
+		ins.Exec(r.FormValue("track"), battleID, user.ID)
 	} else {
 		print("Not post")
 		http.Redirect(w, r, redirectURL, 301)
@@ -130,18 +130,7 @@ func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
-	// TODO - BATTLE ID AND DEADLINE
-	isOpen := RowExists(db, "SELECT challenge_id FROM challenges WHERE challenge_id = ?", battleID)
-
-	if !isOpen {
-		http.Redirect(w, r, redirectURL, 301)
-		return
-	}
-
-	// IF HAS ENTERED, HANDLE UPDATING INSTEAD
-	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
-
-	if user.Authenticated && hasEntered {
+	if user.Authenticated {
 		stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
 
 		ins, err := db.Prepare(stmt)

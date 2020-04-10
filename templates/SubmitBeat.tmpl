@@ -11,7 +11,7 @@
         </nav>
         <p><b>Rules:</b> {{.Battle.Rules}}<br />
         <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
-        <form method="POST" class="submit-form" action="/submit/beat/{{.Battle.ChallengeID}}">
+        <form method="POST" class="submit-form" action="/submit/beat/{{.Battle.ID}}">
           <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track.">
           <input type="submit" class="submit-track" value="SEND 🔥" />
         </form>
