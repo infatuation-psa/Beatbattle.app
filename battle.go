@@ -181,7 +181,6 @@ func GetBattles(db *sql.DB, status string) []Battle {
 
 // BattleHTTP - Retreives battle and displays to user.
 func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
-	println("help me")
 	db := dbConn()
 	defer db.Close()
 
@@ -329,7 +328,6 @@ func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBattle ...
 func UpdateBattle(w http.ResponseWriter, r *http.Request) {
-	println("test")
 	db := dbConn()
 	defer db.Close()
 
@@ -352,7 +350,7 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// For time.Parse
-	layout := "Jan 2, 2006-03:04 AM"
+	layout := "Jan 2, 2006-03:04 PM"
 
 	deadline := strings.Split(battle.Deadline.Format(layout), "-")
 	votingDeadline := strings.Split(battle.VotingDeadline.Format(layout), "-")
@@ -400,11 +398,13 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// For time.Parse
-	layout := "Jan 2, 2006 03:04 AM"
+	layout := "Jan 2, 2006 03:04 PM"
 
 	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
+	println(deadline.String())
 	if err != nil || deadline.Before(time.Now()) {
+		fmt.Print(err)
 		http.Redirect(w, r, "/", 301)
 		return
 	}
@@ -475,7 +475,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/login", 301)
 		return
 	}
 
@@ -486,7 +486,6 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if entries >= 3 {
-		println(entries)
 		http.Redirect(w, r, "/", 301)
 		return
 	}
@@ -496,9 +495,10 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		loc, _ = time.LoadLocation("America/Los_Angeles")
 	}
 	// For time.Parse
-	layout := "Jan 2, 2006 03:04 AM"
+	layout := "Jan 2, 2006 03:04 PM"
 
 	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
+	println(unparsedDeadline)
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
 	if err != nil || deadline.Before(time.Now()) {
 		http.Redirect(w, r, "/", 301)
@@ -541,11 +541,13 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 			for _, err := range err.(validator.ValidationErrors) {
 				fmt.Println(err.Namespace())
 			}
+			println("test-3")
 			http.Redirect(w, r, "/", 301)
 			return
 		}
 
 		if RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND title = ?", user.ID, battle.Title) {
+			println("test--3")
 			http.Redirect(w, r, "/", 301)
 			return
 		}
