@@ -152,6 +152,27 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// GenericLogout ...
+func GenericLogout(res http.ResponseWriter, req *http.Request) {
+	session, err := store.Get(req, "beatbattle")
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session.Values["user"] = User{}
+	session.Options.MaxAge = -1
+
+	err = session.Save(req, res)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	res.Header().Set("Location", "/")
+	res.WriteHeader(http.StatusTemporaryRedirect)
+}
+
 // User struct.
 type User struct {
 	ID            int

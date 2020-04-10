@@ -110,6 +110,7 @@ func main() {
 	router.Get("/auth/{provider}/callback", Callback)
 	router.Get("/auth/{provider}", Auth)
 	router.Get("/logout/{provider}", Logout)
+	router.Get("/logout", GenericLogout)
 	router.Post("/vote/{id:[0-9]+}", AddVote)
 	router.Get("/login", Login)
 
