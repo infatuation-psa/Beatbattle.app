@@ -7,19 +7,19 @@
           <h1 class="nav-left">{{.Battle.Title}}</h1>
           <ul class="nav-links">
             {{if .IsOwner}}
-              <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/delete/battle/{{.Battle.ID}}">DELETE</a></li>
+              <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
               {{if contains "Finished" .Battle.Status}}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{else}}              
-                <li class="nav-item nav-submit"><a href="/update/battle/{{.Battle.ID}}">EDIT</a></li>
+                <li class="nav-item nav-submit"><a href="/battle/{{.Battle.ID}}/update">EDIT</a></li>
               {{end}}
             {{else}}
               <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
               {{if contains "Open" .Battle.Status}}
                 {{ if .EnteredBattle }}
-                <li class="nav-item nav-submit"><a href="/update/beat/{{.Battle.ID}}">UPDATE</a></li>
+                <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
                 {{ else }}
-                <li class="nav-item nav-submit"><a href="/submit/beat/{{.Battle.ID}}">SUBMIT</a></li>
+                <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
                 {{ end }}
               {{ else }}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>

@@ -179,26 +179,27 @@ func GetBattles(db *sql.DB, status string) []Battle {
 	return battles
 }
 
-// ViewBattle - Retreives battle and displays to user.
-func ViewBattle(w http.ResponseWriter, r *http.Request) {
+// BattleHTTP - Retreives battle and displays to user.
+func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
+	println("help me")
 	db := dbConn()
 	defer db.Close()
 
-	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	battleID, err := strconv.Atoi(req.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(wr, req, "/", 301)
 	}
 
 	// Retrieve battle, return to front page if battle doesn't exist.
 	battle := GetBattle(db, battleID)
 
 	if battle.Title == "" {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(wr, req, "/", 301)
 		return
 	}
 
 	// Get beats user has voted for
-	var user = GetUser(w, r)
+	var user = GetUser(wr, req)
 	var lastVotes []int
 
 	votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", user.ID, battleID)
@@ -233,7 +234,7 @@ func ViewBattle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// This doesn't crash anything, but should be avoided.
 		fmt.Println(err)
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(wr, req, "/", 301)
 		return
 	}
 	defer rows.Close()
@@ -283,7 +284,7 @@ func ViewBattle(w http.ResponseWriter, r *http.Request) {
 		"IsOwner":       isOwner,
 	}
 
-	tmpl.ExecuteTemplate(w, "Battle", m)
+	tmpl.ExecuteTemplate(wr, "Battle", m)
 }
 
 // GetBattle retrieves a battle from the database using an ID.
@@ -328,6 +329,7 @@ func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBattle ...
 func UpdateBattle(w http.ResponseWriter, r *http.Request) {
+	println("test")
 	db := dbConn()
 	defer db.Close()
 
@@ -349,9 +351,19 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// For time.Parse
+	layout := "Jan 2, 2006-03:04 AM"
+
+	deadline := strings.Split(battle.Deadline.Format(layout), "-")
+	votingDeadline := strings.Split(battle.VotingDeadline.Format(layout), "-")
+
 	m := map[string]interface{}{
-		"Battle": battle,
-		"User":   user,
+		"Battle":             battle,
+		"User":               user,
+		"DeadlineDate":       deadline[0],
+		"DeadlineTime":       deadline[1],
+		"VotingDeadlineDate": votingDeadline[0],
+		"VotingDeadlineTime": votingDeadline[1],
 	}
 
 	tmpl.ExecuteTemplate(w, "UpdateBattle", m)
@@ -382,34 +394,42 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loc, err := time.LoadLocation(policy.Sanitize(r.FormValue("timezone")))
+	if err != nil {
+		loc, _ = time.LoadLocation("America/Los_Angeles")
+	}
+
 	// For time.Parse
-	layout := "2006-01-02T15:04"
-	deadline, err := time.Parse(layout, r.FormValue("deadline"))
+	layout := "Jan 2, 2006 03:04 AM"
+
+	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
+	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
 	if err != nil || deadline.Before(time.Now()) {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
-	votingDeadline, err := time.Parse(layout, r.FormValue("votingdeadline"))
+	unparsedVotingDeadline := policy.Sanitize(r.FormValue("votingdeadline-date") + " " + r.FormValue("votingdeadline-time"))
+	votingDeadline, err := time.ParseInLocation(layout, unparsedVotingDeadline, loc)
 	if err != nil || votingDeadline.Before(deadline) {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
-	maxVotes, err := strconv.Atoi(r.FormValue("maxvotes"))
+	maxVotes, err := strconv.Atoi(policy.Sanitize(r.FormValue("maxvotes")))
 	if err != nil || maxVotes < 1 || maxVotes > 10 {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
 	battle := &Battle{
-		Title:          r.FormValue("title"),
-		Rules:          r.FormValue("rules"),
+		Title:          policy.Sanitize(r.FormValue("title")),
+		Rules:          policy.Sanitize(r.FormValue("rules")),
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
-		Attachment:     r.FormValue("attachment"),
+		Attachment:     policy.Sanitize(r.FormValue("attachment")),
 		Host:           user.Name,
-		Password:       r.FormValue("password"),
+		Password:       policy.Sanitize(r.FormValue("password")),
 		MaxVotes:       maxVotes,
 		UserID:         user.ID,
 	}
@@ -471,35 +491,42 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loc, err := time.LoadLocation(policy.Sanitize(r.FormValue("timezone")))
+	if err != nil {
+		loc, _ = time.LoadLocation("America/Los_Angeles")
+	}
 	// For time.Parse
-	layout := "2006-01-02T15:04"
-	deadline, err := time.Parse(layout, r.FormValue("deadline"))
+	layout := "Jan 2, 2006 03:04 AM"
+
+	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
+	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
 	if err != nil || deadline.Before(time.Now()) {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
-	votingDeadline, err := time.Parse(layout, r.FormValue("votingdeadline"))
+	unparsedVotingDeadline := policy.Sanitize(r.FormValue("votingdeadline-date") + " " + r.FormValue("votingdeadline-time"))
+	votingDeadline, err := time.ParseInLocation(layout, unparsedVotingDeadline, loc)
 	if err != nil || votingDeadline.Before(deadline) {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
-	maxVotes, err := strconv.Atoi(r.FormValue("maxvotes"))
+	maxVotes, err := strconv.Atoi(policy.Sanitize(r.FormValue("maxvotes")))
 	if err != nil || maxVotes < 1 || maxVotes > 10 {
 		http.Redirect(w, r, "/", 301)
 		return
 	}
 
 	battle := &Battle{
-		Title:          r.FormValue("title"),
-		Rules:          r.FormValue("rules"),
+		Title:          policy.Sanitize(r.FormValue("title")),
+		Rules:          policy.Sanitize(r.FormValue("rules")),
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
-		Attachment:     r.FormValue("attachment"),
+		Attachment:     policy.Sanitize(r.FormValue("attachment")),
 		Host:           user.Name,
 		Status:         "entry",
-		Password:       r.FormValue("password"),
+		Password:       policy.Sanitize(r.FormValue("password")),
 		UserID:         user.ID,
 		Entries:        0,
 		ID:             0,

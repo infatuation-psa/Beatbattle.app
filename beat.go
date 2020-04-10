@@ -81,8 +81,10 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	track := policy.Sanitize(r.FormValue("track"))
+
 	if user.Authenticated && r.Method == "POST" {
-		if !strings.Contains(r.FormValue("track"), "soundcloud") {
+		if !strings.Contains(track, "soundcloud") {
 			http.Redirect(w, r, redirectURL, 301)
 			return
 		}
@@ -100,7 +102,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		}
 		defer ins.Close()
 
-		ins.Exec(r.FormValue("track"), battleID, user.ID)
+		ins.Exec(track, battleID, user.ID)
 	} else {
 		print("Not post")
 		http.Redirect(w, r, redirectURL, 301)

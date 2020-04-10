@@ -3,30 +3,46 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <form id="submit-battle" method="POST" action="/update/battle/{{.Battle.ID}}">
+        <form id="submit-battle" method="POST" action="/battle/{{.Battle.ID}}/update">
         <nav class="battle-title">
-            <input type="text" data-index="1" class="heading-1 submit-header" id="title" name="title" maxlength="64" value="{{.Battle.Title}}" placeholder="Battle Title">
+            <input type="text" data-index="1" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" value="{{.Battle.Title}}" placeholder="Battle Title">
             <input type="submit" class="nav-submit" value="UPDATE 🔥" />
         </nav>
-        <input data-index="2" class="submit-border submit-nobox" id="rules" name="rules" value="{{.Battle.Rules}}" maxlength="255" placeholder="Battle Rules">
-        <input type="text" data-index="3" class="submit-border submit-nobox" id="password" value="{{.Battle.Password}}" name="password" maxlength="64" placeholder="Password (Optional)">
-        <div class="submit-border submit-label">
+        <input data-index="2" class="submit-border submit-nobox" id="rules" name="rules" maxlength="255" value="{{.Battle.Rules}}" placeholder="Battle Rules">
+        <input type="text" data-index="3" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="64" placeholder="Password (Optional)">
+        <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
-            <input type="number" data-index="4" class="submit-nobox" id="maxvotes" name="maxvotes" value="{{.Battle.MaxVotes}}" min="1" max="10">
+            <input type="number" data-index="4" class="submit-nobox" id="maxvotes" name="maxvotes" value="{{.Battle.MaxVotes}}" value="1" min="1" max="10">
         </div>
-        <div class="submit-border submit-label">
-            <span class="submit-text">Deadline</span>
-            <input type="datetime-local" data-index="5" class="submit-nobox" id="deadline" value="{{.Battle.Deadline.Format "2006-01-02T15:04"}}" name="deadline">
+        <div class="container-form submit-border">
+          <div class="submit-split1">
+              <input type="text" class="datepicker submit-nobox" data-index="5" id="deadline-date" name="deadline-date" value="{{.DeadlineDate}}". placeholder="Deadline">
+          </div>
+          <div class="submit-split2">
+              <input type="text" class="timepicker submit-nobox" data-index="6" id="deadline-time" name="deadline-time" value="{{.DeadlineTime}}" placeholder="At">
+          </div>
         </div>
-        <div class="submit-border submit-label">
-            <span class="submit-text">Voting Deadline</span>
-            <input type="datetime-local"  data-index="6" class="submit-nobox" value="{{.Battle.VotingDeadline.Format "2006-01-02T15:04"}}" id="votingdeadline" name="votingdeadline">
+        <div class="container-form submit-border">
+          <div class="submit-split1">
+              <input type="text" class="datepicker submit-nobox" data-index="7" id="votingdeadline-date" name="votingdeadline-date"  value="{{.VotingDeadlineDate}}" placeholder="Voting Deadline">
+          </div>
+          <div class="submit-split2">
+              <input type="text" class="timepicker submit-nobox" data-index="8" id="votingdeadline-time" name="votingdeadline-time"  value="{{.VotingDeadlineTime}}" placeholder="At">
+          </div>
         </div>
-        <input type="url" class="submit-border submit-nobox" data-index="7" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (Optional)">
+        <input type="url" class="submit-border submit-nobox" data-index="9" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (Optional)">
+        <input type="hidden" id="timezone" value="">
+        </div>
         </form>
       </div>
       </div>
+      <script type="text/javascript" src="/static/materialize.min.js"></script>
       <script>
+$(document).ready(function(){
+$('.datepicker').datepicker();
+$('.timepicker').timepicker();
+$('#timezone').val(Intl.DateTimeFormat().resolvedOptions().timeZone);
+});
       $('#submit-battle').on('keydown', 'input', function (event) {
             if (event.which == 13) {
                 event.preventDefault();

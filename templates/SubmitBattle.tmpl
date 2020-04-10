@@ -3,41 +3,57 @@
     {{ template "Menu" . }}
     <div class="container">
       <div class="battle-information">
-        <form id="submit-battle" method="POST" action="/submit/battle/">
+        <form id="submit-battle" method="POST" action="/battle/submit">
         <nav class="battle-title">
-            <input type="text" data-index="1" class="heading-1 submit-header" id="title" name="title" maxlength="64" placeholder="Battle Title">
+            <input type="text" data-index="1" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title">
             <input type="submit" class="nav-submit" value="CREATE 🔥" />
         </nav>
         <input data-index="2" class="submit-border submit-nobox" id="rules" name="rules" maxlength="255" placeholder="Battle Rules">
         <input type="text" data-index="3" class="submit-border submit-nobox" id="password" name="password" maxlength="64" placeholder="Password (Optional)">
-        <div class="submit-border submit-label">
+        <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
             <input type="number" data-index="4" class="submit-nobox" id="maxvotes" name="maxvotes" value="1" min="1" max="10">
         </div>
-        <div class="submit-border submit-label">
-            <span class="submit-text">Deadline</span>
-            <input type="datetime-local" data-index="5" class="submit-nobox" id="deadline" name="deadline">
+        <div class="container-form submit-border">
+          <div class="submit-split1">
+              <input type="text" class="datepicker submit-nobox" data-index="5" id="deadline-date" name="deadline-date" placeholder="Deadline">
+          </div>
+          <div class="submit-split2">
+              <input type="text" class="timepicker submit-nobox" data-index="6" id="deadline-time" name="deadline-time" placeholder="At">
+          </div>
         </div>
-        <div class="submit-border submit-label">
-            <span class="submit-text">Voting Deadline</span>
-            <input type="datetime-local"  data-index="6" class="submit-nobox" id="votingdeadline" name="votingdeadline">
+        <div class="container-form submit-border">
+          <div class="submit-split1">
+              <input type="text" class="datepicker submit-nobox" data-index="7" id="votingdeadline-date" name="votingdeadline-date" placeholder="Voting Deadline">
+          </div>
+          <div class="submit-split2">
+              <input type="text" class="timepicker submit-nobox" data-index="8" id="votingdeadline-time" name="votingdeadline-time" placeholder="At">
+          </div>
         </div>
-        <input type="url" class="submit-border submit-nobox" data-index="7" id="attachment" name="attachment" placeholder="Battle Attachment (Optional)">
+        <input type="url" class="submit-border submit-nobox" data-index="9" id="attachment" name="attachment" placeholder="Battle Attachment (Optional)">
+        <input type="hidden" id="timezone" value="">
+        </div>
         </form>
       </div>
       </div>
+      <script type="text/javascript" src="/static/materialize.min.js"></script>
       <script>
-      $('#submit-battle').on('keydown', 'input', function (event) {
-            if (event.which == 13) {
-                event.preventDefault();
-                var $this = $(event.target);
-                var index = parseFloat($this.attr('data-index'));
-                if (index >= 7) {
-                  index = 0;
-                }
-                $('[data-index="' + (index + 1).toString() + '"]').focus();
-            }
-        });
+$(document).ready(function(){
+$('.datepicker').datepicker();
+$('.timepicker').timepicker();
+$('#timezone').val(Intl.DateTimeFormat().resolvedOptions().timeZone);
+});
+$('#submit-battle').on('keydown', 'input', function (event) {
+if (event.which == 13) {
+event.preventDefault();
+var $this = $(event.target);
+var index = parseFloat($this.attr('data-index'));
+if (index >= 9) {
+index = 0;
+}
+$('[data-index="' + (index + 1).toString() + '"]').focus();
+}
+});
       </script>
   {{ template "Footer" }}
 {{ end }}

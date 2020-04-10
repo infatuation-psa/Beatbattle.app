@@ -1,0 +1,256 @@
+//Default styles
+
+html {
+ box-sizing: border-box;
+}
+*, *:before, *:after {
+ box-sizing: inherit;
+}
+
+ul {
+  &:not(.browser-default) {
+    padding-left: 0;
+    list-style-type: none;
+
+    & > li {
+      list-style-type: none;
+    }
+  }
+}
+
+a {
+	text-decoration: none;
+
+  // Gets rid of tap active state
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+// Positioning
+.valign-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+
+// classic clearfix
+.clearfix {
+  clear: both;
+}
+
+
+// Z-levels
+.z-depth-0 {
+  box-shadow: none !important;
+}
+
+/* 2dp elevation modified*/
+.z-depth-1 {
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14),
+              0 3px 1px -2px rgba(0,0,0,0.12),
+              0 1px 5px 0 rgba(0,0,0,0.2);
+}
+.z-depth-1-half {
+  box-shadow: 0 3px 3px 0 rgba(0, 0, 0, 0.14), 0 1px 7px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* 6dp elevation modified*/
+.z-depth-2 {
+  box-shadow: 0 4px 5px 0 rgba(0,0,0,0.14),
+              0 1px 10px 0 rgba(0,0,0,0.12),
+              0 2px 4px -1px rgba(0,0,0,0.3);
+}
+
+/* 12dp elevation modified*/
+.z-depth-3 {
+  box-shadow: 0 8px 17px 2px rgba(0,0,0,0.14),
+              0 3px 14px 2px rgba(0,0,0,0.12),
+              0 5px 5px -3px rgba(0, 0, 0, 0.2);
+}
+
+/* 16dp elevation */
+.z-depth-4 {
+  box-shadow: 0 16px 24px 2px rgba(0,0,0,0.14),
+              0 6px 30px 5px rgba(0,0,0,0.12),
+              0 8px 10px -7px rgba(0,0,0,0.2);
+}
+
+/* 24dp elevation */
+.z-depth-5 {
+  box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14),
+              0 9px 46px 8px rgba(0,0,0,0.12),
+              0 11px 15px -7px rgba(0,0,0,0.2);
+}
+
+.hoverable {
+  transition: box-shadow .25s;
+
+  &:hover {
+    box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  }
+}
+
+// Dividers
+
+.divider {
+  height: 1px;
+  overflow: hidden;
+  background-color: color("grey", "lighten-2");
+}
+
+// Pushpin
+.pin-top, .pin-bottom {
+  position: relative;
+}
+.pinned {
+  position: fixed !important;
+}
+
+/*********************
+  Transition Classes
+**********************/
+
+ul.staggered-list li {
+  opacity: 0;
+}
+
+.fade-in {
+  opacity: 0;
+  transform-origin: 0 50%;
+}
+
+
+/*********************
+  Media Query Classes
+**********************/
+.hide-on-small-only, .hide-on-small-and-down {
+  @media #{$small-and-down} {
+    display: none !important;
+  }
+}
+.hide-on-med-and-down {
+  @media #{$medium-and-down} {
+    display: none !important;
+  }
+}
+.hide-on-med-and-up {
+  @media #{$medium-and-up} {
+    display: none !important;
+  }
+}
+.hide-on-med-only {
+  @media only screen and (min-width: $small-screen) and (max-width: $medium-screen) {
+    display: none !important;
+  }
+}
+.hide-on-large-only {
+  @media #{$large-and-up} {
+    display: none !important;
+  }
+}
+.hide-on-extra-large-only {
+  @media #{$extra-large-and-up} {
+    display: none !important;
+  }
+}
+.show-on-extra-large {
+  @media #{$extra-large-and-up} {
+    display: block !important;
+  }
+}
+.show-on-large {
+  @media #{$large-and-up} {
+    display: block !important;
+  }
+}
+.show-on-medium {
+  @media only screen and (min-width: $small-screen) and (max-width: $medium-screen) {
+    display: block !important;
+  }
+}
+.show-on-small {
+  @media #{$small-and-down} {
+    display: block !important;
+  }
+}
+.show-on-medium-and-up {
+  @media #{$medium-and-up} {
+    display: block !important;
+  }
+}
+.show-on-medium-and-down {
+  @media #{$medium-and-down} {
+    display: block !important;
+  }
+}
+
+
+// Center text on mobile
+.center-on-small-only {
+  @media #{$small-and-down} {
+    text-align: center;
+  }
+}
+
+// Made less specific to allow easier overriding
+.secondary-content {
+  float: right;
+  color: $secondary-color;
+}
+.collapsible .collection {
+  margin: 0;
+  border: none;
+}
+
+
+/*******************
+  Utility Classes
+*******************/
+
+.hide {
+  display: none !important;
+}
+
+// Text Align
+.left-align {
+  text-align: left;
+}
+.right-align {
+  text-align: right
+}
+.center, .center-align {
+  text-align: center;
+}
+
+.left {
+  float: left !important;
+}
+.right {
+  float: right !important;
+}
+
+// No Text Select
+.no-select {
+  user-select: none;
+}
+
+.circle {
+  border-radius: 50%;
+}
+
+.center-block {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.truncate {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no-padding {
+  padding: 0 !important;
+}

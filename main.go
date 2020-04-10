@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/microcosm-cc/bluemonday"
+
 	"github.com/cameronstanley/go-reddit"
 	_ "github.com/go-sql-driver/mysql"
 
@@ -39,6 +41,7 @@ var redditAuth *reddit.Authenticator
 
 // tmpl holds all parsed templates
 var tmpl *template.Template
+var policy *bluemonday.Policy
 
 /*-------
 Help Actions
@@ -49,6 +52,9 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
 	}
+
+	policy = bluemonday.StrictPolicy()
+	policy.AllowStandardURLs()
 
 	/*authKeyOne := securecookie.GenerateRandomKey(64)
 	encryptionKeyOne := securecookie.GenerateRandomKey(32)*/
@@ -111,27 +117,23 @@ func main() {
 	router.Get("/auth/{provider}", Auth)
 	router.Get("/logout/{provider}", Logout)
 	router.Get("/logout", GenericLogout)
-	router.Post("/vote/{id:[0-9]+}", AddVote)
+	router.Post("/vote/{id}", AddVote)
 	router.Get("/login", Login)
 
-	// Handlers for beats
-	router.Get("/submit/beat/{id:[0-9]+}", SubmitBeat)
-	router.Post("/submit/beat/{id:[0-9]+}", InsertBeat)
-	router.Get("/update/beat/{id:[0-9]+}", SubmitBeat)
-	router.Get("/delete/beat/{id:[0-9]+}", DeleteBeat)
+	// Battle
+	router.Post("/battle/{id}/update", UpdateBattleDB)
+	router.Get("/battle/{id}/update", UpdateBattle)
+	router.Get("/battle/{id}/delete", DeleteBattle)
+	router.Post("/battle/submit", InsertBattle)
+	router.Get("/battle/submit", SubmitBattle)
+	router.Get("/battle/{id}", BattleHTTP)
 
-	// Handlers for battles
-	router.Get("/battle/{id:[0-9]+}", ViewBattle)
+	// Beat
+	router.Get("/beat/{id}/submit", SubmitBeat)
+	router.Post("/beat/{id}/submit", InsertBeat)
+	router.Get("/beat/{id}/update", SubmitBeat)
+	router.Get("/beat/{id}/delete", DeleteBeat)
 
-	// Submit A Battle
-	router.Get("/submit/battle", SubmitBattle)
-	router.Post("/submit/battle", InsertBattle)
-
-	// Update A Battle
-	router.Get("/update/battle/{id:[0-9]+}", UpdateBattle)
-	router.Post("/update/battle/{id:[0-9]+}", UpdateBattleDB)
-
-	router.Get("/delete/battle/{id:[0-9]+}", DeleteBattle)
 	router.Get("/past", ViewBattles)
 	router.Get("/", ViewBattles)
 

@@ -15,11 +15,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
 		session.Options.MaxAge = -1
-		println("session issue 1")
 		err = session.Save(r, w)
-		if err != nil {
-			println("session issue 1 level")
-		}
 		w.Header().Set("Location", "/login")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
@@ -32,11 +28,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
 			session.Options.MaxAge = -1
-			println("err 1 level")
 			err = session.Save(r, w)
-			if err != nil {
-				println("err 2 level")
-			}
 			w.Header().Set("Location", "/login")
 			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
@@ -50,17 +42,11 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 	if handler == "reddit" {
 		state := r.URL.Query().Get("state")
-		println(state)
 		code := r.URL.Query().Get("code")
-		println(code)
 		token, err := redditAuth.GetToken(state, code)
 		if err != nil {
 			session.Options.MaxAge = -1
-			println("reddit issue 1")
 			err = session.Save(r, w)
-			if err != nil {
-				println("reddit issue 1 level")
-			}
 			w.Header().Set("Location", "/login")
 			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
@@ -69,11 +55,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		user, err := client.GetMe()
 		if err != nil {
 			session.Options.MaxAge = -1
-			println("reddit issue 2")
 			err = session.Save(r, w)
-			if err != nil {
-				println("reddit issue 2 level")
-			}
 			w.Header().Set("Location", "/login")
 			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
@@ -95,6 +77,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If user doesn't exist, add to db
+	// TODO UPDATE NICKNAME
 	if userID == 0 {
 		sql := "INSERT INTO users(provider, provider_id, nickname) VALUES(?,?,?)"
 
@@ -120,11 +103,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	err = session.Save(r, w)
 	if err != nil {
 		session.Options.MaxAge = -1
-		println("reddit issue 2")
 		err = session.Save(r, w)
-		if err != nil {
-			println("reddit issue 2 level")
-		}
 		w.Header().Set("Location", "/login")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
