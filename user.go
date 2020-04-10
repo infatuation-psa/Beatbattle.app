@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -120,8 +119,14 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 	err = session.Save(r, w)
 	if err != nil {
-		log.Println("SESSION ISSUE3")
-		Logout(w, r)
+		session.Options.MaxAge = -1
+		println("reddit issue 2")
+		err = session.Save(r, w)
+		if err != nil {
+			println("reddit issue 2 level")
+		}
+		w.Header().Set("Location", "/login")
+		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -159,7 +164,6 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 	session, err := store.Get(req, "beatbattle")
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	session.Options.MaxAge = -1
@@ -167,7 +171,6 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 	err = session.Save(req, res)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	res.Header().Set("Location", "/")
