@@ -16,11 +16,11 @@
         </div>
         <div class="submit-border submit-label">
             <span class="submit-text">Deadline</span>
-            <input type="datetime" data-index="5" class="submit-nobox" id="deadline" value="{{.Battle.Deadline.Format "2006-01-02T15:04"}}" name="deadline">
+            <input type="datetime-local" data-index="5" class="submit-nobox" id="deadline" value="{{.Battle.Deadline.Format "2006-01-02T15:04"}}" name="deadline">
         </div>
         <div class="submit-border submit-label">
             <span class="submit-text">Voting Deadline</span>
-            <input type="datetime"  data-index="6" class="submit-nobox" value="{{.Battle.VotingDeadline.Format "2006-01-02T15:04"}}" id="votingdeadline" name="votingdeadline">
+            <input type="datetime-local"  data-index="6" class="submit-nobox" value="{{.Battle.VotingDeadline.Format "2006-01-02T15:04"}}" id="votingdeadline" name="votingdeadline">
         </div>
         <input type="url" class="submit-border submit-nobox" data-index="7" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (Optional)">
         </form>
