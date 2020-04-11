@@ -1,94 +1,10 @@
 // 1. Colors
 // ==========================================================================
 
-$primary-color: black !default;
-$primary-color-light: lighten($primary-color, 15%) !default;
-$primary-color-dark: darken($primary-color, 15%) !default;
-
 $secondary-color: #ff5800 !default;
-$success-color: color("green", "base") !default;
-$error-color: color("red", "base") !default;
-$link-color: color("light-blue", "darken-1") !default;
-
-// 8. Date + Time Picker
-// ==========================================================================
-
-$datepicker-display-font-size: 2.8rem;
-$datepicker-calendar-header-color: #999;
-$datepicker-weekday-color: rgba(0, 0, 0, .87) !default;
-$datepicker-weekday-bg: darken($secondary-color, 7%) !default;
-$datepicker-date-bg: $secondary-color !default;
-$datepicker-year: rgba(255, 255, 255, .7) !default;
-$datepicker-focus: rgba(0,0,0, .05) !default;
-$datepicker-selected: $secondary-color !default;
-$datepicker-selected-outfocus: desaturate(lighten($secondary-color, 35%), 15%) !default;
-$datepicker-day-focus: transparentize(desaturate($secondary-color, 5%), .75) !default;
-$datepicker-disabled-day-color: rgba(0, 0, 0, .3) !default;
-
-$timepicker-clock-color: rgba(0, 0, 0, .87) !default;
-$timepicker-clock-plate-bg: #eee !default;
-
-
-// 9. Dropdown
-// ==========================================================================
-
-$dropdown-bg-color: #fff !default;
-$dropdown-hover-bg-color: #eee !default;
-$dropdown-color: $secondary-color !default;
-$dropdown-item-height: 50px !default;
-
-
-// 10. Forms
-// ==========================================================================
-
-// Text Inputs + Textarea
-$input-height: 3rem !default;
-$input-border-color: color("grey", "base") !default;
-$input-border: 1px solid $input-border-color !default;
-$input-background: #fff !default;
-$input-error-color: $error-color !default;
-$input-success-color: $success-color !default;
-$input-focus-color: $secondary-color !default;
-$input-font-size: 16px !default;
-$input-margin-bottom: 8px;
-$input-margin: 0 0 $input-margin-bottom 0 !default;
-$input-padding: 0 !default;
-$label-font-size: .8rem !default;
+$success-color: $secondary-color !default;
+$error-color: red !default;
 $input-disabled-color: rgba(0,0,0, .42) !default;
-$input-disabled-solid-color: #949494 !default;
-$input-disabled-border: 1px dotted $input-disabled-color !default;
-$input-invalid-border: 1px solid $input-error-color !default;
-$input-icon-size: 2rem;
-$placeholder-text-color: lighten($input-border-color, 20%) !default;
-
-// Radio Buttons
-$radio-fill-color: $secondary-color !default;
-$radio-empty-color: #5a5a5a !default;
-$radio-border: 2px solid $radio-fill-color !default;
-
-// Range
-$range-height: 14px !default;
-$range-width: 14px !default;
-$track-height: 3px !default;
-
-// Select
-$select-border: 1px solid #f2f2f2 !default;
-$select-background: rgba(255, 255, 255, 0.90) !default;
-$select-focus: 1px solid lighten($secondary-color, 47%) !default;
-$select-option-hover: rgba(0,0,0,.08) !default;
-$select-option-focus: rgba(0,0,0,.08) !default;
-$select-option-selected: rgba(0,0,0,.03) !default;
-$select-padding: 5px !default;
-$select-radius: 2px !default;
-$select-disabled-color: rgba(0,0,0,.3) !default;
-
-// Switches
-$switch-bg-color: $secondary-color !default;
-$switch-checked-lever-bg: desaturate(lighten($switch-bg-color, 25%), 25%) !default;
-$switch-unchecked-bg: #F1F1F1 !default;
-$switch-unchecked-lever-bg: rgba(0,0,0,.38) !default;
-$switch-radius: 15px !default;
-
 
 // 11. Global
 // ==========================================================================
@@ -107,15 +23,6 @@ $extra-large-and-up: "only screen and (min-width : #{$large-screen-up})" !defaul
 $small-and-down: "only screen and (max-width : #{$small-screen})" !default;
 $medium-and-down: "only screen and (max-width : #{$medium-screen})" !default;
 $medium-only: "only screen and (min-width : #{$small-screen-up}) and (max-width : #{$medium-screen})" !default;
-
-
-// 19. Toasts
-// ==========================================================================
-
-$toast-height: 48px !default;
-$toast-color: #323232 !default;
-$toast-text-color: #fff !default;
-$toast-action-color: #eeff41;
 
 
 // 20. Typography

@@ -1,15 +1,11 @@
 @charset "UTF-8";
 
-// Color
-@import "components/color-variables";
-@import "components/color-classes";
 
 // Variables;
 @import "components/variables";
 
 // components
 @import "components/global";
-@import "components/icons-material-design";
 @import "components/toast";
 @import "components/dropdown";
 @import "components/modal";

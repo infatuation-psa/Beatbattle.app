@@ -36,20 +36,20 @@
   position: relative;
   max-width:100%;
   height: auto;
-  min-height: $toast-height;
+  min-height: 48px;
   line-height: 1.5em;
-  background-color: $toast-color;
+  background-color: #323232;
   padding: 10px 25px;
   font-size: 1.1rem;
   font-weight: 300;
-  color: $toast-text-color;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: default;
 
   .toast-action {
-    color: $toast-action-color;
+    color: white;
     font-weight: 500;
     margin-right: -25px;
     margin-left: 3rem;

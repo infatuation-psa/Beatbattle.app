@@ -18,7 +18,7 @@
 /* Clock Digital Display */
 .timepicker-digital-display {
   flex: 1 auto;
-  background-color: $secondary-color;
+  background-color: #ff5800;
   padding: 10px;
   font-weight: 300;
 }
@@ -62,15 +62,15 @@
 }
 
 .timepicker-plate {
-	background-color: $timepicker-clock-plate-bg;
+	background-color: #eee;
 	border-radius: 50%;
 	width: 270px;
 	height: 270px;
 	overflow: visible;
 	position: relative;
-  margin: auto;
-  margin-top: 25px;
-  margin-bottom: 5px;
+	margin: auto;
+	margin-top: 25px;
+	margin-bottom: 5px;
 	user-select: none;
 }
 
@@ -88,19 +88,19 @@
 
 .timepicker-tick {
 	border-radius: 50%;
-	color: $timepicker-clock-color;
+	color: rgba(0, 0, 0, .87);
 	line-height: 40px;
 	text-align: center;
 	width: 40px;
 	height: 40px;
 	position: absolute;
 	cursor: pointer;
-  font-size: 15px;
+	font-size: 15px;
 }
 
 .timepicker-tick.active,
 .timepicker-tick:hover {
-	background-color: transparentize($secondary-color, .75);
+	background-color: transparentize(#ff5800, .75);
 }
 .timepicker-dial {
 	transition: transform 350ms, opacity 350ms;
@@ -120,7 +120,7 @@
 	transition: opacity 175ms;
 
   line {
-	  stroke: $secondary-color;
+	  stroke: #ff5800;
 	  stroke-width: 4;
 	  stroke-linecap: round;
   }
@@ -130,11 +130,11 @@
 }
 .timepicker-canvas-bearing {
 	stroke: none;
-	fill: $secondary-color;
+	fill: #ff5800;
 }
 .timepicker-canvas-bg {
 	stroke: none;
-	fill: $secondary-color;
+	fill: #ff5800;
 }
 
 
@@ -147,11 +147,11 @@
 }
 
 .timepicker-clear {
-  color: $error-color;
+  color: red;
 }
 
 .timepicker-close {
-  color: $secondary-color;
+  color: #ff5800;
 }
 
 .timepicker-clear,

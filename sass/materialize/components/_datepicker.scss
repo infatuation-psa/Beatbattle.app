@@ -65,7 +65,7 @@
     display: block;
     font-size: 1.5rem;
     line-height: 25px;
-    color: $datepicker-year;
+    color: rgba(255, 255, 255, .7);
   }
 
   .date-text {
@@ -102,7 +102,7 @@
 
   abbr {
     text-decoration: none;
-    color: $datepicker-calendar-header-color;
+    color: #999;
   }
 
   td {
@@ -117,7 +117,7 @@
 
     &.is-outside-current-month,
     &.is-disabled {
-      color: $datepicker-disabled-day-color;
+      color: rgba(0, 0, 0, .3);
       pointer-events: none;
     }
 
@@ -128,7 +128,7 @@
 
 .datepicker-day-button {
   &:focus {
-    background-color: $datepicker-day-focus;
+    background-color: transparentize(desaturate($secondary-color, 5%), .75);
   }
 
   background-color: transparent;

@@ -5,7 +5,7 @@
 
 
   @extend .z-depth-1;
-  background-color: $dropdown-bg-color;
+  background-color: white;
   margin: 0;
   display: none;
   min-width: 100px;
@@ -20,7 +20,7 @@
 
   li {
     &:hover, &.active {
-      background-color: $dropdown-hover-bg-color;
+      background-color: #eee;
     }
 
     &:focus {
@@ -34,10 +34,10 @@
 
     & > a, & > span {
       font-size: 16px;
-      color: $dropdown-color;
+      color: #ff5800;
       display: block;
       line-height: 22px;
-      padding: (($dropdown-item-height - 22) / 2) 16px;
+      padding: 14px 16px;
     }
 
     & > span > label {
@@ -59,7 +59,7 @@
     clear: both;
     color: $off-black;
     cursor: pointer;
-    min-height: $dropdown-item-height;
+    min-height: 50px;
     line-height: 1.5rem;
     width: 100%;
     text-align: left;
@@ -68,7 +68,7 @@
 
 body.keyboard-focused {
   .dropdown-content li:focus {
-    background-color: darken($dropdown-hover-bg-color, 8%);
+    background-color: darken(#eee, 8%);
   }
 }
 
