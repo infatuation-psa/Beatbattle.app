@@ -342,8 +342,14 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 
 // SubmitBattle ...
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
+	toast := GetToast(r.URL.Query().Get(":toast"))
 	var user = GetUser(w, r)
-	tmpl.ExecuteTemplate(w, "SubmitBattle", user)
+	m := map[string]interface{}{
+		"User":  user,
+		"Toast": toast,
+	}
+
+	tmpl.ExecuteTemplate(w, "SubmitBattle", m)
 }
 
 // UpdateBattle ...

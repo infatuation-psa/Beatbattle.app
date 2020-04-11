@@ -1,6 +1,6 @@
 {{ define "SubmitBattle" }}
   {{ template "Header" }}
-    {{ template "Menu" . }}
+    {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
         <form id="submit-battle" method="POST" action="/battle/submit">

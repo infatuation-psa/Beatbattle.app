@@ -2134,43 +2134,6 @@
   color: transparent !important;
 }
 
-html {
-  -webkit-box-sizing: border-box;
-          box-sizing: border-box;
-}
-
-*, *:before, *:after {
-  -webkit-box-sizing: inherit;
-          box-sizing: inherit;
-}
-
-ul:not(.browser-default) {
-  padding-left: 0;
-  list-style-type: none;
-}
-
-ul:not(.browser-default) > li {
-  list-style-type: none;
-}
-
-a {
-  text-decoration: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.valign-wrapper {
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
-}
-
-.clearfix {
-  clear: both;
-}
-
 .z-depth-0 {
   -webkit-box-shadow: none !important;
           box-shadow: none !important;
@@ -2223,114 +2186,6 @@ a {
           box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
-.divider {
-  height: 1px;
-  overflow: hidden;
-  background-color: #e0e0e0;
-}
-
-.pin-top, .pin-bottom {
-  position: relative;
-}
-
-.pinned {
-  position: fixed !important;
-}
-
-/*********************
-  Transition Classes
-**********************/
-ul.staggered-list li {
-  opacity: 0;
-}
-
-.fade-in {
-  opacity: 0;
-  -webkit-transform-origin: 0 50%;
-          transform-origin: 0 50%;
-}
-
-/*********************
-  Media Query Classes
-**********************/
-@media only screen and (max-width: 600px) {
-  .hide-on-small-only, .hide-on-small-and-down {
-    display: none !important;
-  }
-}
-
-@media only screen and (max-width: 992px) {
-  .hide-on-med-and-down {
-    display: none !important;
-  }
-}
-
-@media only screen and (min-width: 601px) {
-  .hide-on-med-and-up {
-    display: none !important;
-  }
-}
-
-@media only screen and (min-width: 600px) and (max-width: 992px) {
-  .hide-on-med-only {
-    display: none !important;
-  }
-}
-
-@media only screen and (min-width: 993px) {
-  .hide-on-large-only {
-    display: none !important;
-  }
-}
-
-@media only screen and (min-width: 1201px) {
-  .hide-on-extra-large-only {
-    display: none !important;
-  }
-}
-
-@media only screen and (min-width: 1201px) {
-  .show-on-extra-large {
-    display: block !important;
-  }
-}
-
-@media only screen and (min-width: 993px) {
-  .show-on-large {
-    display: block !important;
-  }
-}
-
-@media only screen and (min-width: 600px) and (max-width: 992px) {
-  .show-on-medium {
-    display: block !important;
-  }
-}
-
-@media only screen and (max-width: 600px) {
-  .show-on-small {
-    display: block !important;
-  }
-}
-
-@media only screen and (min-width: 601px) {
-  .show-on-medium-and-up {
-    display: block !important;
-  }
-}
-
-@media only screen and (max-width: 992px) {
-  .show-on-medium-and-down {
-    display: block !important;
-  }
-}
-
-@media only screen and (max-width: 600px) {
-  .center-on-small-only {
-    text-align: center;
-  }
-}
-
 .secondary-content {
   float: right;
   color: #ff5800;
@@ -2339,61 +2194,6 @@ ul.staggered-list li {
 .collapsible .collection {
   margin: 0;
   border: none;
-}
-
-/*******************
-  Utility Classes
-*******************/
-.hide {
-  display: none !important;
-}
-
-.left-align {
-  text-align: left;
-}
-
-.right-align {
-  text-align: right;
-}
-
-.center, .center-align {
-  text-align: center;
-}
-
-.left {
-  float: left !important;
-}
-
-.right {
-  float: right !important;
-}
-
-.no-select {
-  -webkit-user-select: none;
-     -moz-user-select: none;
-      -ms-user-select: none;
-          user-select: none;
-}
-
-.circle {
-  border-radius: 50%;
-}
-
-.center-block {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.truncate {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.no-padding {
-  padding: 0 !important;
 }
 
 /* This is needed for some mobile phones to display the Google Icon font properly */
@@ -2651,17 +2451,11 @@ body.keyboard-focused .dropdown-content li:focus {
 }
 
 select:focus {
-  outline: 1px solid #fff5f0;
+  outline: none;
 }
 
 button:focus {
   outline: none;
-  background-color: #ff6514;
-}
-
-label {
-  font-size: 0.8rem;
-  color: #9e9e9e;
 }
 
 /* Validation Sass Placeholders */
