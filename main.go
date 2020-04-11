@@ -118,23 +118,31 @@ func main() {
 	router.Get("/logout/{provider}", Logout)
 	router.Get("/logout", GenericLogout)
 	router.Post("/vote/{id}", AddVote)
+	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
 
 	// Battle
-	router.Post("/battle/{id}/update", UpdateBattleDB)
-	router.Get("/battle/{id}/update", UpdateBattle)
+	router.Get("/battle/{id}/update/timezone/{region}/{country}", UpdateBattle) // Timezone
+	router.Get("/battle/{id}/update/{toast}", UpdateBattle)                     // Toast
+	router.Post("/battle/{id}/update", UpdateBattleDB)                          // Update in db
+	router.Get("/battle/{id}/update", UpdateBattle)                             // Update page
 	router.Get("/battle/{id}/delete", DeleteBattle)
+
+	router.Post("/battle/submit/{toast}", InsertBattle)
 	router.Post("/battle/submit", InsertBattle)
 	router.Get("/battle/submit", SubmitBattle)
+	router.Get("/battle/{id}/{toast}", BattleHTTP)
 	router.Get("/battle/{id}", BattleHTTP)
 
 	// Beat
+	router.Get("/beat/{id}/submit/{toast}", SubmitBeat)
 	router.Get("/beat/{id}/submit", SubmitBeat)
 	router.Post("/beat/{id}/submit", InsertBeat)
 	router.Get("/beat/{id}/update", SubmitBeat)
 	router.Get("/beat/{id}/delete", DeleteBeat)
 
 	router.Get("/past", ViewBattles)
+	router.Get("/{toast}", ViewBattles)
 	router.Get("/", ViewBattles)
 
 	http.Handle("/", router)
@@ -144,4 +152,123 @@ func main() {
 	} else {
 		log.Fatal(http.ListenAndServe(os.Getenv("PORT"), router))
 	}
+}
+
+// GetToast serves toast text.
+func GetToast(toast string) [2]string {
+	if toast == "404" {
+		html := "Battle or beat not found."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "noauth" {
+		html := "You need to be logged in to do that."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "notuser" {
+		html := "You're not allowed to do that."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "notvoting" {
+		html := "This battle isn't currently accepting votes."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "owntrack" {
+		html := "You can't vote for your own track."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "maxvotes" {
+		html := "You're at your max votes for this battle."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "deadlinebefore" {
+		html := "The deadline cannot be before right now."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "votedeadlinebefore" {
+		html := "The voting deadline cannot be before the deadline."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "maxvotesinvalid" {
+		html := "Max votes must be between 1 and 10."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "nodata" {
+		html := "No data received.."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "validationerror" {
+		html := "Validation error, please try again."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "maxbattles" {
+		html := "You can only have 3 active battles at once."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "titleexists" {
+		html := "You already have a battle with this title."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "sconly" {
+		html := "You must submit a SoundCloud link."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "successvote" {
+		html := "Vote successful."
+		class := "toast-success"
+		return [2]string{html, class}
+	}
+
+	if toast == "successdelvote" {
+		html := "Vote successfully removed."
+		class := "toast-success"
+		return [2]string{html, class}
+	}
+
+	if toast == "successdel" {
+		html := "Successfully deleted."
+		class := "toast-success"
+		return [2]string{html, class}
+	}
+
+	if toast == "successadd" {
+		html := "Successfully added."
+		class := "toast-success"
+		return [2]string{html, class}
+	}
+
+	if toast == "successupdate" {
+		html := "Successfully updated."
+		class := "toast-success"
+		return [2]string{html, class}
+	}
+
+	return [2]string{}
 }

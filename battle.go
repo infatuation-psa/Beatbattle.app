@@ -111,6 +111,8 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
 	URL := r.URL.RequestURI()
 
 	tpl := "Index"
@@ -133,6 +135,7 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	m := map[string]interface{}{
 		"Battles": string(battlesJSON),
 		"User":    user,
+		"Toast":   toast,
 	}
 
 	tmpl.ExecuteTemplate(w, tpl, m)
@@ -149,7 +152,19 @@ func GetBattles(db *sql.DB, status string) []Battle {
         GROUP BY 1
 		ORDER BY challenges.deadline`
 
+	if status == "entry" {
+		query = `
+		SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
+		FROM challenges 
+		LEFT JOIN users ON challenges.user_id = users.id 
+		LEFT JOIN beats ON challenges.id = beats.challenge_id 
+		WHERE challenges.status = ? OR challenges.status = "voting"
+		GROUP BY 1
+		ORDER BY challenges.deadline`
+	}
+
 	rows, err := db.Query(query, status)
+
 	if err != nil {
 		panic(err.Error())
 	}
@@ -184,16 +199,19 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
+	toast := GetToast(req.URL.Query().Get(":toast"))
+
 	battleID, err := strconv.Atoi(req.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(wr, req, "/", 301)
+		http.Redirect(wr, req, "/404", 301)
+		return
 	}
 
 	// Retrieve battle, return to front page if battle doesn't exist.
 	battle := GetBattle(db, battleID)
 
 	if battle.Title == "" {
-		http.Redirect(wr, req, "/", 301)
+		http.Redirect(wr, req, "/404", 301)
 		return
 	}
 
@@ -218,10 +236,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	// Fetch beats in this battle.
 	var count int
-	order := "ORDER BY RAND()"
-	if battle.Status == "Battle Finished" {
-		order = "ORDER BY votes DESC"
-	}
+	order := "ORDER BY id DESC"
 
 	query := `
 		SELECT beats.id, beats.url, beats.votes, users.nickname 
@@ -233,7 +248,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		// This doesn't crash anything, but should be avoided.
 		fmt.Println(err)
-		http.Redirect(wr, req, "/", 301)
+		http.Redirect(wr, req, "/404", 301)
 		return
 	}
 	defer rows.Close()
@@ -281,6 +296,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		"User":          user,
 		"EnteredBattle": hasEntered,
 		"IsOwner":       isOwner,
+		"Toast":         toast,
 	}
 
 	tmpl.ExecuteTemplate(wr, "Battle", m)
@@ -308,6 +324,10 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 		return battle
 	}
 
+	battle.Title = strings.ReplaceAll(battle.Title, "&#39;", "'")
+	battle.Rules = strings.ReplaceAll(battle.Rules, "&#39;", "'")
+	battle.Host = strings.ReplaceAll(battle.Host, "&#39;", "'")
+
 	switch battle.Status {
 	case "entry":
 		battle.Status = ParseDeadline(db, battle.Deadline, battleID, "entry", false)
@@ -331,29 +351,39 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
+	}
+
+	region := r.URL.Query().Get(":region")
+	country := r.URL.Query().Get(":country")
+
+	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
+	if err != nil {
+		loc, _ = time.LoadLocation("America/Toronto")
 	}
 
 	battle := GetBattle(db, battleID)
 	if battle.Title == "" {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
 	}
 
 	var user = GetUser(w, r)
 	if battle.UserID != user.ID {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/notuser", 301)
 		return
 	}
 
 	// For time.Parse
 	layout := "Jan 2, 2006-03:04 PM"
 
-	deadline := strings.Split(battle.Deadline.Format(layout), "-")
-	votingDeadline := strings.Split(battle.VotingDeadline.Format(layout), "-")
+	deadline := strings.Split(battle.Deadline.In(loc).Format(layout), "-")
+	votingDeadline := strings.Split(battle.VotingDeadline.In(loc).Format(layout), "-")
 
 	m := map[string]interface{}{
 		"Battle":             battle,
@@ -362,6 +392,7 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 		"DeadlineTime":       deadline[1],
 		"VotingDeadlineDate": votingDeadline[0],
 		"VotingDeadlineTime": votingDeadline[1],
+		"Toast":              toast,
 	}
 
 	tmpl.ExecuteTemplate(w, "UpdateBattle", m)
@@ -374,13 +405,13 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/login/noauth", 301)
 		return
 	}
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
 	}
 
@@ -388,13 +419,13 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 	userID := -1
 	err = db.QueryRow("SELECT status, user_id FROM challenges WHERE id = ?", battleID).Scan(&curStatus, &userID)
 	if err != nil || userID != user.ID {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/notuser", 301)
 		return
 	}
 
 	loc, err := time.LoadLocation(policy.Sanitize(r.FormValue("timezone")))
 	if err != nil {
-		loc, _ = time.LoadLocation("America/Los_Angeles")
+		loc, _ = time.LoadLocation("America/Toronto")
 	}
 
 	// For time.Parse
@@ -402,23 +433,21 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
-	println(deadline.String())
 	if err != nil || deadline.Before(time.Now()) {
-		fmt.Print(err)
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/deadlinebefore", 301)
 		return
 	}
 
 	unparsedVotingDeadline := policy.Sanitize(r.FormValue("votingdeadline-date") + " " + r.FormValue("votingdeadline-time"))
 	votingDeadline, err := time.ParseInLocation(layout, unparsedVotingDeadline, loc)
 	if err != nil || votingDeadline.Before(deadline) {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/votedeadlinebefore", 301)
 		return
 	}
 
 	maxVotes, err := strconv.Atoi(policy.Sanitize(r.FormValue("maxvotes")))
 	if err != nil || maxVotes < 1 || maxVotes > 10 {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/maxvotesinvalid", 301)
 		return
 	}
 
@@ -442,7 +471,7 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 			for _, err := range err.(validator.ValidationErrors) {
 				fmt.Println(err.Namespace())
 			}
-			http.Redirect(w, r, "/", 301)
+			http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/validationerror", 301)
 			return
 		}
 
@@ -460,11 +489,11 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battleID, user.ID)
 	} else {
 		print("Not post")
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/nodata", 301)
 		return
 	}
 	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, "/", 301)
+	http.Redirect(w, r, "/successupdate", 301)
 	return
 }
 
@@ -475,7 +504,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login", 301)
+		http.Redirect(w, r, "/login/noauth", 301)
 		return
 	}
 
@@ -486,13 +515,13 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if entries >= 3 {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/maxbattles", 301)
 		return
 	}
 
 	loc, err := time.LoadLocation(policy.Sanitize(r.FormValue("timezone")))
 	if err != nil {
-		loc, _ = time.LoadLocation("America/Los_Angeles")
+		loc, _ = time.LoadLocation("America/Toronto")
 	}
 	// For time.Parse
 	layout := "Jan 2, 2006 03:04 PM"
@@ -501,20 +530,20 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	println(unparsedDeadline)
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
 	if err != nil || deadline.Before(time.Now()) {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/submit/deadlinebefore", 301)
 		return
 	}
 
 	unparsedVotingDeadline := policy.Sanitize(r.FormValue("votingdeadline-date") + " " + r.FormValue("votingdeadline-time"))
 	votingDeadline, err := time.ParseInLocation(layout, unparsedVotingDeadline, loc)
 	if err != nil || votingDeadline.Before(deadline) {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/submit/votedeadlinebefore", 301)
 		return
 	}
 
 	maxVotes, err := strconv.Atoi(policy.Sanitize(r.FormValue("maxvotes")))
 	if err != nil || maxVotes < 1 || maxVotes > 10 {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/submit/maxvotesinvalid", 301)
 		return
 	}
 
@@ -541,14 +570,12 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 			for _, err := range err.(validator.ValidationErrors) {
 				fmt.Println(err.Namespace())
 			}
-			println("test-3")
-			http.Redirect(w, r, "/", 301)
+			http.Redirect(w, r, "/battle/submit/validationerror", 301)
 			return
 		}
 
 		if RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND title = ?", user.ID, battle.Title) {
-			println("test--3")
-			http.Redirect(w, r, "/", 301)
+			http.Redirect(w, r, "/battle/submit/titleexists", 301)
 			return
 		}
 
@@ -566,11 +593,11 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 			battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
 	} else {
 		print("Not post")
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/battle/submit/nodata", 301)
 		return
 	}
 	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, "/", 301)
+	http.Redirect(w, r, "/successadd", 301)
 	return
 }
 
@@ -581,31 +608,27 @@ func DeleteBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/login/noauth", 301)
 		return
 	}
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
 	}
 
-	if user.Authenticated {
-		stmt := "DELETE FROM challenges WHERE user_id = ? AND id = ?"
+	stmt := "DELETE FROM challenges WHERE user_id = ? AND id = ?"
 
-		ins, err := db.Prepare(stmt)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer ins.Close()
-
-		ins.Exec(user.ID, battleID)
-	} else {
-		http.Redirect(w, r, "/", 301)
-		return
+	ins, err := db.Prepare(stmt)
+	if err != nil {
+		panic(err.Error())
 	}
+	defer ins.Close()
+
+	ins.Exec(user.ID, battleID)
+
 	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, "/", 301)
+	http.Redirect(w, r, "/successdel", 301)
 	return
 }

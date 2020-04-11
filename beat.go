@@ -22,6 +22,8 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
 		http.Redirect(w, r, "/", 301)
@@ -41,6 +43,7 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 	m := map[string]interface{}{
 		"Battle": battle,
 		"User":   user,
+		"Toast":  toast,
 	}
 
 	URL := r.URL.RequestURI()
@@ -61,11 +64,11 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/login/noauth", 301)
 		return
 	}
 
-	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
 	if err != nil {
 		http.Redirect(w, r, "/", 301)
 		return
@@ -83,33 +86,30 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	track := policy.Sanitize(r.FormValue("track"))
 
-	if user.Authenticated && r.Method == "POST" {
-		if !strings.Contains(track, "soundcloud") {
-			http.Redirect(w, r, redirectURL, 301)
-			return
-		}
-
-		stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
-
-		// If has entered, update instead.
-		if RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
-			stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
-		}
-
-		ins, err := db.Prepare(stmt)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer ins.Close()
-
-		ins.Exec(track, battleID, user.ID)
-	} else {
-		print("Not post")
-		http.Redirect(w, r, redirectURL, 301)
+	if !strings.Contains(track, "soundcloud") {
+		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 301)
 		return
 	}
-	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, redirectURL, 301)
+
+	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
+	response := "/successadd"
+
+	// If has entered, update instead.
+	if RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
+		stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
+		response = "/successupdate"
+
+	}
+
+	ins, err := db.Prepare(stmt)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer ins.Close()
+
+	ins.Exec(track, battleID, user.ID)
+	println(redirectURL + response)
+	http.Redirect(w, r, redirectURL+response, 301)
 	return
 }
 
@@ -120,33 +120,27 @@ func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/login/noauth", 301)
 		return
 	}
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
-	if user.Authenticated {
-		stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
-
-		ins, err := db.Prepare(stmt)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer ins.Close()
-
-		ins.Exec(user.ID, battleID)
-	} else {
-		http.Redirect(w, r, redirectURL, 301)
-		return
+	stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
+	ins, err := db.Prepare(stmt)
+	if err != nil {
+		http.Redirect(w, r, redirectURL+"/validationerror", 301)
 	}
-	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, redirectURL, 301)
+	defer ins.Close()
+
+	ins.Exec(user.ID, battleID)
+
+	http.Redirect(w, r, redirectURL+"/successdel", 301)
 	return
 }

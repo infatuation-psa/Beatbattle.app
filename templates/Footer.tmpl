@@ -1,5 +1,7 @@
 {{ define "Footer" }}
 <footer>by <a href="https://twitter.com/PSAInfatuation">@PSAInfatuation</a></footer>
+    {{if index . 1}}<script>$(document).ready(function() { M.toast({ html: {{index . 0}}, classes: {{index . 1}} }); });</script>{{end}}
+      <script type="text/javascript" src="/static/materialize.min.js"></script>
     </body>
 </html>
 {{ end }}

@@ -16,18 +16,18 @@
         </div>
         <div class="container-form submit-border">
           <div class="submit-split1">
-              <input type="text" class="datepicker submit-nobox" data-index="5" id="deadline-date" name="deadline-date" value="{{.DeadlineDate}}". placeholder="Deadline">
+              <input type="text" class="datepicker submit-nobox" data-index="5" id="deadline-date" name="deadline-date" value="{{.DeadlineDate}}". placeholder="Deadline Date">
           </div>
           <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" data-index="6" id="deadline-time" name="deadline-time" value="{{.DeadlineTime}}" placeholder="At">
+              <input type="text" class="timepicker submit-nobox" data-index="6" id="deadline-time" name="deadline-time" value="{{.DeadlineTime}}" placeholder="Deadline Time">
           </div>
         </div>
         <div class="container-form submit-border">
           <div class="submit-split1">
-              <input type="text" class="datepicker submit-nobox" data-index="7" id="votingdeadline-date" name="votingdeadline-date"  value="{{.VotingDeadlineDate}}" placeholder="Voting Deadline">
+              <input type="text" class="datepicker submit-nobox" data-index="7" id="votingdeadline-date" name="votingdeadline-date"  value="{{.VotingDeadlineDate}}" placeholder="Voting Deadline Date">
           </div>
           <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" data-index="8" id="votingdeadline-time" name="votingdeadline-time"  value="{{.VotingDeadlineTime}}" placeholder="At">
+              <input type="text" class="timepicker submit-nobox" data-index="8" id="votingdeadline-time" name="votingdeadline-time"  value="{{.VotingDeadlineTime}}" placeholder="Voting Deadline Time">
           </div>
         </div>
         <input type="url" class="submit-border submit-nobox" data-index="9" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (Optional)">
@@ -36,7 +36,6 @@
         </form>
       </div>
       </div>
-      <script type="text/javascript" src="/static/materialize.min.js"></script>
       <script>$(document).ready(function(){$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)}),$("#submit-battle").on("keydown","input",function(t){if(13==t.which){t.preventDefault();var e=$(t.target),i=parseFloat(e.attr("data-index"));i>=7&&(i=0),$('[data-index="'+(i+1).toString()+'"]').focus()}});</script>
-  {{ template "Footer" }}
+  {{ template "Footer" .Toast }}
 {{ end }}

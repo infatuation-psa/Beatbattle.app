@@ -3,10 +3,18 @@
   position: fixed;
   z-index: 10000;
 
-  @media #{$small-and-down} {
+  bottom: 7%;
+  left: 10%;
+  max-width: 80%;
+  
+  @media only screen and (max-width: 820px){
+    left: 5%;
+  }
+
+ /* @media #{$small-and-down} {
     min-width: 100%;
     bottom: 0%;
-  }
+  } 
   @media #{$medium-only} {
     left: 5%;
     bottom: 7%;
@@ -16,7 +24,7 @@
     top: 10%;
     right: 7%;
     max-width: 86%;
-  }
+  }*/
 }
 
 .toast {

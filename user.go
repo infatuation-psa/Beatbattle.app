@@ -118,7 +118,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 // Login ...
 func Login(w http.ResponseWriter, r *http.Request) {
-	tmpl.ExecuteTemplate(w, "Login", "")
+	toast := GetToast(r.URL.Query().Get(":toast"))
+	tmpl.ExecuteTemplate(w, "Login", toast)
 }
 
 // Auth ...
@@ -219,27 +220,27 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/auth/discord", 301)
+		http.Redirect(w, r, "/login/noauth", 301)
 		return
 	}
 
 	beatID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/battle/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
 	}
 
 	var battleID int
-	var userID int
+	var beatUserID int
 
-	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE beat_id = ?", beatID).Scan(&battleID, &userID)
+	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
 	if err != nil && err != sql.ErrNoRows {
 		panic(err.Error())
 	}
 
 	// Reject if beat is invalid.
 	if err == sql.ErrNoRows {
-		http.Redirect(w, r, "/battle/", 301)
+		http.Redirect(w, r, "/404", 301)
 		return
 	}
 
@@ -248,103 +249,89 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 	// Get Battle status & max votes.
 	status := ""
 	maxVotes := 1
-	err = db.QueryRow("SELECT status, maxVotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
+	err = db.QueryRow("SELECT status, maxvotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
 	if err != nil && err != sql.ErrNoRows {
 		panic(err.Error())
 	}
 
 	// Reject if not currently in voting stage or if challenge is invalid.
 	if err == sql.ErrNoRows || status != "voting" {
-		http.Redirect(w, r, redirectURL, 301)
+		http.Redirect(w, r, redirectURL+"/notvoting", 301)
 		return
 	}
 
 	// Reject if user ID matches the track.
-	if userID == user.ID {
-		http.Redirect(w, r, redirectURL, 301)
+	if beatUserID == user.ID {
+		http.Redirect(w, r, redirectURL+"/owntrack", 301)
 		return
 	}
 
-	var lastVotes []int
-	rows, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
-	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
-	}
-	defer rows.Close()
+	count := 0
+	err = db.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", user.ID, battleID).Scan(&count)
 
-	for rows.Next() {
-		var curBeatID int
-		err = rows.Scan(&curBeatID)
-		if err != nil {
+	voteID := 0
+	err = db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", user.ID, beatID).Scan(&voteID)
+
+	if count < maxVotes {
+		if err == sql.ErrNoRows {
+			tx, err := db.Begin()
+			if err != nil {
+				panic(err.Error())
+			}
+			sql := "INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)"
+			stmt, err := tx.Prepare(sql)
+			if err != nil {
+				panic(err.Error())
+			}
+			defer stmt.Close()
+
+			stmt.Exec(beatID, user.ID, battleID)
+
+			sql = "UPDATE beats SET votes = votes + 1 WHERE id = ?"
+
+			stmt, err = tx.Prepare(sql)
+			if err != nil {
+				panic(err.Error())
+			}
+			defer stmt.Close()
+
+			stmt.Exec(beatID)
+			tx.Commit()
+			http.Redirect(w, r, redirectURL+"/successvote", 301)
+			return
+		} else if err != nil {
 			panic(err.Error())
 		}
-		lastVotes = append(lastVotes, curBeatID)
-	}
-
-	removeVote := binarySearch(beatID, lastVotes)
-
-	if !removeVote && len(lastVotes) >= maxVotes {
-		// If this beat ID hasn't been voted for already and you're already at max votes, boot ya.
-		http.Redirect(w, r, redirectURL, 301)
-		return
+	} else {
+		if err == sql.ErrNoRows {
+			http.Redirect(w, r, redirectURL+"/maxvotes", 301)
+			return
+		}
 	}
 
 	tx, err := db.Begin()
+	sql := "DELETE FROM votes WHERE id = ?"
+
+	stmt, err := tx.Prepare(sql)
 	if err != nil {
 		panic(err.Error())
 	}
+	defer stmt.Close()
 
-	if user.Authenticated {
-		userID := user.ID
+	stmt.Exec(voteID)
 
-		// Step 1: Modify vote table.
-		{
-			sql := "INSERT INTO votes(beat_id, challenge_id, user_id) VALUES(?,?,?)"
+	sql = "UPDATE beats SET votes = votes - 1 WHERE id = ?"
 
-			if removeVote {
-				sql = "DELETE FROM votes WHERE beat_id = ? AND challenge_id = ? AND user_id = ?"
-			}
-
-			stmt, err := tx.Prepare(sql)
-			if err != nil {
-				panic(err.Error())
-			}
-			defer stmt.Close()
-
-			stmt.Exec(beatID, battleID, userID)
-		}
-
-		// Step 2: Remove vote from beat.
-		if removeVote {
-			stmt, err := tx.Prepare("UPDATE beats SET votes = votes - 1 WHERE beat_id = ?")
-			if err != nil {
-				panic(err.Error())
-			}
-			defer stmt.Close()
-
-			stmt.Exec(beatID)
-		}
-
-		// Step 3: Add vote to beat.
-		if !removeVote {
-			sql := "UPDATE beats SET votes = votes + 1 WHERE beat_id = ?"
-
-			stmt, err := tx.Prepare(sql)
-			if err != nil {
-				panic(err.Error())
-			}
-			defer stmt.Close()
-
-			stmt.Exec(beatID)
-		}
-
-		tx.Commit()
-	} else {
-		// TODO - Redirect with alert for user.
-		http.Redirect(w, r, redirectURL, 301)
-		return
+	stmt, err = tx.Prepare(sql)
+	if err != nil {
+		panic(err.Error())
 	}
-	// TODO - Redirect with alert for user.
-	http.Redirect(w, r, redirectURL, 301)
+	defer stmt.Close()
+
+	stmt.Exec(beatID)
+
+	tx.Commit()
+
+	http.Redirect(w, r, redirectURL+"/successdelvote", 301)
 	return
 }

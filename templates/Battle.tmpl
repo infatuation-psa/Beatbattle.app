@@ -11,10 +11,12 @@
               {{if contains "Finished" .Battle.Status}}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{else}}              
-                <li class="nav-item nav-submit"><a href="/battle/{{.Battle.ID}}/update">EDIT</a></li>
+                <li class="nav-item nav-submit"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
               {{end}}
             {{else}}
+              {{if .Battle.Attachment}}
               <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
+              {{ end}}
               {{if contains "Open" .Battle.Status}}
                 {{ if .EnteredBattle }}
                 <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
@@ -47,14 +49,14 @@
       </zing-grid>
     </div>
     <script>    
-    // window.onload event for Javascript to run after HTML
-    // because this Javascript is injected into the document head
     window.addEventListener('load', () => {
       // content after DOM load
       const zgRef = document.querySelector('zing-grid');
       const data = {{.Beats}};
       zgRef.setData(data);
     });
+    var _href = $("#edit-button").attr("href");
+    $("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone);
     </script>
-  {{ template "Footer" }}
+  {{ template "Footer" .Toast }}
 {{ end }}
