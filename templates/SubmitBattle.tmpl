@@ -5,29 +5,29 @@
       <div class="battle-information">
         <form id="submit-battle" method="POST" action="/battle/submit">
         <nav class="battle-title">
-            <input type="text" data-index="1" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title">
+            <input type="text" data-index="1" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title" required>
             <input type="submit" class="nav-submit" value="CREATE 🔥" />
         </nav>
-        <input data-index="2" class="submit-border submit-nobox" id="rules" name="rules" maxlength="255" placeholder="Battle Rules">
+        <input data-index="2" class="submit-border submit-nobox" id="rules" name="rules" maxlength="255" placeholder="Battle Rules" required>
         <input type="text" data-index="3" class="submit-border submit-nobox" id="password" name="password" maxlength="64" placeholder="Password (Optional)">
         <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
-            <input type="number" data-index="4" class="submit-nobox" id="maxvotes" name="maxvotes" value="1" min="1" max="10">
+            <input type="number" data-index="4" class="submit-nobox" id="maxvotes" name="maxvotes" value="1" min="1" max="10" required>
         </div>
         <div class="container-form submit-border">
           <div class="submit-split1">
-              <input type="text" class="datepicker submit-nobox" data-index="5" id="deadline-date" name="deadline-date" placeholder="Deadline Date">
+              <input type="text" class="datepicker submit-nobox" data-index="5" id="deadline-date" name="deadline-date" placeholder="Deadline Date" required>
           </div>
           <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" data-index="6" id="deadline-time" name="deadline-time" placeholder="Deadline Time">
+              <input type="text" class="timepicker submit-nobox" data-index="6" id="deadline-time" name="deadline-time" placeholder="Deadline Time" required>
           </div>
         </div>
         <div class="container-form submit-border">
           <div class="submit-split1">
-              <input type="text" class="datepicker submit-nobox" data-index="7" id="votingdeadline-date" name="votingdeadline-date" placeholder="Voting Deadline Date">
+              <input type="text" class="datepicker submit-nobox" data-index="7" id="votingdeadline-date" name="votingdeadline-date" placeholder="Voting Deadline Date" required>
           </div>
           <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" data-index="8" id="votingdeadline-time" name="votingdeadline-time"placeholder="Voting Deadline Time">
+              <input type="text" class="timepicker submit-nobox" data-index="8" id="votingdeadline-time" name="votingdeadline-time"placeholder="Voting Deadline Time" required>
           </div>
         </div>
         <input type="url" class="submit-border submit-nobox" data-index="9" id="attachment" name="attachment" placeholder="Battle Attachment (Optional)">
