@@ -26,15 +26,14 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/", 302)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
 	// TODO - Change this GetBattle statement or change GetBattle, this doesn't need a * sql statement.
-
 	battle := GetBattle(db, battleID)
 	if battle.Title == "" {
-		http.Redirect(w, r, "/", 302)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
@@ -77,16 +76,16 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
 	// TODO - BATTLE ID AND DEADLINE
-	isOpen := RowExists(db, "SELECT id FROM challenges WHERE id = ?", battleID)
+	isOpen := RowExists(db, "SELECT id FROM challenges WHERE id = ? AND status = 'entry'", battleID)
 
 	if !isOpen {
-		http.Redirect(w, r, redirectURL, 302)
+		http.Redirect(w, r, redirectURL+"/notopen", 302)
 		return
 	}
 
 	track := policy.Sanitize(r.FormValue("track"))
 
-	if !strings.Contains(track, "soundcloud") {
+	if !strings.Contains(track, "soundcloud.com/") {
 		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 302)
 		return
 	}
@@ -94,11 +93,10 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
 	response := "/successadd"
 
-	// If has entered, update instead.
+	// IF EXISTS UPDATE
 	if RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
 		stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
 		response = "/successupdate"
-
 	}
 
 	ins, err := db.Prepare(stmt)

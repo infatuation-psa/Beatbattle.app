@@ -25,13 +25,6 @@ import (
 )
 
 /*-------
-TODO
-ICON, TITLE FOR EACH PAGE TO BE DYNAMIC
-SUBMIT -> UPDATE when entry exists
-MOVE SOUNDCLOUD/URL PROCESSING WORKLOAD TO THE TEMPLATE WITH ZINGGRID (URL AS REFERENCE)
----------*/
-
-/*-------
 Variables
 -------*/
 
@@ -158,6 +151,12 @@ func main() {
 func GetToast(toast string) [2]string {
 	if toast == "404" {
 		html := "Battle or beat not found."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "notopen" {
+		html := "That battle is not currently open."
 		class := "toast-error"
 		return [2]string{html, class}
 	}
