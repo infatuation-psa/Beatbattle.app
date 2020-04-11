@@ -26,7 +26,7 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/", 302)
 		return
 	}
 
@@ -34,7 +34,7 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	battle := GetBattle(db, battleID)
 	if battle.Title == "" {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/", 302)
 		return
 	}
 
@@ -64,13 +64,13 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 301)
+		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
 
 	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
 	if err != nil {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/", 302)
 		return
 	}
 
@@ -80,14 +80,14 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	isOpen := RowExists(db, "SELECT id FROM challenges WHERE id = ?", battleID)
 
 	if !isOpen {
-		http.Redirect(w, r, redirectURL, 301)
+		http.Redirect(w, r, redirectURL, 302)
 		return
 	}
 
 	track := policy.Sanitize(r.FormValue("track"))
 
 	if !strings.Contains(track, "soundcloud") {
-		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 301)
+		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 302)
 		return
 	}
 
@@ -109,7 +109,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	ins.Exec(track, battleID, user.ID)
 	println(redirectURL + response)
-	http.Redirect(w, r, redirectURL+response, 301)
+	http.Redirect(w, r, redirectURL+response, 302)
 	return
 }
 
@@ -120,13 +120,13 @@ func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 301)
+		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 301)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
@@ -135,12 +135,12 @@ func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 	stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, redirectURL+"/validationerror", 301)
+		http.Redirect(w, r, redirectURL+"/validationerror", 302)
 	}
 	defer ins.Close()
 
 	ins.Exec(user.ID, battleID)
 
-	http.Redirect(w, r, redirectURL+"/successdel", 301)
+	http.Redirect(w, r, redirectURL+"/successdel", 302)
 	return
 }

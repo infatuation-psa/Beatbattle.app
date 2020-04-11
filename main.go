@@ -240,6 +240,12 @@ func GetToast(toast string) [2]string {
 		return [2]string{html, class}
 	}
 
+	if toast == "cache" {
+		html := "If this happens again, try clearing your cache."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
 	if toast == "successvote" {
 		html := "Vote successful."
 		class := "toast-success"

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,8 +15,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
 
@@ -29,8 +27,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			w.Header().Set("Location", "/login")
-			w.WriteHeader(http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
 		Account.Provider = user.Provider
@@ -47,8 +44,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			w.Header().Set("Location", "/login")
-			w.WriteHeader(http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
 		client := redditAuth.GetAuthClient(token)
@@ -56,8 +52,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			w.Header().Set("Location", "/login")
-			w.WriteHeader(http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
 		Account.Provider = "reddit"
@@ -91,29 +86,22 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 		err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 		if err != nil {
-			// Something is wrong lmao
-			http.Redirect(w, r, "/", 301)
+			http.Redirect(w, r, "/", 302)
 		}
 	}
 
 	Account.ID = userID
 	session.Values["user"] = Account
-	fmt.Print(Account)
 
 	err = session.Save(r, w)
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
 
-	// TODO - Save last url in a cookie and redirect to that instead.
-	w.Header().Set("Location", "/")
-	w.WriteHeader(http.StatusTemporaryRedirect)
-
-	// debug - tmpl.ExecuteTemplate(res, "UserTemplate", user)
+	http.Redirect(w, r, "/", 302)
 }
 
 // Login ...
@@ -138,43 +126,41 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 }
 
 // Logout ...
-func Logout(res http.ResponseWriter, req *http.Request) {
-	gothic.Logout(res, req)
+func Logout(w http.ResponseWriter, r *http.Request) {
+	gothic.Logout(w, r)
 
-	session, err := store.Get(req, "beatbattle")
+	session, err := store.Get(r, "beatbattle")
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login/cache", 302)
 	}
 
 	session.Options.MaxAge = -1
 
-	err = session.Save(req, res)
+	err = session.Save(r, w)
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login/cache", 302)
 	}
 
-	res.Header().Set("Location", "/")
-	res.WriteHeader(http.StatusTemporaryRedirect)
+	http.Redirect(w, r, "/", 302)
 }
 
 // GenericLogout ...
-func GenericLogout(res http.ResponseWriter, req *http.Request) {
-	session, err := store.Get(req, "beatbattle")
+func GenericLogout(w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, "beatbattle")
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
 
 	session.Options.MaxAge = -1
 
-	err = session.Save(req, res)
+	err = session.Save(r, w)
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
 
-	res.Header().Set("Location", "/")
-	res.WriteHeader(http.StatusTemporaryRedirect)
+	http.Redirect(w, r, "/", 302)
 }
 
 // User struct.
@@ -220,13 +206,13 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 301)
+		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
 
 	beatID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 301)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
@@ -240,7 +226,7 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	// Reject if beat is invalid.
 	if err == sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 301)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
@@ -256,13 +242,13 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	// Reject if not currently in voting stage or if challenge is invalid.
 	if err == sql.ErrNoRows || status != "voting" {
-		http.Redirect(w, r, redirectURL+"/notvoting", 301)
+		http.Redirect(w, r, redirectURL+"/notvoting", 302)
 		return
 	}
 
 	// Reject if user ID matches the track.
 	if beatUserID == user.ID {
-		http.Redirect(w, r, redirectURL+"/owntrack", 301)
+		http.Redirect(w, r, redirectURL+"/owntrack", 302)
 		return
 	}
 
@@ -297,14 +283,14 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 			stmt.Exec(beatID)
 			tx.Commit()
-			http.Redirect(w, r, redirectURL+"/successvote", 301)
+			http.Redirect(w, r, redirectURL+"/successvote", 302)
 			return
 		} else if err != nil {
 			panic(err.Error())
 		}
 	} else {
 		if err == sql.ErrNoRows {
-			http.Redirect(w, r, redirectURL+"/maxvotes", 301)
+			http.Redirect(w, r, redirectURL+"/maxvotes", 302)
 			return
 		}
 	}
@@ -332,6 +318,6 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	tx.Commit()
 
-	http.Redirect(w, r, redirectURL+"/successdelvote", 301)
+	http.Redirect(w, r, redirectURL+"/successdelvote", 302)
 	return
 }
