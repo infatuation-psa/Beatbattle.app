@@ -479,9 +479,11 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	attachment := ""
 	// PERF - MIGHT IMPACT A LOT
-	if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
-		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/unapprovedurl", 302)
-		return
+	if attachmentURL.String() != "" {
+		if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+			http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/unapprovedurl", 302)
+			return
+		}
 	}
 
 	attachment = policy.Sanitize(r.FormValue("attachment"))
@@ -589,9 +591,11 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	attachment := ""
 	// PERF - MIGHT IMPACT A LOT
-	if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
-		http.Redirect(w, r, "/battle/submit/unapprovedurl", 302)
-		return
+	if attachmentURL.String() != "" {
+		if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+			http.Redirect(w, r, "/battle/submit/unapprovedurl", 302)
+			return
+		}
 	}
 
 	attachment = policy.Sanitize(r.FormValue("attachment"))
