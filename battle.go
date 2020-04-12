@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -117,9 +118,11 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 
 	tpl := "Index"
 	status := "entry"
+	title := "Who's The Best Producer?"
 	if strings.Contains(URL, "past") {
 		tpl = "Past"
 		status = "complete"
+		title = "Past Battles"
 	}
 
 	battles := GetBattles(db, status)
@@ -133,6 +136,7 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	var user = GetUser(w, r)
 
 	m := map[string]interface{}{
+		"Title":   title,
 		"Battles": string(battlesJSON),
 		"User":    user,
 		"Toast":   toast,
@@ -296,6 +300,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	isOwner := RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND id = ?", user.ID, battleID)
 
 	m := map[string]interface{}{
+		"Title":         battle.Title,
 		"Battle":        battle,
 		"Beats":         string(e),
 		"User":          user,
@@ -348,8 +353,11 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 // SubmitBattle ...
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
+	println(r.URL.Query().Get(":toast"))
+	fmt.Print(toast)
 	var user = GetUser(w, r)
 	m := map[string]interface{}{
+		"Title": "Submit Battle",
 		"User":  user,
 		"Toast": toast,
 	}
@@ -397,6 +405,7 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 	votingDeadline := strings.Split(battle.VotingDeadline.In(loc).Format(layout), "-")
 
 	m := map[string]interface{}{
+		"Title":              "Update Battle",
 		"Battle":             battle,
 		"User":               user,
 		"DeadlineDate":       deadline[0],
@@ -462,12 +471,27 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	attachmentURL, err := url.Parse(policy.Sanitize(r.FormValue("attachment")))
+	if err != nil {
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/unapprovedurl", 302)
+		return
+	}
+
+	attachment := ""
+	// PERF - MIGHT IMPACT A LOT
+	if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/unapprovedurl", 302)
+		return
+	}
+
+	attachment = policy.Sanitize(r.FormValue("attachment"))
+
 	battle := &Battle{
 		Title:          policy.Sanitize(r.FormValue("title")),
 		Rules:          policy.Sanitize(r.FormValue("rules")),
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
-		Attachment:     policy.Sanitize(r.FormValue("attachment")),
+		Attachment:     attachment,
 		Host:           user.Name,
 		Password:       policy.Sanitize(r.FormValue("password")),
 		MaxVotes:       maxVotes,
@@ -503,7 +527,6 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/nodata", 302)
 		return
 	}
-	// TODO - Redirect with alert for user.
 	http.Redirect(w, r, "/successupdate", 302)
 	return
 }
@@ -558,12 +581,27 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	attachmentURL, err := url.Parse(policy.Sanitize(r.FormValue("attachment")))
+	if err != nil {
+		http.Redirect(w, r, "/battle/submit/unapprovedurl", 302)
+		return
+	}
+
+	attachment := ""
+	// PERF - MIGHT IMPACT A LOT
+	if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+		http.Redirect(w, r, "/battle/submit/unapprovedurl", 302)
+		return
+	}
+
+	attachment = policy.Sanitize(r.FormValue("attachment"))
+
 	battle := &Battle{
 		Title:          policy.Sanitize(r.FormValue("title")),
 		Rules:          policy.Sanitize(r.FormValue("rules")),
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
-		Attachment:     policy.Sanitize(r.FormValue("attachment")),
+		Attachment:     attachment,
 		Host:           user.Name,
 		Status:         "entry",
 		Password:       policy.Sanitize(r.FormValue("password")),
@@ -607,7 +645,6 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/battle/submit/nodata", 302)
 		return
 	}
-	// TODO - Redirect with alert for user.
 	http.Redirect(w, r, "/successadd", 302)
 	return
 }
@@ -639,7 +676,6 @@ func DeleteBattle(w http.ResponseWriter, r *http.Request) {
 
 	ins.Exec(user.ID, battleID)
 
-	// TODO - Redirect with alert for user.
 	http.Redirect(w, r, "/successdel", 302)
 	return
 }

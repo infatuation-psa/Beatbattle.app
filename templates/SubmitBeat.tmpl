@@ -1,5 +1,5 @@
 {{ define "SubmitBeat" }}
-  {{ template "Header" }}
+  {{ template "Header" .Title }}
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
@@ -12,7 +12,7 @@
         <p><b>Rules:</b> {{.Battle.Rules}}<br />
         <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
         <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/submit">
-          <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track." required>
+          <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track (use the share link for private tracks)." required>
           <input type="submit" class="submit-track" value="SEND 🔥" />
         </form>
       </div>

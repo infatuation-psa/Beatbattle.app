@@ -36,6 +36,8 @@ var redditAuth *reddit.Authenticator
 var tmpl *template.Template
 var policy *bluemonday.Policy
 
+var whitelist []string
+
 /*-------
 Help Actions
 --------*/
@@ -46,6 +48,7 @@ func init() {
 		log.Print("No .env file found")
 	}
 
+	whitelist = []string{"drive.google.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com"}
 	policy = bluemonday.StrictPolicy()
 	policy.AllowStandardURLs()
 
@@ -121,7 +124,7 @@ func main() {
 	router.Get("/battle/{id}/update", UpdateBattle)                             // Update page
 	router.Get("/battle/{id}/delete", DeleteBattle)
 
-	router.Post("/battle/submit/{toast}", InsertBattle)
+	router.Get("/battle/submit/{toast}", SubmitBattle)
 	router.Post("/battle/submit", InsertBattle)
 	router.Get("/battle/submit", SubmitBattle)
 	router.Get("/battle/{id}/{toast}", BattleHTTP)
@@ -147,10 +150,25 @@ func main() {
 	}
 }
 
+func contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
 // GetToast serves toast text.
 func GetToast(toast string) [2]string {
 	if toast == "404" {
 		html := "Battle or beat not found."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
+	if toast == "unapprovedurl" {
+		html := "URL not on approved list."
 		class := "toast-error"
 		return [2]string{html, class}
 	}

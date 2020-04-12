@@ -12,3 +12,6 @@ MOVE SOUNDCLOUD/URL PROCESSING WORKLOAD TO THE TEMPLATE WITH ZINGGRID (URL AS RE
 for searches, should I move the search bar to the top and process them on my own, then I can get rid of that big black bar and make the top part the sortable shit?
 
 PERF TAG = MIGHT MAKE PERFORMANCE WORSE
+
+TOAST TO CASES
+MAKE SUBMIT URL IF UNAPPROVED KEEP FORM DATA

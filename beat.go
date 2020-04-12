@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -39,17 +40,20 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	var user = GetUser(w, r)
 
-	m := map[string]interface{}{
-		"Battle": battle,
-		"User":   user,
-		"Toast":  toast,
-	}
-
 	URL := r.URL.RequestURI()
 
 	tpl := "SubmitBeat"
+	title := "Submit Beat"
 	if strings.Contains(URL, "update") {
 		tpl = "UpdateBeat"
+		title = "Update Beat"
+	}
+
+	m := map[string]interface{}{
+		"Title":  title,
+		"Battle": battle,
+		"User":   user,
+		"Toast":  toast,
 	}
 
 	print(tpl)
@@ -75,7 +79,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
-	// TODO - BATTLE ID AND DEADLINE
+	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	isOpen := RowExists(db, "SELECT id FROM challenges WHERE id = ? AND status = 'entry'", battleID)
 
 	if !isOpen {
@@ -85,7 +89,14 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	track := policy.Sanitize(r.FormValue("track"))
 
-	if !strings.Contains(track, "soundcloud.com/") {
+	trackURL, err := url.Parse(track)
+	if err != nil {
+		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 302)
+		return
+	}
+
+	// PERF - MIGHT IMPACT A LOT
+	if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
 		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 302)
 		return
 	}

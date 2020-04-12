@@ -107,7 +107,11 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 // Login ...
 func Login(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
-	tmpl.ExecuteTemplate(w, "Login", toast)
+	m := map[string]interface{}{
+		"Title": "Login",
+		"Toast": toast,
+	}
+	tmpl.ExecuteTemplate(w, "Login", m)
 }
 
 // Auth ...

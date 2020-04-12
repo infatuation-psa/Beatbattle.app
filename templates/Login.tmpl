@@ -1,7 +1,7 @@
 
 
 {{ define "Login" }}
-  {{ template "Header" }}
+  {{ template "Header" .Title }}
     <div class="login">
         <a href="/" class="logo"><img src="/static/logo.svg"></a>
         <div class="container-inner">
@@ -12,5 +12,5 @@
             </ul>
         </div>
     </div>
-  {{ template "Footer" . }}
+  {{ template "Footer" .Toast }}
 {{ end }}
