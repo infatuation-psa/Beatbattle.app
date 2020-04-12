@@ -56,7 +56,6 @@ input {
   appearance: none;
   background: none;
   display: inline-block;
-  padding: 0.75rem 1rem;
   text-decoration: none;
   -webkit-box-sizing: border-box;
           box-sizing: border-box;
@@ -267,19 +266,21 @@ input[type=button], input[type=submit], input[type=reset] {
   background-color: #ff5800;
   color: white;
   border: 1px solid #ff5800;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
 }
 
 input[type=url] {
   border: 1px solid black;
+  padding: 0.75rem 1rem;
   border-right: none;
+  font-size: 1rem;
 }
 
 .submit-url {
-  width: 80%;
-}
-
-.submit-track {
-  width: 20%;
+  -webkit-box-flex: 1;
+      -ms-flex-positive: 1;
+          flex-grow: 1;
 }
 
 .submit-form {
@@ -349,7 +350,8 @@ zg-caption {
 }
 
 zing-grid {
-  --zg-icon-color: inherit;
+  --zg-pager-color: #ff5800;
+  --zg-icon-color: #ff5800;
 }
 
 .nav-left {

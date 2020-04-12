@@ -275,5 +275,11 @@ func GetToast(toast string) [2]string {
 		return [2]string{html, class}
 	}
 
+	if toast == "invalid" {
+		html := "Your SoundCloud url format is invalid."
+		class := "toast-error"
+		return [2]string{html, class}
+	}
+
 	return [2]string{}
 }

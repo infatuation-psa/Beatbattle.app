@@ -90,6 +90,17 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// PERF - MIGHT BE PERFORMANCE DEGRADING
+	resp, err := http.Get(track)
+	if err != nil {
+		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/invalid", 302)
+		return
+	}
+	if resp.Status == "404 Not Found" {
+		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/invalid", 302)
+		return
+	}
+
 	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
 	response := "/successadd"
 
