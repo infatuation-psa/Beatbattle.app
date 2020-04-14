@@ -931,6 +931,7 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
 }
 
 .chip {
+  white-space: nowrap;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
