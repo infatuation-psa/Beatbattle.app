@@ -369,9 +369,16 @@ a, a:visited, a:hover, a:active {
 
 .nav-links {
   list-style: none;
+  -ms-flex-item-align: end;
+      align-self: flex-end;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+}
+
+.deadline {
+  padding-bottom: 1rem;
+  display: block;
 }
 
 .nav-item {
@@ -400,6 +407,29 @@ a, a:visited, a:hover, a:active {
 ul {
   -webkit-padding-start: 0px;
           padding-inline-start: 0px;
+}
+
+.battle-rules {
+  padding-bottom: 2rem;
+}
+
+p {
+  margin: 0;
+}
+
+.battle-host {
+  display: block;
+  padding-top: 1rem;
+  padding-bottom: .5rem;
+  font-size: 1rem;
+  color: #999;
+}
+
+.battle-deadline {
+  display: block;
+  padding-top: .5rem;
+  font-size: 1rem;
+  color: #999;
 }
 
 .toast-success {
@@ -434,6 +464,9 @@ ul {
 @media only screen and (max-width: 820px) {
   h1, .heading-1 {
     font-size: 1.2rem;
+  }
+  .battle-host, .battle-deadline {
+    font-size: 0.8rem;
   }
   .container {
     max-width: 90%;

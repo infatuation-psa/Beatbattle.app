@@ -27,6 +27,12 @@ type Battle struct {
 	Entries        int       `json:"entries"`
 	ID             int       `gorm:"column:id" json:"id"`
 	MaxVotes       int       `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
+	Tags           []Tag
+}
+
+// Tag ...
+type Tag struct {
+	Value string `json:"tag"`
 }
 
 // ParseDeadline returns a human readable deadline & updates the battle status in the database.
@@ -125,7 +131,7 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 		title = "Past Battles"
 	}
 
-	battles := GetBattles(db, status)
+	battles := GetBattles(db, status, "")
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
@@ -145,8 +151,38 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, tpl, m)
 }
 
+// ViewTaggedBattles - Retrieves all battles and displays to user. Homepage.
+func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
+	title := "Battles Tagged With " + policy.Sanitize(r.URL.Query().Get(":tag"))
+
+	battles := GetBattles(db, "", policy.Sanitize(r.URL.Query().Get(":tag")))
+
+	battlesJSON, err := json.Marshal(battles)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var user = GetUser(w, r)
+
+	m := map[string]interface{}{
+		"Title":   title,
+		"Battles": string(battlesJSON),
+		"User":    user,
+		"Toast":   toast,
+		"Tag":     policy.Sanitize(r.URL.Query().Get(":tag")),
+	}
+
+	tmpl.ExecuteTemplate(w, "ViewBattles", m)
+}
+
 // GetBattles retrieves a battle from the database using an ID.
-func GetBattles(db *sql.DB, status string) []Battle {
+func GetBattles(db *sql.DB, status string, tag string) []Battle {
 	query := `
 		SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
 		FROM challenges 
@@ -163,6 +199,20 @@ func GetBattles(db *sql.DB, status string) []Battle {
 		LEFT JOIN users ON challenges.user_id = users.id 
 		LEFT JOIN beats ON challenges.id = beats.challenge_id 
 		WHERE challenges.status = ? OR challenges.status = "voting"
+		GROUP BY 1
+		ORDER BY challenges.deadline`
+	}
+
+	if tag != "" {
+		status = tag
+		query = `
+		SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
+		FROM tags
+		LEFT JOIN challenges_tags ON challenges_tags.tag_id = tags.id
+        LEFT JOIN challenges on challenges.id = challenges_tags.challenge_id
+		LEFT JOIN users ON challenges.user_id = users.id 
+		LEFT JOIN beats ON challenges.id = beats.challenge_id 
+		WHERE tags.tag = ?
 		GROUP BY 1
 		ORDER BY challenges.deadline`
 	}
@@ -191,6 +241,8 @@ func GetBattles(db *sql.DB, status string) []Battle {
 		default:
 			battle.Status = "Battle Finished" // Complete case
 		}
+
+		battle.Tags = GetTags(db, battle.ID)
 
 		battles = append(battles, battle)
 	}
@@ -347,6 +399,8 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 		battle.Status = "Battle Finished" // Complete case
 	}
 
+	battle.Tags = GetTags(db, battleID)
+
 	return battle
 }
 
@@ -500,35 +554,37 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		UserID:         user.ID,
 	}
 
-	if user.Authenticated && r.Method == "POST" {
-		v := validator.New()
-		err = v.Struct(battle)
+	v := validator.New()
+	err = v.Struct(battle)
 
-		if err != nil {
-			for _, err := range err.(validator.ValidationErrors) {
-				fmt.Println(err.Namespace())
-			}
-			http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/validationerror", 302)
-			return
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Println(err.Namespace())
 		}
-
-		query := `
-				UPDATE challenges 
-				SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?
-				WHERE id = ? and user_id = ?`
-
-		ins, err := db.Prepare(query)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer ins.Close()
-
-		ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battleID, user.ID)
-	} else {
-		print("Not post")
-		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/nodata", 302)
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/validationerror", 302)
 		return
 	}
+
+	query := `
+			UPDATE challenges 
+			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?
+			WHERE id = ? AND user_id = ?`
+
+	ins, err := db.Prepare(query)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer ins.Close()
+
+	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battleID, user.ID)
+
+	if err != nil {
+		http.Redirect(w, r, "/failadd", 302)
+		return
+	}
+
+	TagsDB(db, true, r.FormValue("tags"), int64(battleID))
+
 	http.Redirect(w, r, "/successupdate", 302)
 	return
 }
@@ -615,42 +671,144 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		MaxVotes:       maxVotes,
 	}
 
-	if user.Authenticated && r.Method == "POST" {
-		v := validator.New()
-		err = v.Struct(battle)
+	v := validator.New()
+	err = v.Struct(battle)
 
-		if err != nil {
-			for _, err := range err.(validator.ValidationErrors) {
-				fmt.Println(err.Namespace())
-			}
-			http.Redirect(w, r, "/battle/submit/validationerror", 302)
-			return
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Println(err.Namespace())
+		}
+		http.Redirect(w, r, "/battle/submit/validationerror", 302)
+		return
+	}
+
+	if RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND title = ?", user.ID, battle.Title) {
+		http.Redirect(w, r, "/battle/submit/titleexists", 302)
+		return
+	}
+
+	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes) VALUES(?,?,?,?,?,?,?,?,?)"
+
+	ins, err := db.Prepare(stmt)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer ins.Close()
+
+	fmt.Println(battle)
+
+	var battleInsertedID int64 = 0
+	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
+		battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
+	if err != nil {
+		http.Redirect(w, r, "/failadd", 302)
+		return
+	}
+
+	battleInsertedID, err = res.LastInsertId()
+	if err != nil {
+		http.Redirect(w, r, "/successadd", 302)
+		return
+	}
+
+	TagsDB(db, false, r.FormValue("tags"), battleInsertedID)
+
+	http.Redirect(w, r, "/successadd", 302)
+	return
+}
+
+// TagsDB adds / updates tags in the DB.
+func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
+	var tagIDs []int64
+	// TODO - TAGS (NEED TO GET INSERTED ID FOR BATTLE AND TAGS)
+
+	println("next for")
+
+	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
+
+	var tags []Tag
+	err := json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		return
+	}
+
+	for i, tag := range tags {
+		// Only accept 3 tags.
+		if i > 2 {
+			break
 		}
 
-		if RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND title = ?", user.ID, battle.Title) {
-			http.Redirect(w, r, "/battle/submit/titleexists", 302)
-			return
-		}
-
-		stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes) VALUES(?,?,?,?,?,?,?,?,?)"
-
-		ins, err := db.Prepare(stmt)
+		ins, err := db.Prepare("INSERT INTO tags(tag) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)")
 		if err != nil {
 			panic(err.Error())
 		}
 		defer ins.Close()
 
-		fmt.Println(battle)
+		res, err := ins.Exec(tag.Value)
+		if err != nil {
+			return
+		}
 
-		ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
-			battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
-	} else {
-		print("Not post")
-		http.Redirect(w, r, "/battle/submit/nodata", 302)
-		return
+		insertedID, err := res.LastInsertId()
+		if err != nil {
+			return
+		}
+		tagIDs = append(tagIDs, insertedID)
+		println(insertedID)
 	}
-	http.Redirect(w, r, "/successadd", 302)
-	return
+
+	if update {
+		del, err := db.Prepare("DELETE FROM challenges_tags WHERE challenge_id = ?")
+		if err != nil {
+			return
+		}
+		defer del.Close()
+
+		del.Exec(battleID)
+	}
+
+	for i, tagID := range tagIDs {
+		// Only accept 3 tags.
+		if i > 2 {
+			break
+		}
+
+		ins, err := db.Prepare("INSERT INTO challenges_tags VALUES(?, ?)")
+		if err != nil {
+			panic(err.Error())
+		}
+		defer ins.Close()
+
+		ins.Exec(battleID, tagID)
+	}
+}
+
+// GetTags retrieves tags from the DB
+func GetTags(db *sql.DB, battleID int) []Tag {
+	// TODO - TAGS (NEED TO GET INSERTED ID FOR BATTLE AND TAGS)
+	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
+	var Tags []Tag
+
+	query := `SELECT tags.tag FROM challenges_tags LEFT JOIN tags ON tags.id = challenges_tags.tag_id WHERE challenges_tags.challenge_id = ?`
+
+	rows, err := db.Query(query, battleID)
+
+	if err != nil {
+		panic(err.Error())
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		tag := Tag{Value: ""}
+		err = rows.Scan(&tag.Value)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		Tags = append(Tags, tag)
+	}
+
+	return Tags
 }
 
 // DeleteBattle ...

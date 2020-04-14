@@ -1,0 +1,37 @@
+{{ define "ViewBattles" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h1 class="nav-left">Battles tagged with: {{if .Tag}}{{.Tag}}{{end}}</h1>
+          <ul class="nav-links">
+              <li class="nav-item nav-download"><a href="/">CURRENT</a></li>
+              <li class="nav-item nav-submit"><a href="/battle/submit">NEW BATTLE</a></li>
+          </ul>
+        </nav>
+      </div>
+    <zing-grid caption="Battles" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zg-colgroup>
+        <zg-column header="Battle" index="title" type="url" cell-class="link">
+          <a href="/battle/[[record.id]]">[[index.title]]</a>
+        </zg-column>
+        <zg-column header="Status" index="status"></zg-column>
+        <zg-column header="Host" index="host"></zg-column>
+        <zg-column header="Entries" index="entries"></zg-column>
+      </zg-colgroup>
+      <zg-nodata>No battles have this tag.</zg-nodata>
+    </zing-grid>    
+    </div>
+    <script>
+    // window.onload event for Javascript to run after HTML
+    // because this Javascript is injected into the document head
+    window.addEventListener('load', () => {
+      // content after DOM load
+      const zgRef = document.querySelector('zing-grid');
+      const data = {{.Battles}};
+      zgRef.setData(data);
+    });
+    </script>
+  {{ template "Footer" .Toast }}
+{{ end }}

@@ -117,6 +117,8 @@ func main() {
 	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
 
+	router.Get("/battles/{tag}", ViewTaggedBattles)
+
 	// Battle
 	router.Get("/battle/{id}/update/timezone/{region}/{country}", UpdateBattle) // Timezone
 	router.Get("/battle/{id}/update/{toast}", UpdateBattle)                     // Toast
@@ -161,141 +163,81 @@ func contains(arr []string, str string) bool {
 
 // GetToast serves toast text.
 func GetToast(toast string) [2]string {
-	if toast == "404" {
-		html := "Battle or beat not found."
-		class := "toast-error"
-		return [2]string{html, class}
+	html := ""
+	class := ""
+	switch message := toast; message {
+	case "404":
+		html = "Battle or beat not found."
+		class = "toast-error"
+	case "unapprovedurl":
+		html = "URL not on approved list."
+		class = "toast-error"
+	case "notopen":
+		html = "That battle is not currently open."
+		class = "toast-error"
+	case "noauth":
+		html = "You need to be logged in to do that."
+		class = "toast-error"
+	case "notuser":
+		html = "You're not allowed to do that."
+		class = "toast-error"
+	case "notvoting":
+		html = "This battle isn't currently accepting votes."
+		class = "toast-error"
+	case "owntrack":
+		html = "You can't vote for your own track."
+		class = "toast-error"
+	case "maxvotes":
+		html = "You're at your max votes for this battle."
+		class = "toast-error"
+	case "deadlinebefore":
+		html = "The deadline cannot be before right now."
+		class = "toast-error"
+	case "votedeadlinebefore":
+		html = "The voting deadline cannot be before the deadline."
+		class = "toast-error"
+	case "maxvotesinvalid":
+		html = "Max votes must be between 1 and 10."
+		class = "toast-error"
+	case "nodata":
+		html = "No data received.."
+		class = "toast-error"
+	case "validationerror":
+		html = "Validation error, please try again."
+		class = "toast-error"
+	case "maxbattles":
+		html = "You can only have 3 active battles at once."
+		class = "toast-error"
+	case "titleexists":
+		html = "You already have a battle with this title."
+		class = "toast-error"
+	case "sconly":
+		html = "You must submit a SoundCloud link."
+		class = "toast-error"
+	case "cache":
+		html = "If this happens again, try clearing your cache."
+		class = "toast-error"
+	case "successvote":
+		html = "Vote successful."
+		class = "toast-success"
+	case "successdelvote":
+		html = "Vote successfully removed."
+		class = "toast-success"
+	case "successdel":
+		html = "Successfully deleted."
+		class = "toast-success"
+	case "successadd":
+		html = "Successfully added."
+		class = "toast-success"
+	case "successupdate":
+		html = "Successfully updated."
+		class = "toast-success"
+	case "invalid":
+		html = "Your SoundCloud url format is invalid."
+		class = "toast-error"
 	}
 
-	if toast == "unapprovedurl" {
-		html := "URL not on approved list."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "notopen" {
-		html := "That battle is not currently open."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "noauth" {
-		html := "You need to be logged in to do that."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "notuser" {
-		html := "You're not allowed to do that."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "notvoting" {
-		html := "This battle isn't currently accepting votes."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "owntrack" {
-		html := "You can't vote for your own track."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "maxvotes" {
-		html := "You're at your max votes for this battle."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "deadlinebefore" {
-		html := "The deadline cannot be before right now."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "votedeadlinebefore" {
-		html := "The voting deadline cannot be before the deadline."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "maxvotesinvalid" {
-		html := "Max votes must be between 1 and 10."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "nodata" {
-		html := "No data received.."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "validationerror" {
-		html := "Validation error, please try again."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "maxbattles" {
-		html := "You can only have 3 active battles at once."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "titleexists" {
-		html := "You already have a battle with this title."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "sconly" {
-		html := "You must submit a SoundCloud link."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "cache" {
-		html := "If this happens again, try clearing your cache."
-		class := "toast-error"
-		return [2]string{html, class}
-	}
-
-	if toast == "successvote" {
-		html := "Vote successful."
-		class := "toast-success"
-		return [2]string{html, class}
-	}
-
-	if toast == "successdelvote" {
-		html := "Vote successfully removed."
-		class := "toast-success"
-		return [2]string{html, class}
-	}
-
-	if toast == "successdel" {
-		html := "Successfully deleted."
-		class := "toast-success"
-		return [2]string{html, class}
-	}
-
-	if toast == "successadd" {
-		html := "Successfully added."
-		class := "toast-success"
-		return [2]string{html, class}
-	}
-
-	if toast == "successupdate" {
-		html := "Successfully updated."
-		class := "toast-success"
-		return [2]string{html, class}
-	}
-
-	if toast == "invalid" {
-		html := "Your SoundCloud url format is invalid."
-		class := "toast-error"
+	if html != "" {
 		return [2]string{html, class}
 	}
 

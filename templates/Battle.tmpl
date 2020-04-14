@@ -3,8 +3,12 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <nav class="battle-title">
-          <h1 class="nav-left">{{.Battle.Title}}</h1>
+        <span class="battle-host">{{.Battle.Host}} | {{if contains "Open" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if contains "Voting" .Battle.Status}}<span style="color: #990000">Voting</span>{{else}}Finished{{end}}</span>
+        <nav class="battle-title" style="padding-top: 0;">
+          <div class="nav-left">
+          <h1>{{.Battle.Title}}</h1>
+          <span class="battle-deadline">{{if contains "Open" .Battle.Status}}{{trimPrefix "Open - " .Battle.Status}}{{else if contains "Voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.Status}}{{else}}{{.Battle.Status}}{{end}}</span>
+          </div>
           <ul class="nav-links">
             {{if .IsOwner}}
               <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
@@ -29,11 +33,13 @@
             {{end}}
           </ul>
         </nav>
-        <p><b>Host</b>: {{.Battle.Host}}<br />
-        <b>Rules:</b> {{.Battle.Rules}}<br />
-        <span class="deadline"><b>Status:</b> {{.Battle.Status}} | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User</span></p>
+        <h3>Rules</h3>
+        <p class="battle-rules">{{.Battle.Rules}}</p>
+        {{if .Battle.Tags }}
+        <div class="chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
+        {{end}}
       </div>
-      <zing-grid caption="{{.Battle.Entries}} Entries" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid caption="{{.Battle.Entries}} Entries | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if contains "Finished" .Battle.Status}}
           <zg-column header="Artist" index="artist"></zg-column>
@@ -49,7 +55,7 @@
         <zg-nodata> No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
-    <script>    
+    <script>
     window.addEventListener('load', () => {
       // content after DOM load
       const zgRef = document.querySelector('zing-grid');

@@ -8,8 +8,11 @@
             <input type="text" data-index="1" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title" required>
             <input type="submit" class="nav-submit" value="CREATE 🔥" />
         </nav>
+        <div class="chips submit-border">
+          <input placeholder="Enter up to 3 tags (optional)." class="submit-nobox custom-class">
+        </div>
         <input data-index="2" class="submit-border submit-nobox" id="rules" name="rules" maxlength="255" placeholder="Battle Rules" required>
-        <input type="text" data-index="3" class="submit-border submit-nobox" id="password" name="password" maxlength="64" placeholder="Password (Optional)">
+        <!-- <input type="text" data-index="3" class="submit-border submit-nobox" id="password" name="password" maxlength="64" placeholder="Password (Optional)"> -->
         <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
             <input type="number" data-index="4" class="submit-nobox" id="maxvotes" name="maxvotes" value="1" min="1" max="10" required>
@@ -32,10 +35,21 @@
         </div>
         <input type="url" class="submit-border submit-nobox" data-index="9" id="attachment" name="attachment" placeholder="Battle Attachment (URL, Optional)">
         <input type="hidden" name="timezone" id="timezone" value="">
+        <input type="hidden" name="tags" id="tags" value="">
         </div>
         </form>
       </div>
       </div>
-      <script>$(document).ready(function(){$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)}),$("#submit-battle").on("keydown","input",function(t){if(13==t.which){t.preventDefault();var e=$(t.target),i=parseFloat(e.attr("data-index"));i>=9&&(i=0),$('[data-index="'+(i+1).toString()+'"]').focus()}});</script>
+      <script>function chipUpdate() {$('#tags').val(JSON.stringify(this.chipsData))};
+      
+      $(document).ready(function(){
+          $('.chips').chips({
+            limit: 3,
+            placeholder: 'Up to 3 tags (optional).',
+            secondaryPlaceholder: '+Tag',
+            onChipAdd: (chipUpdate),
+            onChipDelete: (chipUpdate),
+            });
+          $(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)}),$("#submit-battle").on("keydown","input",function(t){if(13==t.which){t.preventDefault();var e=$(t.target),i=parseFloat(e.attr("data-index"));i>=9&&(i=0),$('[data-index="'+(i+1).toString()+'"]').focus()}});</script>
   {{ template "Footer" .Toast }}
 {{ end }}
