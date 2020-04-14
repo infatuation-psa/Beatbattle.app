@@ -324,9 +324,9 @@ button:focus {
 
 .select-wrapper.invalid > input.select-dropdown,
 .select-wrapper.invalid > input.select-dropdown:focus {
-  border-bottom: 1px solid red;
-  -webkit-box-shadow: 0 1px 0 0 red;
-          box-shadow: 0 1px 0 0 red;
+  border-bottom: 1px solid #662300;
+  -webkit-box-shadow: 0 1px 0 0 #662300;
+          box-shadow: 0 1px 0 0 #662300;
 }
 
 .select-wrapper.valid .helper-text[data-success],
@@ -688,7 +688,7 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
 }
 
 .datepicker-clear {
-  color: red;
+  color: #662300;
 }
 
 /* Media Queries */

@@ -3,15 +3,19 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <nav class="battle-title">
-          <h1 class="nav-left">Update: <span style="font-weight: normal;">{{.Battle.Title}}</span></h1>
+        <span class="battle-host">{{.Battle.Host}} | <span style="color: #ff5800">Submit Beat</span></span>
+        <nav class="battle-title" style="padding-top: 0;">
+          <div class="nav-left">
+          <h1>{{.Battle.Title}}</h1>
+          <span class="battle-deadline">{{trimPrefix "Open - " .Battle.Status}}</span>
+          </div>
           <ul class="nav-links">
             <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your battle entry?')" href="/beat/{{.Battle.ID}}/delete">DELETE</a></li>
           </ul>
         </nav>
-        <p><b>Rules:</b> {{.Battle.Rules}}<br />
-        <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
-        <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/submit">
+        <h3>Rules</h3>
+        <p class="battle-rules">{{.Battle.Rules}}</p>
+        <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/update">
           <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track (use the share link for private tracks)." required>
           <input type="submit" class="submit-track" value="UPDATE 🔥" />
         </form>

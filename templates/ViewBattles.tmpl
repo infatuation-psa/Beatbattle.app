@@ -23,15 +23,6 @@
       <zg-nodata>No battles have this tag.</zg-nodata>
     </zing-grid>    
     </div>
-    <script>
-    // window.onload event for Javascript to run after HTML
-    // because this Javascript is injected into the document head
-    window.addEventListener('load', () => {
-      // content after DOM load
-      const zgRef = document.querySelector('zing-grid');
-      const data = {{.Battles}};
-      zgRef.setData(data);
-    });
-    </script>
+    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data)});</script>
   {{ template "Footer" .Toast }}
 {{ end }}

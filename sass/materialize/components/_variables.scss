@@ -3,7 +3,7 @@
 
 $secondary-color: #ff5800 !default;
 $success-color: $secondary-color !default;
-$error-color: red !default;
+$error-color: darken($secondary-color, 30%) !default;
 $input-disabled-color: rgba(0,0,0, .42) !default;
 
 // 7. Chips

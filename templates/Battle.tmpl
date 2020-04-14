@@ -3,7 +3,7 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host">{{.Battle.Host}} | {{if contains "Open" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if contains "Voting" .Battle.Status}}<span style="color: #990000">Voting</span>{{else}}Finished{{end}}</span>
+        <span class="battle-host">{{.Battle.Host}} | {{if contains "Open" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if contains "Voting" .Battle.Status}}<span style="color: #1E19FF">Voting</span>{{else}}Finished{{end}}</span>
         <nav class="battle-title" style="padding-top: 0;">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
@@ -20,7 +20,7 @@
             {{else}}
               {{if .Battle.Attachment}}
               <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
-              {{ end}}
+              {{end}}
               {{if contains "Open" .Battle.Status}}
                 {{ if .EnteredBattle }}
                 <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
@@ -36,7 +36,7 @@
         <h3>Rules</h3>
         <p class="battle-rules">{{.Battle.Rules}}</p>
         {{if .Battle.Tags }}
-        <div class="chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
+        <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
         {{end}}
       </div>
       <zing-grid caption="{{.Battle.Entries}} Entries | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>

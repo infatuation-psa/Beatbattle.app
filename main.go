@@ -136,6 +136,8 @@ func main() {
 	router.Get("/beat/{id}/submit/{toast}", SubmitBeat)
 	router.Get("/beat/{id}/submit", SubmitBeat)
 	router.Post("/beat/{id}/submit", InsertBeat)
+	router.Get("/beat/{id}/update/{toast}", SubmitBeat)
+	router.Post("/beat/{id}/update", UpdateBeat)
 	router.Get("/beat/{id}/update", SubmitBeat)
 	router.Get("/beat/{id}/delete", DeleteBeat)
 
@@ -169,11 +171,17 @@ func GetToast(toast string) [2]string {
 	case "404":
 		html = "Battle or beat not found."
 		class = "toast-error"
+	case "password":
+		html = "Incorrect password."
+		class = "toast-error"
 	case "unapprovedurl":
 		html = "URL not on approved list."
 		class = "toast-error"
 	case "notopen":
 		html = "That battle is not currently open."
+		class = "toast-error"
+	case "nobeat":
+		html = "You haven't submitted a beat to this battle."
 		class = "toast-error"
 	case "noauth":
 		html = "You need to be logged in to do that."

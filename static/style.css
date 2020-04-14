@@ -277,16 +277,33 @@ input[type=url] {
   font-size: 1rem;
 }
 
+.battle-chips {
+  padding-bottom: 1rem;
+}
+
 .submit-url {
   -webkit-box-flex: 1;
       -ms-flex-positive: 1;
           flex-grow: 1;
 }
 
+.submit-password {
+  width: 100%;
+  -webkit-box-flex: 1;
+      -ms-flex-positive: 1;
+          flex-grow: 1;
+  border: 1px solid black;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
 .submit-form {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
 }
 
 .nav-download {
@@ -352,6 +369,15 @@ zg-caption {
 zing-grid {
   --zg-pager-color: #ff5800;
   --zg-icon-color: #ff5800;
+  --zg-cell-background_sorted: #eeeeee;
+  --zg-head-cell-background_sorted: #eeeeee;
+  --zg-row-body-background_hover: #eeeeee;
+}
+
+.break {
+  -ms-flex-preferred-size: 100%;
+      flex-basis: 100%;
+  height: 0;
 }
 
 .nav-left {
@@ -437,7 +463,7 @@ p {
 }
 
 .toast-error {
-  background-color: red !important;
+  background-color: #1E19FF !important;
 }
 
 .nav-info {

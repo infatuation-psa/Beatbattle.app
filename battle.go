@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -386,9 +387,9 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 		return battle
 	}
 
-	battle.Title = strings.ReplaceAll(battle.Title, "&#39;", "'")
-	battle.Rules = strings.ReplaceAll(battle.Rules, "&#39;", "'")
-	battle.Host = strings.ReplaceAll(battle.Host, "&#39;", "'")
+	battle.Title = html.UnescapeString(battle.Title)
+	battle.Rules = html.UnescapeString(battle.Rules)
+	battle.Host = html.UnescapeString(battle.Host)
 
 	switch battle.Status {
 	case "entry":
@@ -657,8 +658,8 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	attachment = policy.Sanitize(r.FormValue("attachment"))
 
 	battle := &Battle{
-		Title:          policy.Sanitize(r.FormValue("title")),
-		Rules:          policy.Sanitize(r.FormValue("rules")),
+		Title:          strings.TrimSpace(policy.Sanitize(r.FormValue("title"))),
+		Rules:          strings.TrimSpace(policy.Sanitize(r.FormValue("rules"))),
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
 		Attachment:     attachment,
@@ -744,7 +745,7 @@ func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 		}
 		defer ins.Close()
 
-		res, err := ins.Exec(tag.Value)
+		res, err := ins.Exec(strings.TrimSpace(policy.Sanitize(tag.Value)))
 		if err != nil {
 			return
 		}

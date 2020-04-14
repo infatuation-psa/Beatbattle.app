@@ -3,16 +3,22 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <nav class="battle-title">
-          <h1 class="nav-left">Enter: <span style="font-weight: normal;">{{.Battle.Title}}</span></h1>
-          <ul class="nav-links">
+        <span class="battle-host">{{.Battle.Host}} | <span style="color: #ff5800">Submit Beat</span></span>
+        <nav class="battle-title" style="padding-top: 0;">
+          <div class="nav-left">
+          <h1>{{.Battle.Title}}</h1>
+          <span class="battle-deadline">{{trimPrefix "Open - " .Battle.Status}}</span>
+          </div>
+          <ul class="nav-links">          
             <li class="nav-item nav-download"><a href="javascript:history.back()">BACK</a></li>
           </ul>
         </nav>
-        <p><b>Rules:</b> {{.Battle.Rules}}<br />
-        <span class="deadline"><b>Deadline:</b> {{.Battle.Deadline}}</span></p>
+        <h3>Rules</h3>
+        <p class="battle-rules">{{.Battle.Rules}}</p>
         <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/submit">
-          <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track (use the share link for private tracks)." required>
+          {{if .Battle.Password}}<input type="text" class="submit-password" id="password" name="password" placeholder="Password" required>{{end}}
+          <div class="break"></div>
+          <input type="url" class="submit-url" id="track" name="track" placeholder="SoundCloud Track (Use Share Link For Private Tracks)" required>
           <input type="submit" class="submit-track" value="SEND 🔥" />
         </form>
       </div>
