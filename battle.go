@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -301,7 +302,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 			FROM beats 
 			LEFT JOIN users on beats.user_id=users.id
 			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
-			WHERE beats.challenge_id=? ORDER BY RAND()`
+			WHERE beats.challenge_id=?`
 
 	if battle.Status == "Battle Finished" {
 		query = `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
@@ -359,6 +360,13 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	battle.Entries = count
 
+	if battle.Status != "Battle Finished" {
+		rand.Seed(int64(user.ID + battle.ID))
+		rand.Shuffle(len(entries), func(i, j int) {
+			entries[i], entries[j] = entries[j], entries[i]
+		})
+	}
+
 	e, err := json.Marshal(entries)
 	if err != nil {
 		fmt.Println(err)
@@ -378,7 +386,6 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		"Toast":         toast,
 	}
 
-	print(string(e))
 	tmpl.ExecuteTemplate(wr, "Battle", m)
 }
 
@@ -429,8 +436,7 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 // SubmitBattle ...
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
-	println(r.URL.Query().Get(":toast"))
-	fmt.Print(toast)
+
 	var user = GetUser(w, r)
 	m := map[string]interface{}{
 		"Title": "Submit Battle",
@@ -641,7 +647,6 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	layout := "Jan 2, 2006 03:04 PM"
 
 	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
-	println(unparsedDeadline)
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
 	if err != nil || deadline.Before(time.Now()) {
 		http.Redirect(w, r, "/battle/submit/deadlinebefore", 302)
@@ -717,8 +722,6 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ins.Close()
 
-	fmt.Println(battle)
-
 	var battleInsertedID int64 = 0
 	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
 		battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
@@ -743,9 +746,6 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 // TagsDB adds / updates tags in the DB.
 func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 	var tagIDs []int64
-	// TODO - TAGS (NEED TO GET INSERTED ID FOR BATTLE AND TAGS)
-
-	println("next for")
 
 	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
 
@@ -755,8 +755,8 @@ func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 		return
 	}
 
+	// Only accept 3 tags.
 	for i, tag := range tags {
-		// Only accept 3 tags.
 		if i > 2 {
 			break
 		}
@@ -777,7 +777,6 @@ func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 			return
 		}
 		tagIDs = append(tagIDs, insertedID)
-		println(insertedID)
 	}
 
 	if update {
@@ -791,7 +790,6 @@ func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 	}
 
 	for i, tagID := range tagIDs {
-		// Only accept 3 tags.
 		if i > 2 {
 			break
 		}

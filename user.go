@@ -68,7 +68,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	userID := 0
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
+		http.Redirect(w, r, "/", 302)
 	}
 
 	// If user doesn't exist, add to db
@@ -78,16 +78,23 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
-			panic(err.Error())
+			http.Redirect(w, r, "/login/cache", 302)
+			return
 		}
 		defer stmt.Close()
 
 		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name)
+	} else {
+		sql := "UPDATE users SET nickname = ? WHERE id = ?"
 
-		err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+		stmt, err := db.Prepare(sql)
 		if err != nil {
-			http.Redirect(w, r, "/", 302)
+			http.Redirect(w, r, "/login/cache", 302)
+			return
 		}
+		defer stmt.Close()
+
+		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name)
 	}
 
 	Account.ID = userID

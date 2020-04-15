@@ -101,7 +101,7 @@ func main() {
 
 	state := string(RandString(16))
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
-		"linux:beatbattle:v0.1 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
+		"linux:beatbattle:v1.0 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
 
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
 	goth.UseProviders(discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("CALLBACK_URL"), discord.ScopeIdentify))

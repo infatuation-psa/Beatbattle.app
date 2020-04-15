@@ -32,7 +32,6 @@ func RowExists(db *sql.DB, sqlStmt string, args ...interface{}) bool {
 
 		return false
 	}
-	log.Println(err)
 
 	return true
 }

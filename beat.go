@@ -57,7 +57,6 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 		"Toast":  toast,
 	}
 
-	print(tpl)
 	tmpl.ExecuteTemplate(w, tpl, m)
 }
 
@@ -138,7 +137,6 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	defer ins.Close()
 
 	ins.Exec(track, battleID, user.ID)
-	println(redirectURL + response)
 	http.Redirect(w, r, "/battle/"+strconv.Itoa(battleID)+response, 302)
 	return
 }
