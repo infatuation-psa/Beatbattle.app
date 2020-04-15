@@ -459,6 +459,11 @@ p {
   color: #999;
 }
 
+.battle-voteinfo {
+  color: #1E19FF;
+  padding: 2rem;
+}
+
 .toast-success {
   background-color: #ff5800 !important;
 }

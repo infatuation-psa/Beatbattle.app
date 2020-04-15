@@ -293,19 +293,28 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	// Fetch beats in this battle.
 	var count int
-	order := "ORDER BY RAND()"
+
+	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
+			FROM beats 
+			LEFT JOIN users on beats.user_id=users.id
+			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
+			WHERE beats.challenge_id=? ORDER BY RAND()`
+
 	if battle.Status == "Battle Finished" {
-		order = "ORDER BY votes DESC"
+		query = `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
+				FROM beats 
+				LEFT JOIN users on beats.user_id=users.id
+				LEFT JOIN votes on votes.user_id=beats.user_id AND votes.challenge_id=beats.challenge_id
+				WHERE beats.challenge_id=?
+				GROUP BY 1
+				ORDER BY votes DESC`
 	}
 
-	query := `
-		SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
-		FROM beats 
-		LEFT JOIN users on beats.user_id=users.id
-		LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
-		WHERE beats.challenge_id=? ` + order
-
-	rows, err := db.Query(query, user.ID, battleID)
+	args := []interface{}{user.ID, battleID}
+	if battle.Status == "Battle Finished" {
+		args = []interface{}{battleID}
+	}
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		// This doesn't crash anything, but should be avoided.
 		fmt.Println(err)
@@ -322,6 +331,10 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		err = rows.Scan(&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID)
 		if err != nil {
 			panic(err.Error())
+		}
+
+		if battle.Status == "Battle Finished" && voteID == 0 {
+			submission.Artist = submission.Artist + ` <span style="color: #1E19FF;">(*)</span>`
 		}
 
 		count++
@@ -362,6 +375,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		"Toast":         toast,
 	}
 
+	print(string(e))
 	tmpl.ExecuteTemplate(wr, "Battle", m)
 }
 
