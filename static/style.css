@@ -9,6 +9,14 @@ body, html {
   height: 100%;
 }
 
+.battle-rules a {
+  color: #ff5800 !important;
+}
+
+.battle-rules a:hover {
+  border-bottom: 1px solid #ff5800;
+}
+
 .login {
   background: black;
   width: 100%;

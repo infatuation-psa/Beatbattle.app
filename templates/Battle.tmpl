@@ -34,7 +34,7 @@
           </ul>
         </nav>
         <h3>Rules</h3>
-        <p class="battle-rules">{{.Battle.Rules}}</p>
+        <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         {{if .Battle.Tags }}
         <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
         {{end}}

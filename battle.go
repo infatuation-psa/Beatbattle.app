@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,22 +13,24 @@ import (
 	"time"
 
 	"github.com/go-playground/validator"
+	"github.com/gomarkdown/markdown"
 )
 
 // Battle ...
 type Battle struct {
-	Title          string    `gorm:"column:title" json:"title" validate:"required"`
-	Rules          string    `gorm:"column:rules" json:"rules" validate:"required"`
-	Deadline       time.Time `gorm:"column:deadline" json:"deadline" validate:"required"`
-	VotingDeadline time.Time `gorm:"column:voting_deadline" json:"voting_deadline" validate:"required"`
-	Attachment     string    `gorm:"column:attachment" json:"attachment"`
-	Status         string    `gorm:"column:status" json:"status"`
-	Password       string    `gorm:"column:password" json:"password"`
-	Host           string    `json:"host"`
-	UserID         int       `gorm:"column:user_id" json:"user_id" validate:"required"`
-	Entries        int       `json:"entries"`
-	ID             int       `gorm:"column:id" json:"id"`
-	MaxVotes       int       `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
+	Title          string        `gorm:"column:title" json:"title" validate:"required"`
+	Rules          string        `gorm:"column:rules" validate:"required"`
+	RulesHTML      template.HTML `json:"rules"`
+	Deadline       time.Time     `gorm:"column:deadline" json:"deadline" validate:"required"`
+	VotingDeadline time.Time     `gorm:"column:voting_deadline" json:"voting_deadline" validate:"required"`
+	Attachment     string        `gorm:"column:attachment" json:"attachment"`
+	Status         string        `gorm:"column:status" json:"status"`
+	Password       string        `gorm:"column:password" json:"password"`
+	Host           string        `json:"host"`
+	UserID         int           `gorm:"column:user_id" json:"user_id" validate:"required"`
+	Entries        int           `json:"entries"`
+	ID             int           `gorm:"column:id" json:"id"`
+	MaxVotes       int           `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
 	Tags           []Tag
 }
 
@@ -401,8 +404,12 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 		return battle
 	}
 
+	// I can stop doing this for newer ones.
 	battle.Title = html.UnescapeString(battle.Title)
 	battle.Rules = html.UnescapeString(battle.Rules)
+
+	md := []byte(battle.Rules)
+	battle.RulesHTML = template.HTML(markdown.ToHTML(md, nil, nil))
 	battle.Host = html.UnescapeString(battle.Host)
 
 	switch battle.Status {

@@ -48,9 +48,9 @@ func init() {
 		log.Print("No .env file found")
 	}
 
-	whitelist = []string{"drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com"}
-	policy = bluemonday.StrictPolicy()
-	policy.AllowStandardURLs()
+	whitelist = []string{"drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
+	policy = bluemonday.UGCPolicy()
+	//policy.AllowStandardURLs()
 
 	/*authKeyOne := securecookie.GenerateRandomKey(64)
 	encryptionKeyOne := securecookie.GenerateRandomKey(32)*/
