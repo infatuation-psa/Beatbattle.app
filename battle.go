@@ -716,6 +716,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
 		battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
 	if err != nil {
+		panic(err.Error())
 		http.Redirect(w, r, "/failadd", 302)
 		return
 	}
