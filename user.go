@@ -97,7 +97,13 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name)
 	}
 
+	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+	if err != nil && err != sql.ErrNoRows {
+		http.Redirect(w, r, "/", 302)
+	}
+
 	Account.ID = userID
+	print(userID)
 	session.Values["user"] = Account
 
 	err = session.Save(r, w)
