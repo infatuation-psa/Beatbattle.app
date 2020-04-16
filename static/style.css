@@ -9,6 +9,33 @@ body, html {
   height: 100%;
 }
 
+.zing-chips {
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+  display: block !important;
+}
+
+.zing-chips .chip {
+  margin-top: 0.25rem;
+  display: inline-block !important;
+}
+
+.zing-chips:not(:empty) {
+  margin-top: 0.5rem;
+}
+
+.zing-left {
+  padding: 1rem 0 1rem 1rem;
+}
+
+.zing-right {
+  padding: 1rem 1rem 1rem 0;
+}
+
+.zing-both {
+  padding: 1rem;
+}
+
 .battle-rules a {
   color: #ff5800 !important;
 }
@@ -381,6 +408,21 @@ zing-grid {
   --zg-cell-background_sorted: #eeeeee;
   --zg-head-cell-background_sorted: #eeeeee;
   --zg-row-body-background_hover: #eeeeee;
+}
+
+zing-grid .battle-url {
+  color: #ff5800 !important;
+  font-weight: bold;
+}
+
+zing-grid .battle-url:hover {
+  border-bottom: 1px solid #ff5800;
+}
+
+zg-cell {
+  padding: 1rem;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
 }
 
 .break {

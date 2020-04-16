@@ -932,13 +932,13 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
 
 .chip {
   white-space: nowrap;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
+  display: -webkit-box !important;
+  display: -ms-flexbox !important;
+  display: flex !important;
   height: 32px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.6);
+  color: rgba(0, 0, 0, 0.6) !important;
   line-height: 32px;
   padding: 0 12px;
   border-radius: 16px;
@@ -946,10 +946,14 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
   margin-right: 5px;
 }
 
+.chip:hover {
+  color: black !important;
+}
+
 .chip:focus {
   outline: none;
-  background-color: #ff5800;
-  color: #fff;
+  background-color: #ff5800 !important;
+  color: #fff !important;
 }
 
 .chip > img {

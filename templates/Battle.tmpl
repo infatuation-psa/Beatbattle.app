@@ -42,8 +42,8 @@
       <zing-grid caption="{{.Battle.Entries}} Entries | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if contains "Finished" .Battle.Status}}
-          <zg-column header="Artist" index="artist"></zg-column>
-          <zg-column header="Votes" index="votes" sort-desc></zg-column>
+          <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
+          <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
           {{ end }}          
           <zg-column header="Track" index="url"></zg-column>
           {{if contains "Voting" .Battle.Status}}

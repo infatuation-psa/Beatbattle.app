@@ -13,6 +13,27 @@ body, html
 	width: 100% 
 	height: 100% 
 
+.zing-chips
+	padding-bottom: 0 !important
+	min-height: 0 !important
+	display: block !important
+
+	.chip
+		margin-top: 0.25rem
+		display: inline-block !important
+
+.zing-chips:not(:empty)
+		margin-top: 0.5rem
+
+.zing-left
+	padding: 1rem 0 1rem 1rem
+
+.zing-right
+	padding: 1rem 1rem 1rem 0
+
+.zing-both
+	padding: 1rem
+
 .battle-rules a 
 	color: $main-color !important
 
@@ -234,6 +255,17 @@ zing-grid
 	--zg-cell-background_sorted: #eeeeee
 	--zg-head-cell-background_sorted: #eeeeee
 	--zg-row-body-background_hover: #eeeeee
+	.battle-url
+		color: $main-color !important
+		font-weight: bold
+		&:hover
+			border-bottom: 1px solid $main-color
+	//border: 0
+
+zg-cell
+	padding: 1rem
+	box-sizing: border-box
+
 .break
   flex-basis: 100%
   height: 0

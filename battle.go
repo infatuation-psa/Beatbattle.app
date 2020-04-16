@@ -329,6 +329,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	submission := Beat{}
 	entries := []Beat{}
+	didntVote := []Beat{}
 
 	for rows.Next() {
 		voteID := 0
@@ -355,8 +356,15 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 			submission.URL = `<iframe width="100%" height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
 		}
 
+		if battle.Status == "Battle Finished" && voteID == 0 {
+			didntVote = append(didntVote, submission)
+			continue
+		}
+
 		entries = append(entries, submission)
 	}
+
+	entries = append(entries, didntVote...)
 
 	battle.Entries = count
 
