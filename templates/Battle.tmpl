@@ -58,15 +58,6 @@
       <div class="battle-voteinfo">Users marked with (*) have not voted.</div>
       {{end}}
     </div>
-    <script>
-    window.addEventListener('load', () => {
-      // content after DOM load
-      const zgRef = document.querySelector('zing-grid');
-      const data = {{.Beats}};
-      zgRef.setData(data);
-    });
-    var _href = $("#edit-button").attr("href");
-    $("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone);
-    </script>
+    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Beats}};zgRef.setData(data)});var _href=$("#edit-button").attr("href");$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone)</script>
   {{ template "Footer" .Toast }}
 {{ end }}
