@@ -27,12 +27,7 @@
     </zing-grid>    
     </div>
     <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
-    <script>
-    window.addEventListener('DOMContentLoaded', function() {
-        (function($) {$("a:contains('record.Tags')").remove();
-        })(jQuery);
-    });
-</script>
+    <script type="deferjs" src="/static/clearempty.min.js"></script>
   {{ template "Footer" .Toast }}
 
 {{ end }}
