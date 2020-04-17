@@ -197,16 +197,26 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 
 	session, err := store.Get(req, "beatbattle")
 	if err != nil {
-		if strings.Contains(err.Error(), "The system cannot find the file specified.") || strings.Contains(err.Error(), "could not find a matching session for this request") || strings.Contains(err.Error(), "no such file") {
+		if strings.Contains(err.Error(), "The system cannot find the file specified.") || strings.Contains(err.Error(), "could not find a matching session for this request") {
 			session.Values["user"] = User{}
 			session.Options.MaxAge = -1
 			err = session.Save(req, res)
 			if err != nil {
-				store.New(req, "beatbattle")
+				session, err = store.New(req, "beatbattle")
+				if err != nil {
+				}
+				session.Values["user"] = User{}
+				session.Options.MaxAge = -1
+				err = session.Save(req, res)
 				http.Redirect(res, req, "/login/cache", 302)
 			}
 		} else {
-			store.New(req, "beatbattle")
+			session, err = store.New(req, "beatbattle")
+			if err != nil {
+			}
+			session.Values["user"] = User{}
+			session.Options.MaxAge = -1
+			err = session.Save(req, res)
 			http.Redirect(res, req, "/login/cache", 302)
 		}
 	}
