@@ -132,7 +132,8 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		panic(err.Error())
+		http.Redirect(w, r, "/502", 302)
+		return
 	}
 	defer ins.Close()
 

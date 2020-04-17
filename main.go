@@ -171,6 +171,9 @@ func GetToast(toast string) [2]string {
 	case "404":
 		html = "Battle or beat not found."
 		class = "toast-error"
+	case "502":
+		html = "Server error."
+		class = "toast-error"
 	case "password":
 		html = "Incorrect password."
 		class = "toast-error"

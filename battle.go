@@ -47,7 +47,7 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 
 	err := db.QueryRow("SELECT status FROM challenges WHERE id = ?", battleID).Scan(&curStatus)
 	if err != nil {
-		panic(err.Error())
+		return ""
 	}
 
 	if time.Until(deadline) < 0 && curStatus == deadlineType {
@@ -61,7 +61,7 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 
 		updateStatus, err := db.Prepare(sql)
 		if err != nil {
-			panic(err.Error())
+			return ""
 		}
 		defer updateStatus.Close()
 
@@ -225,7 +225,7 @@ func GetBattles(db *sql.DB, status string, tag string) []Battle {
 	rows, err := db.Query(query, status)
 
 	if err != nil {
-		panic(err.Error())
+		return nil
 	}
 	defer rows.Close()
 
@@ -235,7 +235,7 @@ func GetBattles(db *sql.DB, status string, tag string) []Battle {
 		err = rows.Scan(&battle.ID, &battle.Title, &battle.Deadline, &battle.VotingDeadline, &battle.Status, &battle.UserID,
 			&battle.Host, &battle.Entries)
 		if err != nil {
-			panic(err.Error())
+			return nil
 		}
 
 		switch battle.Status {
@@ -282,7 +282,8 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", user.ID, battleID)
 	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
+		http.Redirect(wr, req, "/502", 302)
+		return
 	}
 	defer votes.Close()
 
@@ -290,7 +291,8 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		var curBeatID int
 		err = votes.Scan(&curBeatID)
 		if err != nil {
-			panic(err.Error())
+			http.Redirect(wr, req, "/502", 302)
+			return
 		}
 		lastVotes = append(lastVotes, curBeatID)
 	}
@@ -335,7 +337,8 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		voteID := 0
 		err = rows.Scan(&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID)
 		if err != nil {
-			panic(err.Error())
+			http.Redirect(wr, req, "/502", 302)
+			return
 		}
 
 		if battle.Status == "Battle Finished" && voteID == 0 {
@@ -412,7 +415,7 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 		&battle.Password, &battle.MaxVotes, &battle.UserID, &battle.Host)
 
 	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
+		return battle
 	}
 
 	if err == sql.ErrNoRows {
@@ -608,7 +611,8 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	ins, err := db.Prepare(query)
 	if err != nil {
-		panic(err.Error())
+		http.Redirect(w, r, "/502", 302)
+		return
 	}
 	defer ins.Close()
 
@@ -639,7 +643,8 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	entries := 0
 	err := db.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", user.ID).Scan(&entries)
 	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
+		http.Redirect(w, r, "/502", 302)
+		return
 	}
 
 	if entries >= 3 {
@@ -726,7 +731,8 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		panic(err.Error())
+		http.Redirect(w, r, "/502", 302)
+		return
 	}
 	defer ins.Close()
 
@@ -734,8 +740,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
 		battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
 	if err != nil {
-		panic(err.Error())
-		http.Redirect(w, r, "/failadd", 302)
+		http.Redirect(w, r, "/502", 302)
 		return
 	}
 
@@ -771,7 +776,7 @@ func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 
 		ins, err := db.Prepare("INSERT INTO tags(tag) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)")
 		if err != nil {
-			panic(err.Error())
+			return
 		}
 		defer ins.Close()
 
@@ -804,7 +809,7 @@ func TagsDB(db *sql.DB, update bool, tagsJSON string, battleID int64) {
 
 		ins, err := db.Prepare("INSERT INTO challenges_tags VALUES(?, ?)")
 		if err != nil {
-			panic(err.Error())
+			return
 		}
 		defer ins.Close()
 
@@ -823,7 +828,7 @@ func GetTags(db *sql.DB, battleID int) []Tag {
 	rows, err := db.Query(query, battleID)
 
 	if err != nil {
-		panic(err.Error())
+		return Tags
 	}
 	defer rows.Close()
 
@@ -831,7 +836,7 @@ func GetTags(db *sql.DB, battleID int) []Tag {
 		tag := Tag{Value: ""}
 		err = rows.Scan(&tag.Value)
 		if err != nil {
-			panic(err.Error())
+			return Tags
 		}
 
 		Tags = append(Tags, tag)
@@ -861,7 +866,8 @@ func DeleteBattle(w http.ResponseWriter, r *http.Request) {
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		panic(err.Error())
+		http.Redirect(w, r, "/502", 302)
+		return
 	}
 	defer ins.Close()
 

@@ -9,7 +9,7 @@
             <input type="submit" class="nav-submit" value="UPDATE 🔥" />
         </nav>
         <div class="chips submit-border">
-          <input placeholder="Enter Up To 3 Tags (Optional)" class="submit-nobox custom-class">
+          <input placeholder="Enter Up To 3 Tags (Optional)" maxlength="32" class="submit-nobox custom-class">
         </div>
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="512" placeholder="Battle Rules (Supports Markdown Syntax)" required>{{.Battle.Rules}}</textarea>
         <input type="text" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="64" placeholder="Password (Optional)">

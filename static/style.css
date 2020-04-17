@@ -419,6 +419,10 @@ zing-grid .battle-url:hover {
   border-bottom: 1px solid #ff5800;
 }
 
+.footer-icon img {
+  max-height: 1.25rem;
+}
+
 zg-cell {
   padding: 1rem;
   -webkit-box-sizing: border-box;

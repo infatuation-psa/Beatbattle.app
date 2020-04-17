@@ -9,10 +9,10 @@
             <input type="submit" class="nav-submit" value="CREATE 🔥" />
         </nav>
         <div class="chips submit-border">
-          <input placeholder="Enter Up To 3 Tags (optional)" class="submit-nobox custom-class">
+          <input placeholder="Enter Up To 3 Tags (optional)" maxlength="32" class="submit-nobox custom-class">
         </div>
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="512" placeholder="Battle Rules (Supports Markdown Syntax)" required></textarea>
-        <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="64" placeholder="Password - Keep It Simple (Optional)">
+        <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="16" placeholder="Password - Keep It Simple (Optional)">
         <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
             <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="1" min="1" max="10" required>
