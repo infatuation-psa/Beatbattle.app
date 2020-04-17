@@ -207,7 +207,6 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 					http.Redirect(res, req, "/login/cache", 302)
 				}
 				session.Values["user"] = User{}
-				session.Options.MaxAge = -1
 				err = session.Save(req, res)
 				if err != nil {
 					http.Redirect(res, req, "/login/cache", 302)
@@ -219,7 +218,6 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 				http.Redirect(res, req, "/login/cache", 302)
 			}
 			session.Values["user"] = User{}
-			session.Options.MaxAge = -1
 			err = session.Save(req, res)
 			if err != nil {
 				http.Redirect(res, req, "/login/cache", 302)
