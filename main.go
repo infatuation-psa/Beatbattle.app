@@ -98,7 +98,6 @@ func RandString(length int) string {
 func main() {
 	router := pat.New()
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-
 	state := string(RandString(16))
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
 		"linux:beatbattle:v1.0 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)

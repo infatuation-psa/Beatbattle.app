@@ -122,7 +122,6 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
-
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
 	URL := r.URL.RequestURI()
