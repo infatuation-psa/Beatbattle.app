@@ -202,11 +202,12 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 			session.Options.MaxAge = -1
 			err = session.Save(req, res)
 			if err != nil {
-				http.Error(res, err.Error(), http.StatusInternalServerError)
+				store.New(req, "beatbattle")
 				http.Redirect(res, req, "/login/cache", 302)
 			}
 		} else {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
+			store.New(req, "beatbattle")
+			http.Redirect(res, req, "/login/cache", 302)
 		}
 	}
 
