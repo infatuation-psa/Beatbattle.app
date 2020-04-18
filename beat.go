@@ -159,8 +159,10 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
-	if !RowExists(db, "SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID) {
-		http.Redirect(w, r, "battle"+strconv.Itoa(battleID)+"/notopen", 302)
+	password := ""
+	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
+	if err != nil {
+		http.Redirect(w, r, "/battle/"+strconv.Itoa(battleID)+"/notopen", 302)
 		return
 	}
 
