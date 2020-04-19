@@ -7,19 +7,19 @@
         <nav class="battle-title" style="padding-top: 0;">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
-          <span class="battle-deadline">{{trimPrefix "Open - " .Battle.Status}}</span>
+          <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
           </div>
           <ul class="nav-links">          
             <li class="nav-item nav-download"><a href="javascript:history.back()">BACK</a></li>
           </ul>
         </nav>
         <h3>Rules</h3>
-        <p class="battle-rules">{{.Battle.Rules}}</p>
+        <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/submit">
           {{if .Battle.Password}}<input type="text" class="submit-password" id="password" name="password" placeholder="Password" required>{{end}}
           <div class="break"></div>
           <input type="url" class="submit-url" id="track" name="track" placeholder="SoundCloud Track (Use Share Link For Private Tracks)" required>
-          <input type="submit" class="submit-track" value="SEND 🔥" />
+          <input type="submit" class="nav-submit" value="SUBMIT" />
         </form>
       </div>
       </div>

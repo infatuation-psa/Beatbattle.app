@@ -25,7 +25,8 @@ type Battle struct {
 	Deadline       time.Time     `gorm:"column:deadline" json:"deadline" validate:"required"`
 	VotingDeadline time.Time     `gorm:"column:voting_deadline" json:"voting_deadline" validate:"required"`
 	Attachment     string        `gorm:"column:attachment" json:"attachment"`
-	Status         string        `gorm:"column:status" json:"status"`
+	Status         string        `gorm:"column:status"`
+	StatusDisplay  string        `json:"status"`
 	Password       string        `gorm:"column:password" json:"password"`
 	Host           string        `json:"host"`
 	UserID         int           `gorm:"column:user_id" json:"user_id" validate:"required"`
@@ -55,7 +56,7 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 		sql := "UPDATE challenges SET status = 'voting' WHERE id = ?"
 
 		if curStatus == "voting" {
-			deadlineParsed = "Battle Finished"
+			deadlineParsed = "Finished -"
 			sql = "UPDATE challenges SET status = 'complete' WHERE id = ?"
 		}
 
@@ -82,6 +83,7 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 	hours := int(diff.Hours() - float64(days*24))
 	minutes := int(diff.Minutes() - float64(days*24*60) - float64(hours*60))
 
+	// Fix bug where none are shown
 	if days > 0 {
 		deadlineParsed += strconv.Itoa(days) + " day"
 	}
@@ -135,7 +137,7 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 		title = "Past Battles"
 	}
 
-	battles := GetBattles(db, status, "")
+	battles := GetBattles(db, "challenges.status", status)
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
@@ -155,7 +157,7 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, tpl, m)
 }
 
-// ViewTaggedBattles - Retrieves all battles and displays to user. Homepage.
+// ViewTaggedBattles - Retrieves all tagged battles and displays to user.
 func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
@@ -164,7 +166,7 @@ func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
 
 	title := "Battles Tagged With " + policy.Sanitize(r.URL.Query().Get(":tag"))
 
-	battles := GetBattles(db, "", policy.Sanitize(r.URL.Query().Get(":tag")))
+	battles := GetBattles(db, "tags.tag", policy.Sanitize(r.URL.Query().Get(":tag")))
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
@@ -185,43 +187,69 @@ func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "ViewBattles", m)
 }
 
+// MyAccount - Retrieves all of user's battles and displays to user.
+func MyAccount(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
+	var user = GetUser(w, r)
+
+	battles := GetBattles(db, "challenges.user_id", strconv.Itoa(user.ID))
+
+	battlesJSON, err := json.Marshal(battles)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	m := map[string]interface{}{
+		"Title":   "My Account",
+		"Battles": string(battlesJSON),
+		"User":    user,
+		"Toast":   toast,
+		"Tag":     policy.Sanitize(r.URL.Query().Get(":tag")),
+	}
+
+	tmpl.ExecuteTemplate(w, "MyAccount", m)
+}
+
 // GetBattles retrieves a battle from the database using an ID.
-func GetBattles(db *sql.DB, status string, tag string) []Battle {
-	query := `
-		SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
-		FROM challenges 
-		LEFT JOIN users ON challenges.user_id = users.id 
-		LEFT JOIN beats ON challenges.id = beats.challenge_id 
-		WHERE challenges.status = ?
-        GROUP BY 1
-		ORDER BY challenges.deadline`
+func GetBattles(db *sql.DB, field string, value string) []Battle {
+	// FIELD & VALUE
+	querySELECT := `SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
+					FROM challenges 
+					LEFT JOIN users ON challenges.user_id = users.id 
+					LEFT JOIN beats ON challenges.id = beats.challenge_id`
+	queryWHERE := "WHERE " + field + "=?"
+	queryGROUP := "GROUP BY 1"
+	queryORDER := "ORDER BY challenges.deadline DESC"
 
-	if status == "entry" {
-		query = `
-		SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
-		FROM challenges 
-		LEFT JOIN users ON challenges.user_id = users.id 
-		LEFT JOIN beats ON challenges.id = beats.challenge_id 
-		WHERE challenges.status = ? OR challenges.status = "voting"
-		GROUP BY 1
-		ORDER BY challenges.deadline`
+	if field == "tags.tag" {
+		querySELECT = `SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
+						FROM tags
+						LEFT JOIN challenges_tags ON challenges_tags.tag_id = tags.id
+						LEFT JOIN challenges on challenges.id = challenges_tags.challenge_id
+						LEFT JOIN users ON challenges.user_id = users.id 
+						LEFT JOIN beats ON challenges.id = beats.challenge_id `
+		queryORDER = "ORDER BY challenges.deadline ASC"
 	}
 
-	if tag != "" {
-		status = tag
-		query = `
-		SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
-		FROM tags
-		LEFT JOIN challenges_tags ON challenges_tags.tag_id = tags.id
-        LEFT JOIN challenges on challenges.id = challenges_tags.challenge_id
-		LEFT JOIN users ON challenges.user_id = users.id 
-		LEFT JOIN beats ON challenges.id = beats.challenge_id 
-		WHERE tags.tag = ?
-		GROUP BY 1
-		ORDER BY challenges.deadline`
+	if field == "challenges.status" {
+		if value == "entry" {
+			queryWHERE = queryWHERE + " OR challenges.status = 'voting'"
+			queryORDER = "ORDER BY challenges.deadline ASC"
+		}
+
+		if value == "past" {
+			queryORDER = "ORDER BY challenges.voting_deadline DESC"
+		}
 	}
 
-	rows, err := db.Query(query, status)
+	query := querySELECT + " " + queryWHERE + " " + queryGROUP + " " + queryORDER
+
+	rows, err := db.Query(query, value)
 
 	if err != nil {
 		return nil
@@ -239,11 +267,14 @@ func GetBattles(db *sql.DB, status string, tag string) []Battle {
 
 		switch battle.Status {
 		case "entry":
-			battle.Status = ParseDeadline(db, battle.Deadline, battle.ID, "entry", true)
+			battle.StatusDisplay = ParseDeadline(db, battle.Deadline, battle.ID, "entry", true)
 		case "voting":
-			battle.Status = ParseDeadline(db, battle.VotingDeadline, battle.ID, "voting", true)
+			battle.StatusDisplay = ParseDeadline(db, battle.VotingDeadline, battle.ID, "voting", true)
+		case "draft":
+			battle.StatusDisplay = "Draft"
 		default:
-			battle.Status = "Battle Finished" // Complete case
+			layoutUS := "January 2, 2006"
+			battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
 		}
 
 		battle.Tags = GetTags(db, battle.ID)
@@ -299,13 +330,14 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	// Fetch beats in this battle.
 	var count int
 
+	args := []interface{}{user.ID, battleID}
 	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
 			FROM beats 
 			LEFT JOIN users on beats.user_id=users.id
 			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
 			WHERE beats.challenge_id=?`
 
-	if battle.Status == "Battle Finished" {
+	if battle.Status == "complete" {
 		query = `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
 				FROM beats 
 				LEFT JOIN users on beats.user_id=users.id
@@ -313,12 +345,9 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 				WHERE beats.challenge_id=?
 				GROUP BY 1
 				ORDER BY votes DESC`
-	}
-
-	args := []interface{}{user.ID, battleID}
-	if battle.Status == "Battle Finished" {
 		args = []interface{}{battleID}
 	}
+
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		// This doesn't crash anything, but should be avoided.
@@ -340,8 +369,8 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if battle.Status == "Battle Finished" && voteID == 0 {
-			submission.Artist = submission.Artist + ` <span style="color: #1E19FF;">(*)</span>`
+		if battle.Status == "complete" && voteID == 0 {
+			submission.Artist = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Artist + ` <span style="color: #1E19FF;">(*)</span></span>`
 		}
 
 		count++
@@ -358,7 +387,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 			submission.URL = `<iframe width="100%" height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
 		}
 
-		if battle.Status == "Battle Finished" && voteID == 0 {
+		if battle.Status == "complete" && voteID == 0 {
 			didntVote = append(didntVote, submission)
 			continue
 		}
@@ -370,7 +399,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	battle.Entries = count
 
-	if battle.Status != "Battle Finished" {
+	if battle.Status != "complete" {
 		rand.Seed(int64(user.ID + battle.ID))
 		rand.Shuffle(len(entries), func(i, j int) {
 			entries[i], entries[j] = entries[j], entries[i]
@@ -431,11 +460,14 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 
 	switch battle.Status {
 	case "entry":
-		battle.Status = ParseDeadline(db, battle.Deadline, battleID, "entry", false)
+		battle.StatusDisplay = ParseDeadline(db, battle.Deadline, battleID, "entry", false)
 	case "voting":
-		battle.Status = ParseDeadline(db, battle.VotingDeadline, battleID, "voting", false)
+		battle.StatusDisplay = ParseDeadline(db, battle.VotingDeadline, battleID, "voting", false)
+	case "draft":
+		battle.StatusDisplay = "Draft"
 	default:
-		battle.Status = "Battle Finished" // Complete case
+		layoutUS := "January 2, 2006"
+		battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
 	}
 
 	battle.Tags = GetTags(db, battleID)
@@ -455,6 +487,59 @@ func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl.ExecuteTemplate(w, "SubmitBattle", m)
+}
+
+// TemplateBattle ...
+func TemplateBattle(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
+	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		http.Redirect(w, r, "/404", 302)
+		return
+	}
+
+	region := r.URL.Query().Get(":region")
+	country := r.URL.Query().Get(":country")
+
+	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
+	if err != nil {
+		loc, _ = time.LoadLocation("America/Toronto")
+	}
+
+	battle := GetBattle(db, battleID)
+	if battle.Title == "" {
+		http.Redirect(w, r, "/404", 302)
+		return
+	}
+
+	var user = GetUser(w, r)
+	if battle.UserID != user.ID {
+		http.Redirect(w, r, "/notuser", 302)
+		return
+	}
+
+	// For time.Parse
+	layout := "Jan 2, 2006-03:04 PM"
+
+	deadline := strings.Split(battle.Deadline.In(loc).Format(layout), "-")
+	votingDeadline := strings.Split(battle.VotingDeadline.In(loc).Format(layout), "-")
+
+	m := map[string]interface{}{
+		"Title":              "Update Battle",
+		"Battle":             battle,
+		"User":               user,
+		"DeadlineDate":       deadline[0],
+		"DeadlineTime":       deadline[1],
+		"VotingDeadlineDate": votingDeadline[0],
+		"VotingDeadlineTime": votingDeadline[1],
+		"Toast":              toast,
+	}
+
+	tmpl.ExecuteTemplate(w, "TemplateBattle", m)
 }
 
 // UpdateBattle ...
@@ -580,6 +665,14 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	attachment = policy.Sanitize(r.FormValue("attachment"))
 
+	status := curStatus
+	if status == "draft" && r.FormValue("submit") == "PUBLISH" {
+		status = "entry"
+	}
+	if r.FormValue("submit") == "DRAFT" {
+		status = "draft"
+	}
+
 	battle := &Battle{
 		Title:          policy.Sanitize(r.FormValue("title")),
 		Rules:          policy.Sanitize(r.FormValue("rules")),
@@ -590,6 +683,7 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		Password:       policy.Sanitize(r.FormValue("password")),
 		MaxVotes:       maxVotes,
 		UserID:         user.ID,
+		Status:         status,
 	}
 
 	v := validator.New()
@@ -605,7 +699,7 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 			UPDATE challenges 
-			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?
+			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?
 			WHERE id = ? AND user_id = ?`
 
 	ins, err := db.Prepare(query)
@@ -615,7 +709,7 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ins.Close()
 
-	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battleID, user.ID)
+	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battleID, user.ID)
 
 	if err != nil {
 		http.Redirect(w, r, "/failadd", 302)
@@ -695,6 +789,11 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	attachment = policy.Sanitize(r.FormValue("attachment"))
 
+	status := "entry"
+	if r.FormValue("submit") == "DRAFT" {
+		status = "draft"
+	}
+
 	battle := &Battle{
 		Title:          strings.TrimSpace(policy.Sanitize(r.FormValue("title"))),
 		Rules:          strings.TrimSpace(policy.Sanitize(r.FormValue("rules"))),
@@ -702,7 +801,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		VotingDeadline: votingDeadline,
 		Attachment:     attachment,
 		Host:           user.Name,
-		Status:         "entry",
+		Status:         status,
 		Password:       policy.Sanitize(r.FormValue("password")),
 		UserID:         user.ID,
 		Entries:        0,

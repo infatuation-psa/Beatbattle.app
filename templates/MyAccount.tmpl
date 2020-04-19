@@ -1,17 +1,17 @@
-{{ define "Index" }}
+{{ define "MyAccount" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
         <nav class="battle-title">
-          <h1 class="nav-left">Active Battles</h1>
+          <h1 class="nav-left">My Battles</h1>
           <ul class="nav-links">
-              <li class="nav-item nav-download"><a href="/past">PAST</a></li>
-              <li class="nav-item nav-item-right nav-submit"><a href="/battle/submit">NEW BATTLE</a></li>
+              <!-- <li class="nav-item nav-download"><a href="/past">MY BEATS</a></li> -->
+              <li class="nav-item nav-submit"><a href="/battle/submit">NEW BATTLE</a></li>
           </ul>
         </nav>
       </div>
-    <zing-grid caption="Battles" layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+    <zing-grid caption="Battles" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
       <zg-colgroup>
         <zg-column cell-class="zing-left" header="Battle" index="title" type="url" cell-class="link">
           <template>
@@ -23,7 +23,7 @@
         <zg-column cell-class="zing-left"  index="host"></zg-column>
         <zg-column cell-class="zing-both"  header="Entries" index="entries"></zg-column>
       </zg-colgroup> 
-      <zg-nodata>No battles are currently active.</zg-nodata>
+      <zg-nodata>You haven't made a battle yet.</zg-nodata>
     </zing-grid>    
     </div>
     <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);zgRef.executeOnLoad(function() {$("a:contains('record.Tags')").remove();});})</script>

@@ -3,32 +3,32 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host">{{.Battle.Host}} | {{if contains "Open" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if contains "Voting" .Battle.Status}}<span style="color: #1E19FF">Voting</span>{{else}}Finished{{end}}</span>
+        <span class="battle-host">{{.Battle.Host}} | {{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF">Voting</span>{{else}}Finished{{end}}</span>
         <nav class="battle-title" style="padding-top: 0;">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
-          <span class="battle-deadline">{{if contains "Open" .Battle.Status}}{{trimPrefix "Open - " .Battle.Status}}{{else if contains "Voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.Status}}{{else}}{{.Battle.Status}}{{end}}</span>
+          <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
           </div>
           <ul class="nav-links">
             {{if .IsOwner}}
               <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
-              {{if contains "Finished" .Battle.Status}}
+              {{if eq "complete" .Battle.Status}}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{else}}              
-                <li class="nav-item nav-submit"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
+                <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
               {{end}}
             {{else}}
               {{if .Battle.Attachment}}
               <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
               {{end}}
-              {{if contains "Open" .Battle.Status}}
+              {{if eq "entry" .Battle.Status}}
                 {{ if .EnteredBattle }}
                 <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
                 {{ else }}
-                <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
+                <li class="nav-item nav-item-right nav-submit"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
                 {{ end }}
               {{ else }}
-                <li class="nav-item nav-disabled"><a>CLOSED</a></li>
+                <li class="nav-item nav-item-right nav-disabled"><a>CLOSED</a></li>
               {{end}}
             {{end}}
           </ul>
@@ -41,12 +41,12 @@
       </div>
       <zing-grid caption="{{.Battle.Entries}} Entries | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
-          {{if contains "Finished" .Battle.Status}}
+          {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
           <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
           {{ end }}          
           <zg-column header="Track" index="url"></zg-column>
-          {{if contains "Voting" .Battle.Status}}
+          {{if eq "voting" .Battle.Status}}
           <zg-column header="Vote" index="vote">
           <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>
           </zg-column>
@@ -54,10 +54,10 @@
         </zg-colgroup>
         <zg-nodata> No one has entered this battle yet.</zg-nodata>
       </zing-grid>
-      {{if contains "Finished" .Battle.Status}}
-      <div class="battle-voteinfo">Users marked with (*) have not voted.</div>
+      {{if eq "complete" .Battle.Status}}
+      <!-- <div class="battle-voteinfo">Users marked with (*) have not voted.</div> -->
       {{end}}
     </div>
-    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Beats}};zgRef.setData(data)});var _href=$("#edit-button").attr("href");$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone)</script>
+    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Beats}};zgRef.setData(data);zgRef.executeOnLoad(function(){$('.tooltipped').tooltip()})});var _href=$("#edit-button").attr("href");$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone)</script>
   {{ template "Footer" .Toast }}
 {{ end }}

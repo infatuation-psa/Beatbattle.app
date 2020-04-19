@@ -6,7 +6,8 @@
         <form id="submit-battle" method="POST" action="/battle/submit">
         <nav class="battle-title">
             <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title" required>
-            <input type="submit" class="nav-submit" value="CREATE 🔥" />
+            <input type="submit" name="submit" class="nav-item-right nav-download" value="DRAFT" />
+            <input type="submit" name="submit" class="nav-item-right nav-submit" value="PUBLISH" />
         </nav>
         <div class="chips submit-border">
           <input placeholder="Enter Up To 3 Tags (optional)" maxlength="32" class="submit-nobox custom-class">
@@ -30,7 +31,7 @@
               <input type="text" class="datepicker submit-nobox" id="votingdeadline-date" name="votingdeadline-date" placeholder="Voting Deadline Date" required>
           </div>
           <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time"placeholder="Voting Deadline Time" required>
+              <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time" placeholder="Voting Deadline Time" required>
           </div>
         </div>
         <input type="url" class="submit-border submit-nobox" id="attachment" name="attachment" placeholder="Battle Attachment (URL, Optional)">
@@ -39,17 +40,7 @@
         </div>
         </form>
       </div>
-      </div>
-      <script>function chipUpdate() {$('#tags').val(JSON.stringify(this.chipsData))};
-      autosize($('textarea'));
-      $(document).ready(function(){
-          $('.chips').chips({
-            limit: 3,
-            placeholder: 'Enter Up To 3 Tags (Optional)',
-            secondaryPlaceholder: '+Tag',
-            onChipAdd: (chipUpdate),
-            onChipDelete: (chipUpdate),
-            });
-          $(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)});</script>
+    </div>
+    <script>function chipUpdate(){$("#tags").val(JSON.stringify(this.chipsData))}autosize($("textarea")),$(document).ready(function(){$(".chips").chips({limit:3,placeholder:"Enter Up To 3 Tags (Optional)",secondaryPlaceholder:"+Tag",onChipAdd:chipUpdate,onChipDelete:chipUpdate}),$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)});</script>
   {{ template "Footer" .Toast }}
 {{ end }}

@@ -1,13 +1,12 @@
-{{ define "UpdateBattle" }}
+{{ define "TemplateBattle" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <form id="submit-battle" method="POST" action="/battle/{{.Battle.ID}}/update">
+        <form id="submit-battle" method="POST" action="/battle/submit">
         <nav class="battle-title">
             <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" value="{{.Battle.Title}}" placeholder="Battle Title" required>
-            <input type="submit" name="submit" class="nav-item-right nav-download" value="DRAFT" />
-            <input type="submit" name="submit" class="nav-item-right nav-submit" value="PUBLISH" />
+            <input type="submit" class="nav-submit" value="UPDATE 🔥" />
         </nav>
         <div class="chips submit-border">
           <input placeholder="Enter Up To 3 Tags (Optional)" maxlength="32" class="submit-nobox custom-class">
