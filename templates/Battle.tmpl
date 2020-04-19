@@ -51,6 +51,9 @@
           <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>
           </zg-column>
           {{ end }}
+          <!--<zg-column header="Feedback" index="feedback">
+          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" placeholder="Send some constructive feedback." class="submit-nobox" /></form>
+          </zg-column> -->
         </zg-colgroup>
         <zg-nodata> No one has entered this battle yet.</zg-nodata>
       </zing-grid>
