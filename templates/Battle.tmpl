@@ -54,13 +54,13 @@
           <zg-column cell-class="zing-left" header="Vote" index="vote">
           <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>
           </zg-column>
-          <zg-column header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" style="width: 100%;" method="post"><input type="text" name="feedback" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
+          <form action="/feedback/[[record.id]]" style="width: 100%;" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
           </zg-column>
           {{ end }}
           {{if eq "entry" .Battle.Status}}
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          <form action="/feedback/[[record.id]]" style="width: 100%;"  method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
           </zg-column>
           {{ end }}
         </zg-colgroup>
