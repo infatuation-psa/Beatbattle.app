@@ -67,49 +67,6 @@
         <zg-nodata> No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
-<script>
-window.addEventListener('load', () => {
-    const zgRef = document.querySelector('zing-grid');
-    const data = {{.Beats}};
-    zgRef.setData(data);
-    zgRef.executeOnLoad(function() {
-        $("form").submit(function(t) {
-            t.preventDefault();
-            var a = $(this).attr("action"),
-                e = $(this).attr("method"),
-                i = $(this).serialize();
-            var icon = $(this).find("zg-icon");
-            $.ajax({
-                url: a,
-                type: e,
-                data: i,
-                beforeSend: function(xhr){xhr.setRequestHeader('X-Requested-With', 'xmlhttprequest');},
-            }).done(function(t) {
-              console.log(t)
-              const response = JSON.parse(t);
-              if(response.Redirect) {
-                window.location.replace(response.Redirect)
-              } else {
-                 M.toast({html: response.ToastHTML, classes: response.ToastClass});
-                 if(response.ToastQuery == "successvote") {
-                   console.log($(this).find("zg-icon"));
-                   icon.attr('style', '--zg-icon-color: #ff5800');
-                 }
-                 if(response.ToastQuery == "successdelvote") {
-                   console.log($(this).find("zg-icon"));
-                   icon.attr('style', '--zg-icon-color: black');
-                 }
-              }
-              console.log(response);
-                //$(".battle-voteinfo").html(t)
-            })
-        });
-        $('input[value="[[record.feedback]]"]').attr('value',"")
-        $('.tooltipped').tooltip()
-    })
-});
-var _href = $("#edit-button").attr("href");
-$("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone)
-</script>
+<script>window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Beats}}"),t.executeOnLoad(function(){$("form").submit(function(t){t.preventDefault();var e=$(this).attr("action"),o=$(this).attr("method"),n=$(this).serialize(),a=$(this).find("zg-icon");$.ajax({url:e,type:o,data:n,beforeSend:function(t){t.setRequestHeader("X-Requested-With","xmlhttprequest")}}).done(function(t){console.log(t);const e=JSON.parse(t);e.Redirect?window.location.replace(e.Redirect):(M.toast({html:e.ToastHTML,classes:e.ToastClass}),"successvote"==e.ToastQuery&&(console.log($(this).find("zg-icon")),a.attr("style","--zg-icon-color: #ff5800")),"successdelvote"==e.ToastQuery&&(console.log($(this).find("zg-icon")),a.attr("style","--zg-icon-color: black"))),console.log(e)})}),$('input[value="[[record.feedback]]"]').attr("value",""),$(".tooltipped").tooltip()}),t.addEventListener("grid:pagechange",t=>{setTimeout(function(){$('input[value="[[record.feedback]]"]').attr("value","")},1)})});var _href=$("#edit-button").attr("href");$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone);</script>
   {{ template "Footer" .Toast }}
 {{ end }}
