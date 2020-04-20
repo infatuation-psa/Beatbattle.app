@@ -40,6 +40,10 @@ body, html {
   width: 100%;
 }
 
+.battle-rules img {
+  max-width: 100%;
+}
+
 .battle-rules a {
   color: #ff5800 !important;
 }
