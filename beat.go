@@ -17,6 +17,7 @@ type Beat struct {
 	ChallengeID int    `gorm:"column:challenge_id" json:"challenge_id,omitempty"`
 	UserID      string `gorm:"column:user_id" json:"user_id,omitempty"`
 	Color       string `json:"color"`
+	Feedback    string `json:"feedback"`
 }
 
 // SubmitBeat ...

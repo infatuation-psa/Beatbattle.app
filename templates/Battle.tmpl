@@ -11,24 +11,26 @@
           </div>
           <ul class="nav-links">
             {{if .IsOwner}}
-              <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
+              <li class="nav-item nav-item-right nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
               {{if eq "complete" .Battle.Status}}
-                <li class="nav-item nav-disabled"><a>CLOSED</a></li>
+                <li class="nav-item nav-item-right nav-disabled"><a>CLOSED</a></li>
               {{else}}              
                 <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
               {{end}}
             {{else}}
               {{if .Battle.Attachment}}
-              <li class="nav-item nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
+              <li class="nav-item nav-item-right nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
               {{end}}
               {{if eq "entry" .Battle.Status}}
                 {{ if .EnteredBattle }}
-                <li class="nav-item nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
+                <li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>
+                <li class="nav-item nav-item-right nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
                 {{ else }}
                 <li class="nav-item nav-item-right nav-submit"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
                 {{ end }}
               {{ else }}
-                <li class="nav-item nav-item-right nav-disabled"><a>CLOSED</a></li>
+              {{if .EnteredBattle}}<li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>{{ end }}
+              <li class="nav-item nav-item-right nav-disabled"><a>CLOSED</a></li>
               {{end}}
             {{end}}
           </ul>
@@ -43,24 +45,71 @@
         <zg-colgroup>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
-          <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
           {{ end }}          
-          <zg-column header="Track" index="url"></zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
+          {{if eq "complete" .Battle.Status}}
+          <zg-column cell-class="" header="Votes" index="votes"></zg-column>
+          {{ end }}          
           {{if eq "voting" .Battle.Status}}
-          <zg-column header="Vote" index="vote">
+          <zg-column cell-class="zing-left" header="Vote" index="vote">
           <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>
           </zg-column>
+          <zg-column header="Feedback" index="feedback">
+          <form action="/feedback/[[record.id]]" style="width: 100%;" method="post"><input type="text" name="feedback" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          </zg-column>
           {{ end }}
-          <!--<zg-column header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" placeholder="Send some constructive feedback." class="submit-nobox" /></form>
-          </zg-column> -->
+          {{if eq "entry" .Battle.Status}}
+          <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
+          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          </zg-column>
+          {{ end }}
         </zg-colgroup>
         <zg-nodata> No one has entered this battle yet.</zg-nodata>
       </zing-grid>
-      {{if eq "complete" .Battle.Status}}
-      <!-- <div class="battle-voteinfo">Users marked with (*) have not voted.</div> -->
-      {{end}}
     </div>
-    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Beats}};zgRef.setData(data);zgRef.executeOnLoad(function(){$('.tooltipped').tooltip()})});var _href=$("#edit-button").attr("href");$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone)</script>
+<script>
+window.addEventListener('load', () => {
+    const zgRef = document.querySelector('zing-grid');
+    const data = {{.Beats}};
+    zgRef.setData(data);
+    zgRef.executeOnLoad(function() {
+        $("form").submit(function(t) {
+            t.preventDefault();
+            var a = $(this).attr("action"),
+                e = $(this).attr("method"),
+                i = $(this).serialize();
+            var icon = $(this).find("zg-icon");
+            $.ajax({
+                url: a,
+                type: e,
+                data: i,
+                beforeSend: function(xhr){xhr.setRequestHeader('X-Requested-With', 'xmlhttprequest');},
+            }).done(function(t) {
+              console.log(t)
+              const response = JSON.parse(t);
+              if(response.Redirect) {
+                window.location.replace(response.Redirect)
+              } else {
+                 M.toast({html: response.ToastHTML, classes: response.ToastClass});
+                 if(response.ToastQuery == "successvote") {
+                   console.log($(this).find("zg-icon"));
+                   icon.attr('style', '--zg-icon-color: #ff5800');
+                 }
+                 if(response.ToastQuery == "successdelvote") {
+                   console.log($(this).find("zg-icon"));
+                   icon.attr('style', '--zg-icon-color: black');
+                 }
+              }
+              console.log(response);
+                //$(".battle-voteinfo").html(t)
+            })
+        });
+        $('input[value="[[record.feedback]]"]').attr('value',"")
+        $('.tooltipped').tooltip()
+    })
+});
+var _href = $("#edit-button").attr("href");
+$("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone)
+</script>
   {{ template "Footer" .Toast }}
 {{ end }}

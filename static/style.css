@@ -36,6 +36,10 @@ body, html {
   padding: 1rem;
 }
 
+.zing-feedback div {
+  width: 100%;
+}
+
 .battle-rules a {
   color: #ff5800 !important;
 }

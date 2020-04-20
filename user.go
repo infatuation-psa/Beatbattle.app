@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -214,20 +216,50 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 	return user
 }
 
+// AjaxResponse ...
+func AjaxResponse(w http.ResponseWriter, r *http.Request, redirect bool, ajax bool, redirectPath string, toastQuery string) {
+	type AjaxData struct {
+		Redirect   string
+		ToastHTML  string
+		ToastClass string
+		ToastQuery string
+	}
+
+	if redirect && !ajax {
+		http.Redirect(w, r, redirectPath+toastQuery, 302)
+		return
+	}
+
+	toast := GetToast(toastQuery)
+	data := AjaxData{ToastHTML: toast[0], ToastClass: toast[1], ToastQuery: toastQuery}
+
+	if ajax {
+		if redirect {
+			data.Redirect = redirectPath + toastQuery
+		}
+		json.NewEncoder(w).Encode(data)
+		return
+	}
+
+	http.Redirect(w, r, redirectPath+toastQuery, 302)
+}
+
 // AddVote ...
 func AddVote(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
+	ajax := r.Header.Get("X-Requested-With") == "xmlhttprequest"
+
 	user := GetUser(w, r)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		AjaxResponse(w, r, true, ajax, "/login/", "noauth")
 		return
 	}
 
 	beatID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
+		AjaxResponse(w, r, true, ajax, "/", "404")
 		return
 	}
 
@@ -235,35 +267,31 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 	var beatUserID int
 
 	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
-	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
-	}
-
-	// Reject if beat is invalid.
-	if err == sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "404")
 		return
 	}
 
-	redirectURL := "/battle/" + strconv.Itoa(battleID)
+	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
 	// Get Battle status & max votes.
 	status := ""
 	maxVotes := 1
 	err = db.QueryRow("SELECT status, maxvotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
 	if err != nil && err != sql.ErrNoRows {
-		panic(err.Error())
+		AjaxResponse(w, r, true, ajax, "/", "502")
+		return
 	}
 
 	// Reject if not currently in voting stage or if challenge is invalid.
 	if err == sql.ErrNoRows || status != "voting" {
-		http.Redirect(w, r, redirectURL+"/notvoting", 302)
+		AjaxResponse(w, r, true, ajax, redirectURL, "302")
 		return
 	}
 
 	// Reject if user ID matches the track.
 	if beatUserID == user.ID {
-		http.Redirect(w, r, redirectURL+"/owntrack", 302)
+		AjaxResponse(w, r, false, ajax, redirectURL, "owntrack")
 		return
 	}
 
@@ -277,12 +305,14 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 		if err == sql.ErrNoRows {
 			tx, err := db.Begin()
 			if err != nil {
-				panic(err.Error())
+				AjaxResponse(w, r, true, ajax, redirectURL, "404")
+				return
 			}
 			sql := "INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)"
 			stmt, err := tx.Prepare(sql)
 			if err != nil {
-				panic(err.Error())
+				AjaxResponse(w, r, true, ajax, redirectURL, "404")
+				return
 			}
 			defer stmt.Close()
 
@@ -292,20 +322,22 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 			stmt, err = tx.Prepare(sql)
 			if err != nil {
-				panic(err.Error())
+				AjaxResponse(w, r, true, ajax, redirectURL, "404")
+				return
 			}
 			defer stmt.Close()
 
 			stmt.Exec(beatID)
 			tx.Commit()
-			http.Redirect(w, r, redirectURL+"/successvote", 302)
+			AjaxResponse(w, r, false, ajax, redirectURL, "successvote")
 			return
 		} else if err != nil {
-			panic(err.Error())
+			AjaxResponse(w, r, true, ajax, redirectURL, "404")
+			return
 		}
 	} else {
 		if err == sql.ErrNoRows {
-			http.Redirect(w, r, redirectURL+"/maxvotes", 302)
+			AjaxResponse(w, r, false, ajax, redirectURL, "maxvotes")
 			return
 		}
 	}
@@ -315,7 +347,8 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	stmt, err := tx.Prepare(sql)
 	if err != nil {
-		panic(err.Error())
+		AjaxResponse(w, r, true, ajax, redirectURL, "404")
+		return
 	}
 	defer stmt.Close()
 
@@ -325,7 +358,8 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	stmt, err = tx.Prepare(sql)
 	if err != nil {
-		panic(err.Error())
+		AjaxResponse(w, r, true, ajax, redirectURL, "404")
+		return
 	}
 	defer stmt.Close()
 
@@ -333,6 +367,146 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 	tx.Commit()
 
-	http.Redirect(w, r, redirectURL+"/successdelvote", 302)
+	AjaxResponse(w, r, false, ajax, redirectURL, "successdelvote")
 	return
+}
+
+// AddFeedback ...
+func AddFeedback(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	ajax := r.Header.Get("X-Requested-With") == "xmlhttprequest"
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		AjaxResponse(w, r, true, ajax, "/login/", "noauth")
+		return
+	}
+
+	beatID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "404")
+		return
+	}
+
+	var battleID int
+	var beatUserID int
+	feedback := policy.Sanitize(r.FormValue("feedback"))
+
+	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "404")
+		return
+	}
+
+	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
+
+	if beatUserID == user.ID {
+		AjaxResponse(w, r, false, ajax, "/", "feedbackself")
+		return
+	}
+
+	if !RowExists(db, "SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
+		ins, err := db.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
+		if err != nil {
+			AjaxResponse(w, r, true, ajax, "/", "404")
+			return
+		}
+		defer ins.Close()
+		ins.Exec(feedback, user.ID, beatID)
+		AjaxResponse(w, r, false, ajax, redirectURL, "successaddfeedback")
+		return
+	}
+
+	update, err := db.Prepare("UPDATE feedback SET feedback = ? WHERE user_id = ? AND beat_id = ?")
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "404")
+		return
+	}
+	defer update.Close()
+	update.Exec(feedback, user.ID, beatID)
+
+	AjaxResponse(w, r, false, ajax, redirectURL, "successupdate")
+	return
+}
+
+// ViewFeedback - Retreives battle and displays to user.
+func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	toast := GetToast(req.URL.Query().Get(":toast"))
+
+	user := GetUser(wr, req)
+	if !user.Authenticated {
+		http.Redirect(wr, req, "/login/noauth", 302)
+		return
+	}
+
+	battleID, err := strconv.Atoi(req.URL.Query().Get(":id"))
+	if err != nil && err != sql.ErrNoRows {
+		http.Redirect(wr, req, "/404", 302)
+		return
+	}
+
+	// Retrieve battle, return to front page if battle doesn't exist.
+	battle := GetBattle(db, battleID)
+
+	if battle.Title == "" {
+		http.Redirect(wr, req, "/404", 302)
+		return
+	}
+
+	query := `SELECT users.nickname, feedback.feedback
+				FROM beats
+				LEFT JOIN feedback on feedback.beat_id = beats.id
+				LEFT JOIN users on feedback.user_id = users.id
+				WHERE beats.challenge_id = ? AND beats.user_id = ? AND feedback.feedback IS NOT NULL`
+
+	rows, err := db.Query(query, battleID, user.ID)
+	if err != nil {
+		// This doesn't crash anything, but should be avoided.
+		fmt.Println(err)
+		http.Redirect(wr, req, "/404", 302)
+		return
+	}
+	defer rows.Close()
+
+	type Feedback struct {
+		From     string `json:"from"`
+		Feedback string `json:"feedback"`
+	}
+
+	curFeedback := Feedback{}
+	feedback := []Feedback{}
+
+	for rows.Next() {
+		err = rows.Scan(&curFeedback.From, &curFeedback.Feedback)
+		if err != nil {
+			fmt.Println(err)
+			http.Redirect(wr, req, "/502", 302)
+			return
+		}
+
+		feedback = append(feedback, curFeedback)
+	}
+
+	e, err := json.Marshal(feedback)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Print(feedback)
+
+	m := map[string]interface{}{
+		"Title":    battle.Title,
+		"Battle":   battle,
+		"Feedback": string(e),
+		"User":     user,
+		"Toast":    toast,
+	}
+
+	tmpl.ExecuteTemplate(wr, "Feedback", m)
 }

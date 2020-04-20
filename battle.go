@@ -330,11 +330,19 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	// Fetch beats in this battle.
 	var count int
 
-	args := []interface{}{user.ID, battleID}
-	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
+	//Should these reset in rows.next? sbumission at least
+	submission := Beat{}
+	entries := []Beat{}
+	didntVote := []Beat{}
+	voteID := 0
+
+	args := []interface{}{user.ID, user.ID, battleID}
+	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID, &submission.Feedback}
+	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted, IFNULL(feedback.feedback, '')
 			FROM beats 
 			LEFT JOIN users on beats.user_id=users.id
 			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
+			LEFT JOIN feedback on feedback.user_id=? AND feedback.beat_id=beats.id
 			WHERE beats.challenge_id=?`
 
 	if battle.Status == "complete" {
@@ -346,6 +354,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 				GROUP BY 1
 				ORDER BY votes DESC`
 		args = []interface{}{battleID}
+		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID}
 	}
 
 	rows, err := db.Query(query, args...)
@@ -356,15 +365,11 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer rows.Close()
-
-	submission := Beat{}
-	entries := []Beat{}
-	didntVote := []Beat{}
-
 	for rows.Next() {
-		voteID := 0
-		err = rows.Scan(&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID)
+		voteID = 0
+		err = rows.Scan(scanArgs...)
 		if err != nil {
+			fmt.Println(err)
 			http.Redirect(wr, req, "/502", 302)
 			return
 		}

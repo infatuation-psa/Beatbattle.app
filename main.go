@@ -112,6 +112,7 @@ func main() {
 	router.Get("/auth/{provider}", Auth)
 	router.Get("/logout/{provider}", Logout)
 	router.Get("/logout", GenericLogout)
+	router.Post("/feedback/{id}", AddFeedback)
 	router.Post("/vote/{id}", AddVote)
 	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
@@ -125,6 +126,7 @@ func main() {
 	router.Post("/battle/{id}/update", UpdateBattleDB)                          // Update in db
 	router.Get("/battle/{id}/update", UpdateBattle)                             // Update page
 	router.Get("/battle/{id}/delete", DeleteBattle)
+	router.Get("/battle/{id}/feedback", ViewFeedback)
 
 	router.Get("/battle/submit/{toast}", SubmitBattle)
 	router.Post("/battle/submit", InsertBattle)
@@ -228,6 +230,9 @@ func GetToast(toast string) [2]string {
 	case "cache":
 		html = "If this happens again, try clearing your cache."
 		class = "toast-error"
+	case "feedbackself":
+		html = "You can't give yourself feedback."
+		class = "toast-error"
 	case "successvote":
 		html = "Vote successful."
 		class = "toast-success"
@@ -242,6 +247,9 @@ func GetToast(toast string) [2]string {
 		class = "toast-success"
 	case "successupdate":
 		html = "Successfully updated."
+		class = "toast-success"
+	case "successaddfeedback":
+		html = "Successfully added feedback."
 		class = "toast-success"
 	case "invalid":
 		html = "Your SoundCloud url format is invalid."
