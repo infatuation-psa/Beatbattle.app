@@ -365,11 +365,12 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer rows.Close()
+
+	userVotes := 0
 	for rows.Next() {
 		voteID = 0
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			fmt.Println(err)
 			http.Redirect(wr, req, "/502", 302)
 			return
 		}
@@ -383,21 +384,27 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		submission.Color = "black"
 		if voteID != 0 {
 			submission.Color = "#ff5800"
+			userVotes++
 		}
 
 		u, _ := url.Parse(submission.URL)
 		urlSplit := strings.Split(u.RequestURI(), "/")
 
+		width := "width='100%'"
+
+		if battle.Status != "complete" {
+			width = "width='20px'"
+		}
+
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
-			println(secretURL)
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe width="100%" height="20" scrolling="no" frameborder="no" allow="autoplay" show_user="false" src="https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
+				submission.URL = `<iframe ` + width + ` height="20" scrolling="no" frameborder="no" allow="autoplay" show_user="false" src="https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
 			} else {
-				submission.URL = `<iframe width="100%" height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
+				submission.URL = `<iframe ` + width + ` height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe width="100%" height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
+			submission.URL = `<iframe ` + width + ` height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
 		}
 
 		if battle.Status == "complete" && voteID == 0 {
@@ -412,6 +419,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	battle.Entries = count
 
+	// PERF - Shuffle entries per user.
 	if battle.Status != "complete" {
 		rand.Seed(int64(user.ID + battle.ID))
 		rand.Shuffle(len(entries), func(i, j int) {
@@ -421,7 +429,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	e, err := json.Marshal(entries)
 	if err != nil {
-		fmt.Println(err)
+		http.Redirect(wr, req, "/502", 302)
 		return
 	}
 
@@ -429,13 +437,14 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	isOwner := RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND id = ?", user.ID, battleID)
 
 	m := map[string]interface{}{
-		"Title":         battle.Title,
-		"Battle":        battle,
-		"Beats":         string(e),
-		"User":          user,
-		"EnteredBattle": hasEntered,
-		"IsOwner":       isOwner,
-		"Toast":         toast,
+		"Title":          battle.Title,
+		"Battle":         battle,
+		"Beats":          string(e),
+		"User":           user,
+		"EnteredBattle":  hasEntered,
+		"IsOwner":        isOwner,
+		"Toast":          toast,
+		"VotesRemaining": battle.MaxVotes - userVotes,
 	}
 
 	tmpl.ExecuteTemplate(wr, "Battle", m)
@@ -455,21 +464,16 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 		&battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline, &battle.Attachment, &battle.Status,
 		&battle.Password, &battle.MaxVotes, &battle.UserID, &battle.Host)
 
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
 		return battle
 	}
 
-	if err == sql.ErrNoRows {
-		return battle
-	}
-
-	// I can stop doing this for newer ones.
 	battle.Title = html.UnescapeString(battle.Title)
-	battle.Rules = html.UnescapeString(battle.Rules)
+	battle.Host = html.UnescapeString(battle.Host)
 
 	md := []byte(battle.Rules)
+	battle.Rules = html.UnescapeString(battle.Rules)
 	battle.RulesHTML = template.HTML(markdown.ToHTML(md, nil, nil))
-	battle.Host = html.UnescapeString(battle.Host)
 
 	switch battle.Status {
 	case "entry":

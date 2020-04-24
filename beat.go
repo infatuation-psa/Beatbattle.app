@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -84,11 +83,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
 	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
-	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, redirectURL+"/notopen", 302)
-		return
-	}
-	if err == sql.ErrNoRows {
+	if err != nil {
 		http.Redirect(w, r, redirectURL+"/notopen", 302)
 		return
 	}
@@ -159,6 +154,7 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
+
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
 	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
@@ -183,13 +179,9 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// PERF - MIGHT BE PERFORMANCE DEGRADING
+	// PERF - Check if track URL is valid (doesn't 404)
 	resp, err := http.Get(track)
-	if err != nil {
-		http.Redirect(w, r, redirectURL+"/invalid", 302)
-		return
-	}
-	if resp.Status == "404 Not Found" {
+	if err != nil || resp.Status == "404 Not Found" {
 		http.Redirect(w, r, redirectURL+"/invalid", 302)
 		return
 	}

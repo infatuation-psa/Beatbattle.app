@@ -41,12 +41,13 @@
         <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
         {{end}}
       </div>
-      <zing-grid caption="{{.Battle.Entries}} Entries | {{.Battle.MaxVotes}} Vote{{if gt .Battle.MaxVotes 1}}s{{end}} Per User" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid caption="{{.Battle.Entries}} Entries | <span class='votes-remaining'>{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Remaining" layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
           {{ end }}          
-          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url">
+          </zg-column>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="" header="Votes" index="votes"></zg-column>
           {{ end }}          
@@ -64,9 +65,55 @@
           </zg-column>
           {{ end }}
         </zg-colgroup>
-        <zg-nodata> No one has entered this battle yet.</zg-nodata>
+        <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
-<script>window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Beats}}"),t.executeOnLoad(function(){$("form").submit(function(t){t.preventDefault();var e=$(this).attr("action"),o=$(this).attr("method"),n=$(this).serialize(),a=$(this).find("zg-icon");$.ajax({url:e,type:o,data:n,beforeSend:function(t){t.setRequestHeader("X-Requested-With","xmlhttprequest")}}).done(function(t){console.log(t);const e=JSON.parse(t);e.Redirect?window.location.replace(e.Redirect):(M.toast({html:e.ToastHTML,classes:e.ToastClass}),"successvote"==e.ToastQuery&&(console.log($(this).find("zg-icon")),a.attr("style","--zg-icon-color: #ff5800")),"successdelvote"==e.ToastQuery&&(console.log($(this).find("zg-icon")),a.attr("style","--zg-icon-color: black"))),console.log(e)})}),$('input[value="[[record.feedback]]"]').attr("value",""),$(".tooltipped").tooltip()}),t.addEventListener("grid:pagechange",t=>{setTimeout(function(){$('input[value="[[record.feedback]]"]').attr("value","")},1)})});var _href=$("#edit-button").attr("href");$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone);</script>
-  {{ template "Footer" .Toast }}
+<script>
+window.addEventListener("load", () => {
+    const t = document.querySelector("zing-grid");
+    t.setData("{{.Beats}}"), t.executeOnLoad(function() {
+        $("form").submit(function(t) {
+            t.preventDefault();
+            var e = $(this).attr("action"),
+                o = $(this).attr("method"),
+                n = $(this).serialize(),
+                a = $(this).find("zg-icon");
+            $.ajax({
+                url: e,
+                type: o,
+                data: n,
+                beforeSend: function(t) {
+                    t.setRequestHeader("X-Requested-With", "xmlhttprequest")
+                }
+            }).done(function(t) {
+                console.log(t);
+                const e = JSON.parse(t);
+                e.Redirect ? window.location.replace(e.Redirect) : (M.toast({
+                    html: e.ToastHTML,
+                    classes: e.ToastClass
+                }), "successvote" == e.ToastQuery && ($('.votes-remaining').html(parseInt($('.votes-remaining').html(), 10)-1), a.attr("style", "--zg-icon-color: #ff5800")), "successdelvote" == e.ToastQuery && ($('.votes-remaining').html(parseInt($('.votes-remaining').html(), 10)+1), a.attr("style", "--zg-icon-color: black"))), console.log(e)
+            })
+        }), $('input[value="[[record.feedback]]"]').attr("value", ""), $(".tooltipped").tooltip()
+    }), t.addEventListener("grid:pagechange", t => {
+        setTimeout(function() {
+            $('input[value="[[record.feedback]]"]').attr("value", "")
+        }, 1)
+    }), t.addEventListener("grid:refresh", t => {
+        setTimeout(function() {
+            $('input[value="[[record.feedback]]"]').attr("value", "")
+        }, 1)
+    }), t.addEventListener("grid:pagesizechange", t => {
+        setTimeout(function() {
+            $('input[value="[[record.feedback]]"]').attr("value", "")
+        }, 1)
+    }), t.addEventListener("grid:ready", t => {
+        setTimeout(function() {
+            $('input[value="[[record.feedback]]"]').attr("value", "")
+        }, 1)
+    })
+});
+var _href = $("#edit-button").attr("href");
+$("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone);
+</script>   
+{{ template "Footer" .Toast }}
 {{ end }}

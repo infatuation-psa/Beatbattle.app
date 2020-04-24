@@ -14,7 +14,8 @@ func dbConn() (db *sql.DB) {
 	dbName := os.Getenv("MYSQL_DB")
 	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName+"?parseTime=true")
 	if err != nil {
-		panic(err.Error())
+		// Real error
+		log.Print(err)
 	}
 	return db
 }
@@ -25,8 +26,7 @@ func RowExists(db *sql.DB, sqlStmt string, args ...interface{}) bool {
 	err := db.QueryRow(sqlStmt, args...).Scan(&empty)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			// a real error happened! you should change your function return
-			// to "(bool, error)" and return "false, err" here
+			// Real error
 			log.Print(err)
 		}
 
