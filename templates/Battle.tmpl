@@ -45,9 +45,11 @@
         <zg-colgroup>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
+          {{ else }}
+          <zg-column width="85px" cell-class="zing-left" type="row-number" header="Entry #"></zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
           {{ end }}          
-          <zg-column cell-class="zing-left" header="Track" index="url">
-          </zg-column>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="" header="Votes" index="votes"></zg-column>
           {{ end }}          
@@ -65,6 +67,7 @@
           </zg-column>
           {{ end }}
         </zg-colgroup>
+        <zg-param name="loadByScroll" value="true"></zg-param>
         <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
