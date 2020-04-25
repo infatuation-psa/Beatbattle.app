@@ -9,6 +9,13 @@ body, html {
   height: 100%;
 }
 
+.click-catcher {
+  height: 20px;
+  width: 20px;
+  pointer-events: none;
+  position: absolute;
+}
+
 .zing-chips {
   padding-bottom: 0 !important;
   min-height: 0 !important;
@@ -319,7 +326,20 @@ input[type=url] {
 }
 
 .battle-chips {
-  padding-bottom: 1rem;
+  padding-bottom: 2rem;
+  padding-top: 1.5rem;
+  min-height: 0 !important;
+  display: block !important;
+}
+
+.battle-chips .chip {
+  margin-top: 0.5rem;
+  display: inline-block !important;
+}
+
+.battle-chips:empty {
+  padding-top: 2rem;
+  padding-bottom: 0;
 }
 
 .submit-url {
@@ -499,7 +519,6 @@ ul {
 }
 
 .battle-rules {
-  padding-bottom: 2rem;
   word-wrap: break-word;
 }
 

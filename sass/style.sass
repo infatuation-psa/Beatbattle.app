@@ -215,7 +215,19 @@ input[type=url]
 	border-right: none 
 	font-size: 1rem
 .battle-chips
-	padding-bottom: 1rem
+	padding-bottom: 2rem
+	padding-top: 1.5rem
+	min-height: 0 !important
+	display: block !important
+
+	.chip
+		margin-top: 0.5rem
+		display: inline-block !important
+
+.battle-chips:empty
+	padding-top: 2rem
+	padding-bottom: 0
+
 .submit-url 
 	flex-grow: 1
 .submit-password
@@ -308,13 +320,14 @@ a, a:visited, a:hover, a:active
 		display: inline-block 
 		padding: 0.75rem 1rem 
 		text-decoration: none 
+
 .datepicker-date-display, .datepicker-controls .select-month input
 	text-transform: uppercase 
+	
 ul 
 	padding-inline-start: 0px 
 
 .battle-rules
-	padding-bottom: 2rem
 	word-wrap: break-word
 
 p 

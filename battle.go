@@ -471,7 +471,7 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 	battle.Title = html.UnescapeString(battle.Title)
 	battle.Host = html.UnescapeString(battle.Host)
 
-	md := []byte(battle.Rules)
+	md := []byte(html.UnescapeString(battle.Rules))
 	battle.Rules = html.UnescapeString(battle.Rules)
 	battle.RulesHTML = template.HTML(markdown.ToHTML(md, nil, nil))
 
@@ -954,6 +954,7 @@ func GetTags(db *sql.DB, battleID int) []Tag {
 			return Tags
 		}
 
+		tag.Value = html.UnescapeString(tag.Value)
 		Tags = append(Tags, tag)
 	}
 
