@@ -12,6 +12,7 @@ import (
 
 // Callback ...
 func Callback(w http.ResponseWriter, r *http.Request) {
+	// STORE SESSION TOKEN & AUTH TOKEN, VERIFY VALID
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
 		session.Options.MaxAge = -1
@@ -218,6 +219,7 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 
 // AjaxResponse ...
 func AjaxResponse(w http.ResponseWriter, r *http.Request, redirect bool, ajax bool, redirectPath string, toastQuery string) {
+	// TODO - FUCK YOU IF YOU DON'T HAVE JAVASCRIPT, NOT NECESSARY
 	type AjaxData struct {
 		Redirect   string
 		ToastHTML  string
