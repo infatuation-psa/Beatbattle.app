@@ -26,6 +26,6 @@
       <zg-nodata>No battles are currently active.</zg-nodata>
     </zing-grid>    
     </div>
-    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);zgRef.executeOnLoad(function() {$("a:contains('record.Tags')").remove();});})</script>
+    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
   {{ template "Footer" .Toast }}
 {{ end }}

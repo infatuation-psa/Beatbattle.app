@@ -27,8 +27,8 @@ body, html {
   display: inline-block !important;
 }
 
-.zing-chips:not(:empty) {
-  margin-top: 0.5rem;
+.zing-chips .chip:first-child {
+  margin-top: 0.75rem;
 }
 
 .zing-left {
@@ -360,6 +360,7 @@ input[type=url] {
 }
 
 .submit-form {
+  padding-top: 2rem;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -431,6 +432,8 @@ zg-caption {
 }
 
 zing-grid {
+  --theme-color-primary: $error-color !important;
+  --zg-button-color_hover: $error-color !important;
   --zg-pager-color: #ff5800;
   --zg-icon-color: #ff5800;
   --zg-cell-background_sorted: #eeeeee;
@@ -445,6 +448,10 @@ zing-grid .battle-url {
 
 zing-grid .battle-url:hover {
   border-bottom: 1px solid #ff5800;
+}
+
+zg-caption zg-button {
+  position: relative;
 }
 
 .footer-icon img {
@@ -524,6 +531,10 @@ ul {
 
 p {
   margin: 0;
+}
+
+.chip:empty {
+  display: none !important;
 }
 
 .battle-host {

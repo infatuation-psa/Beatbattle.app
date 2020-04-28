@@ -36,12 +36,14 @@
           </ul>
         </nav>
         <h3>Rules</h3>
-        <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         {{if .Battle.Tags }}
+        <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
+        {{else}}
+        <div style="padding-bottom: 2rem;" class="battle-rules">{{.Battle.RulesHTML}}</div>
         {{end}}
       </div>
-      <zing-grid caption='{{.Battle.Entries}} Entries {{if eq "complete" .Battle.Status}}{{else}}| <span class="votes-remaining">{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Remaining{{end}}' layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid caption='{{ if .EntryPosition }}<span style="color: #ff5800">{{.EntryPosition}}</span>/{{end}}{{.Battle.Entries}} Entries {{if eq "complete" .Battle.Status}}{{else}}| <span class="votes-remaining">{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Remaining{{end}}' layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
@@ -49,7 +51,6 @@
           {{ else }}
           <zg-column width="85px" cell-class="zing-left" type="row-number" header="Entry #"></zg-column>
           <zg-column cell-class="zing-left" header="Track" index="url">
-            <div class="click-catcher"></div>
             [[record.url]]
           </zg-column>
           {{ end }}          
@@ -57,8 +58,16 @@
           <zg-column cell-class="" header="Votes" index="votes"></zg-column>
           {{ end }}          
           {{if eq "voting" .Battle.Status}}
-          <zg-column cell-class="zing-left" header="Vote" index="vote">
-          <form action="/vote/[[record.id]]" method="post"><button type="submit" class="btn-link"><zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark"><svg id="svg--9432" slot="icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg></zg-icon></button></form>
+          <zg-column cell-class="zing-left" header="Vote" index="url">
+            <form action="/vote/[[record.id]]" method="post">
+              <button type="submit" class="btn-link">
+                <zg-icon style="--zg-icon-color: [[record.color]];" name="checkmark">
+                  <svg id="svg--9432" slot="icon" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                  </svg>
+                </zg-icon>
+              </button>
+            </form>
           </zg-column>
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
           <form action="/feedback/[[record.id]]" style="width: 100%;" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
@@ -114,27 +123,19 @@ window.addEventListener("load", () => {
                     classes: e.ToastClass
                 }), "successvote" == e.ToastQuery && ($('.votes-remaining').html(parseInt($('.votes-remaining').html(), 10)-1), a.attr("style", "--zg-icon-color: #ff5800")), "successdelvote" == e.ToastQuery && ($('.votes-remaining').html(parseInt($('.votes-remaining').html(), 10)+1), a.attr("style", "--zg-icon-color: black"))), console.log(e)
             })
-        }), $('input[value="[[record.feedback]]"]').attr("value", ""), $(".tooltipped").tooltip()
+        }), $(".tooltipped").tooltip()
     }), t.addEventListener("grid:pagechange", t => {
         expandWaveform();
-        setTimeout(function() {
-            $('input[value="[[record.feedback]]"]').attr("value", "");
-        }, 1)
+        setTimeout(function(){ $(".tooltipped").tooltip(); }, 1);        
     }), t.addEventListener("grid:refresh", t => {
         expandWaveform();
-        setTimeout(function() {
-            $('input[value="[[record.feedback]]"]').attr("value", "");
-        }, 1)
+        setTimeout(function(){ $(".tooltipped").tooltip(); }, 1);     
     }), t.addEventListener("grid:pagesizechange", t => {
         expandWaveform();
-        setTimeout(function() {
-            $('input[value="[[record.feedback]]"]').attr("value", "");
-        }, 1)
+        setTimeout(function(){ $(".tooltipped").tooltip(); }, 1);     
     }), t.addEventListener("grid:ready", t => {
         expandWaveform();
-        setTimeout(function() {
-            $('input[value="[[record.feedback]]"]').attr("value", "");
-        }, 1);
+        setTimeout(function(){ $(".tooltipped").tooltip(); }, 1);     
     })
 });
 var _href = $("#edit-button").attr("href");

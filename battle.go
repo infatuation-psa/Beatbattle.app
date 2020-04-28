@@ -337,16 +337,18 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	voteID := 0
 
 	args := []interface{}{user.ID, user.ID, battleID}
-	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID, &submission.Feedback}
-	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted, IFNULL(feedback.feedback, '')
+	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID, &submission.Feedback, &submission.UserID}
+	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted, IFNULL(feedback.feedback, ''), beats.user_id
 			FROM beats 
 			LEFT JOIN users on beats.user_id=users.id
 			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
 			LEFT JOIN feedback on feedback.user_id=? AND feedback.beat_id=beats.id
-			WHERE beats.challenge_id=?`
+			WHERE beats.challenge_id=?
+			GROUP BY 1
+			ORDER BY beats.id DESC`
 
 	if battle.Status == "complete" {
-		query = `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted 
+		query = `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted, beats.user_id
 				FROM beats 
 				LEFT JOIN users on beats.user_id=users.id
 				LEFT JOIN votes on votes.user_id=beats.user_id AND votes.challenge_id=beats.challenge_id
@@ -354,7 +356,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 				GROUP BY 1
 				ORDER BY votes DESC`
 		args = []interface{}{battleID}
-		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID}
+		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID, &submission.UserID}
 	}
 
 	rows, err := db.Query(query, args...)
@@ -366,6 +368,9 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 	defer rows.Close()
 
+	// PERF
+	entryPosition := 0
+	hasEntered := false
 	userVotes := 0
 	for rows.Next() {
 		voteID = 0
@@ -384,7 +389,12 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		submission.Color = "black"
 		if voteID != 0 {
 			submission.Color = "#ff5800"
-			userVotes++
+			if battle.Status == "complete" && submission.UserID == user.ID {
+				userVotes++
+			}
+			if battle.Status != "complete" {
+				userVotes++
+			}
 		}
 
 		u, _ := url.Parse(submission.URL)
@@ -409,10 +419,31 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 		if battle.Status == "complete" && voteID == 0 {
 			didntVote = append(didntVote, submission)
+			if submission.UserID == user.ID {
+				hasEntered = true
+				entryPosition = len(didntVote)
+			}
 			continue
 		}
 
 		entries = append(entries, submission)
+
+		if submission.UserID == user.ID {
+			hasEntered = true
+			entryPosition = len(entries)
+		}
+	}
+
+	if hasEntered && battle.Status == "voting" {
+		query := `SELECT count(*)+1
+					FROM beats
+					WHERE challenge_id=? AND votes > (SELECT votes FROM beats WHERE user_id=? AND challenge_id=?)`
+
+		db.QueryRow(query, battleID, user.ID, battleID).Scan(&entryPosition)
+	}
+
+	if hasEntered && battle.Status == "complete" && userVotes == 0 {
+		entryPosition += len(entries)
 	}
 
 	entries = append(entries, didntVote...)
@@ -433,7 +464,6 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hasEntered := RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID)
 	isOwner := RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND id = ?", user.ID, battleID)
 
 	m := map[string]interface{}{
@@ -442,6 +472,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 		"Beats":          string(e),
 		"User":           user,
 		"EnteredBattle":  hasEntered,
+		"EntryPosition":  entryPosition,
 		"IsOwner":        isOwner,
 		"Toast":          toast,
 		"VotesRemaining": battle.MaxVotes - userVotes,
