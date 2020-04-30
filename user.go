@@ -64,6 +64,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		Account.Authenticated = true
 	}
 
+	defer r.Body.Close()
+
 	db := dbConn()
 	defer db.Close()
 
@@ -71,6 +73,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
 		http.Redirect(w, r, "/", 302)
+		return
 	}
 
 	// If user doesn't exist, add to db
@@ -102,6 +105,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
 		http.Redirect(w, r, "/", 302)
+		return
 	}
 
 	Account.ID = userID
@@ -122,6 +126,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 // Login ...
 func Login(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
+	defer r.Body.Close()
+
 	m := map[string]interface{}{
 		"Title": "Login",
 		"Toast": toast,
@@ -132,6 +138,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 // Auth ...
 func Auth(w http.ResponseWriter, r *http.Request) {
 	handler := r.URL.Query().Get(":provider")
+	defer r.Body.Close()
+
 	if handler == "reddit" {
 		http.Redirect(w, r, redditAuth.GetAuthenticationURL(), 307)
 		return
@@ -151,6 +159,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
 		http.Redirect(w, r, "/login/cache", 302)
+		return
 	}
 
 	session.Options.MaxAge = -1
@@ -158,6 +167,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	err = session.Save(r, w)
 	if err != nil {
 		http.Redirect(w, r, "/login/cache", 302)
+		return
 	}
 
 	http.Redirect(w, r, "/", 302)
@@ -202,11 +212,13 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 		session, err = store.New(req, "beatbattle")
 		if err != nil {
 			http.Redirect(res, req, "/login/cache", 302)
+			return user
 		}
 		session.Values["user"] = User{}
 		err = session.Save(req, res)
 		if err != nil {
 			http.Redirect(res, req, "/login/cache", 302)
+			return user
 		}
 	}
 
@@ -264,6 +276,7 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 		AjaxResponse(w, r, true, ajax, "/", "404")
 		return
 	}
+	defer r.Body.Close()
 
 	var battleID int
 	var beatUserID int
@@ -391,6 +404,7 @@ func AddFeedback(w http.ResponseWriter, r *http.Request) {
 		AjaxResponse(w, r, true, ajax, "/", "404")
 		return
 	}
+	defer r.Body.Close()
 
 	var battleID int
 	var beatUserID int
@@ -499,8 +513,6 @@ func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
 		fmt.Println(err)
 		return
 	}
-
-	fmt.Print(feedback)
 
 	m := map[string]interface{}{
 		"Title":    battle.Title,

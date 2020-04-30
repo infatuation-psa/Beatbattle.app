@@ -526,6 +526,7 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 // SubmitBattle ...
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
+	defer r.Body.Close()
 
 	var user = GetUser(w, r)
 	m := map[string]interface{}{
@@ -552,6 +553,8 @@ func TemplateBattle(w http.ResponseWriter, r *http.Request) {
 
 	region := r.URL.Query().Get(":region")
 	country := r.URL.Query().Get(":country")
+
+	defer r.Body.Close()
 
 	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
 	if err != nil {
@@ -605,6 +608,8 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 
 	region := r.URL.Query().Get(":region")
 	country := r.URL.Query().Get(":country")
+
+	defer r.Body.Close()
 
 	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
 	if err != nil {
@@ -678,8 +683,15 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	unparsedDeadline := policy.Sanitize(r.FormValue("deadline-date") + " " + r.FormValue("deadline-time"))
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
-	if err != nil || deadline.Before(time.Now()) {
-		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/deadlinebefore", 302)
+	if deadline.Before(time.Now()) {
+		if curStatus == "entry" {
+			http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/deadlinebefore", 302)
+			return
+		}
+	}
+
+	if err != nil {
+		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/502", 302)
 		return
 	}
 
@@ -744,6 +756,8 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/battle/"+r.URL.Query().Get(":id")+"/update/validationerror", 302)
 		return
 	}
+
+	defer r.Body.Close()
 
 	query := `
 			UPDATE challenges 
@@ -1008,6 +1022,7 @@ func DeleteBattle(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	stmt := "DELETE FROM challenges WHERE user_id = ? AND id = ?"
 

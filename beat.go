@@ -25,12 +25,15 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
+	URL := r.URL.RequestURI()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
+
+	defer r.Body.Close()
 
 	// TODO - Change this GetBattle statement or change GetBattle, this doesn't need a * sql statement.
 	battle := GetBattle(db, battleID)
@@ -40,8 +43,6 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user = GetUser(w, r)
-
-	URL := r.URL.RequestURI()
 
 	tpl := "SubmitBeat"
 	title := "Submit Beat"
@@ -76,6 +77,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	redirectURL := "/beat/" + strconv.Itoa(battleID) + "/submit"
 
@@ -154,6 +156,7 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
@@ -179,12 +182,13 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// PERF - Check if track URL is valid (doesn't 404)
+	/* PERF - Check if track URL is valid (doesn't 404)
 	resp, err := http.Get(track)
 	if err != nil || resp.Status == "404 Not Found" {
 		http.Redirect(w, r, redirectURL+"/invalid", 302)
 		return
 	}
+	*/
 
 	ins, err := db.Prepare("UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?")
 	if err != nil {
@@ -213,6 +217,7 @@ func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 

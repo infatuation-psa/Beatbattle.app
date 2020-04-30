@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/gob"
 	"html/template"
 	"log"
@@ -43,6 +44,13 @@ Help Actions
 --------*/
 
 func init() {
+	/*
+	   Safety net for 'too many open files' issue on legacy code.
+	   Set a sane timeout duration for the http.DefaultClient, to ensure idle connections are terminated.
+	   Reference: https://stackoverflow.com/questions/37454236/net-http-server-too-many-open-files-error
+	*/
+	http.DefaultClient.Timeout = 5 * time.Second
+
 	// loads values from .env into the system
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
@@ -96,7 +104,41 @@ func RandString(length int) string {
 }
 
 func main() {
+	tlsConfig := &tls.Config{
+		// Causes servers to use Go's default ciphersuite preferences,
+		// which are tuned to avoid attacks. Does nothing on clients.
+		PreferServerCipherSuites: true,
+		// Only use curves which have assembly implementations
+		CurvePreferences: []tls.CurveID{
+			tls.CurveP256,
+			tls.X25519, // Go 1.8 only
+		},
+		MinVersion: tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, // Go 1.8 only
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,   // Go 1.8 only
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+
+			// Best disabled, as they don't provide Forward Secrecy,
+			// but might be necessary for some clients
+			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		},
+	}
+
 	router := pat.New()
+
+	srv := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		TLSConfig:    tlsConfig,
+		Handler:      router,
+	}
+
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	state := string(RandString(16))
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
@@ -149,11 +191,7 @@ func main() {
 
 	http.Handle("/", router)
 
-	if os.Getenv("PORT") == ":443" {
-		log.Fatal(http.ListenAndServeTLS(os.Getenv("PORT"), "server.cert", "server.key", router))
-	} else {
-		log.Fatal(http.ListenAndServe(os.Getenv("PORT"), router))
-	}
+	log.Fatal(srv.ListenAndServeTLS("server.cert", "server.key"))
 }
 
 func contains(arr []string, str string) bool {
