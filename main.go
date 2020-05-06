@@ -160,6 +160,7 @@ func main() {
 	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
 	router.Get("/myaccount", MyAccount)
+	router.Get("/groups/submit", SubmitGroup)
 
 	router.Get("/battles/{tag}", ViewTaggedBattles)
 

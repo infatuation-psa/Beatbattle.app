@@ -1,0 +1,20 @@
+{{ define "SubmitGroup" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <form id="submit-group" method="POST" action="/group/submit">
+        <nav class="battle-title">
+            <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Group Title" required>
+            <input type="submit" name="submit" class="nav-item-right nav-submit" value="PUBLISH" />
+        </nav>
+        <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="1024" placeholder="Group Description (Supports Markdown Syntax)" required></textarea>
+        <input type="checkbox" id="status" name="status">
+        <label for="status">New users require approval</label>
+        </div>
+        </form>
+      </div>
+    </div>
+    <script>function chipUpdate(){$("#tags").val(JSON.stringify(this.chipsData))}autosize($("textarea")),$(document).ready(function(){$(".chips").chips({limit:3,placeholder:"Enter Up To 3 Tags (Optional)",secondaryPlaceholder:"+Tag",onChipAdd:chipUpdate,onChipDelete:chipUpdate}),$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)});</script>
+  {{ template "Footer" .Toast }}
+{{ end }}
