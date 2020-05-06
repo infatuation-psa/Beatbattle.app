@@ -18,6 +18,8 @@ type Beat struct {
 	LikeColour  string `json:"like_colour"`
 	VoteColour  string `json:"vote_colour"`
 	Feedback    string `json:"feedback"`
+	Status		string `json:"status"`
+	Battle		string `json:"battle"`
 }
 
 // SubmitBeat ...

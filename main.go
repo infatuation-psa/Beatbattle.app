@@ -159,6 +159,7 @@ func main() {
 	router.Post("/vote/{id}", AddVote)
 	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
+	router.Get("/myaccount/submissions", MySubmissions)
 	router.Get("/myaccount", MyAccount)
 	router.Get("/groups/submit", SubmitGroup)
 
