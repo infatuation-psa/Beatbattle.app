@@ -155,6 +155,7 @@ func main() {
 	router.Get("/logout/{provider}", Logout)
 	router.Get("/logout", GenericLogout)
 	router.Post("/feedback/{id}", AddFeedback)
+	router.Post("/like/{id}", AddLike)
 	router.Post("/vote/{id}", AddVote)
 	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
@@ -271,6 +272,12 @@ func GetToast(toast string) [2]string {
 	case "feedbackself":
 		html = "You can't give yourself feedback."
 		class = "toast-error"
+	case "liked":
+		html = "Submission loved."
+		class = "toast-success"
+	case "unliked":
+		html = "Submission unloved."
+		class = "toast-success"
 	case "successvote":
 		html = "Vote successful."
 		class = "toast-success"

@@ -316,6 +316,8 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 	voteID := 0
 	err = db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", user.ID, beatID).Scan(&voteID)
 
+	// TODO Change from transaction maybe
+
 	if count < maxVotes {
 		if err == sql.ErrNoRows {
 			tx, err := db.Begin()
@@ -332,18 +334,8 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 			defer stmt.Close()
 
 			stmt.Exec(beatID, user.ID, battleID)
-
-			sql = "UPDATE beats SET votes = votes + 1 WHERE id = ?"
-
-			stmt, err = tx.Prepare(sql)
-			if err != nil {
-				AjaxResponse(w, r, true, ajax, redirectURL, "404")
-				return
-			}
-			defer stmt.Close()
-
-			stmt.Exec(beatID)
 			tx.Commit()
+
 			AjaxResponse(w, r, false, ajax, redirectURL, "successvote")
 			return
 		} else if err != nil {
@@ -368,21 +360,64 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 	defer stmt.Close()
 
 	stmt.Exec(voteID)
-
-	sql = "UPDATE beats SET votes = votes - 1 WHERE id = ?"
-
-	stmt, err = tx.Prepare(sql)
-	if err != nil {
-		AjaxResponse(w, r, true, ajax, redirectURL, "404")
-		return
-	}
-	defer stmt.Close()
-
-	stmt.Exec(beatID)
-
 	tx.Commit()
 
 	AjaxResponse(w, r, false, ajax, redirectURL, "successdelvote")
+	return
+}
+
+// AddLike ...
+func AddLike(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	ajax := r.Header.Get("X-Requested-With") == "xmlhttprequest"
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		AjaxResponse(w, r, true, ajax, "/login/", "noauth")
+		return
+	}
+
+	beatID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "404")
+		return
+	}
+	defer r.Body.Close()
+
+	var battleID int
+	var beatUserID int
+
+	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "404")
+		return
+	}
+
+	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
+
+	if !RowExists(db, "SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
+		ins, err := db.Prepare("INSERT INTO likes(user_id, beat_id) VALUES (?, ?)")
+		if err != nil {
+			AjaxResponse(w, r, true, ajax, "/", "502")
+			return
+		}
+		defer ins.Close()
+		ins.Exec(user.ID, beatID)
+		AjaxResponse(w, r, false, ajax, redirectURL, "liked")
+		return
+	}
+
+	del, err := db.Prepare("DELETE from likes WHERE user_id = ? AND beat_id = ?")
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, "/", "502")
+		return
+	}
+	defer del.Close()
+	del.Exec(user.ID, beatID)
+
+	AjaxResponse(w, r, false, ajax, redirectURL, "unliked")
 	return
 }
 
@@ -426,7 +461,7 @@ func AddFeedback(w http.ResponseWriter, r *http.Request) {
 	if !RowExists(db, "SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
 		ins, err := db.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
 		if err != nil {
-			AjaxResponse(w, r, true, ajax, "/", "404")
+			AjaxResponse(w, r, true, ajax, "/", "502")
 			return
 		}
 		defer ins.Close()
@@ -437,7 +472,7 @@ func AddFeedback(w http.ResponseWriter, r *http.Request) {
 
 	update, err := db.Prepare("UPDATE feedback SET feedback = ? WHERE user_id = ? AND beat_id = ?")
 	if err != nil {
-		AjaxResponse(w, r, true, ajax, "/", "404")
+		AjaxResponse(w, r, true, ajax, "/", "502")
 		return
 	}
 	defer update.Close()

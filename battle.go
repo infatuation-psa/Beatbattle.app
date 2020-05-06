@@ -83,7 +83,6 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 	hours := int(diff.Hours() - float64(days*24))
 	minutes := int(diff.Minutes() - float64(days*24*60) - float64(hours*60))
 
-	// Fix bug where none are shown
 	if days > 0 {
 		deadlineParsed += strconv.Itoa(days) + " day"
 	}
@@ -115,6 +114,10 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 	}
 	if minutes > 1 {
 		deadlineParsed += "s"
+	}
+
+	if deadlineParsed == "" {
+		// TODO - Fix bug where none are shown
 	}
 
 	return deadlineParsed + " left"
@@ -285,7 +288,7 @@ func GetBattles(db *sql.DB, field string, value string) []Battle {
 	return battles
 }
 
-// BattleHTTP - Retreives battle and displays to user.
+// BattleHTTP - Retrieves battle and displays to user.
 func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	db := dbConn()
 	defer db.Close()
@@ -335,35 +338,36 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	entries := []Beat{}
 	didntVote := []Beat{}
 	voteID := 0
+	likeID := 0
 
-	args := []interface{}{user.ID, user.ID, battleID}
-	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID, &submission.Feedback, &submission.UserID}
-	query := `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted, IFNULL(feedback.feedback, ''), beats.user_id
+	args := []interface{}{user.ID, user.ID, user.ID, battleID}
+	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Artist, &voteID, &likeID, &submission.Feedback, &submission.UserID}
+	query := `SELECT beats.id, beats.url, users.nickname, votes.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, IFNULL(feedback.feedback, ''), beats.user_id
 			FROM beats 
 			LEFT JOIN users on beats.user_id=users.id
 			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
+			LEFT JOIN likes on likes.user_id=? AND beats.id=likes.beat_id
 			LEFT JOIN feedback on feedback.user_id=? AND feedback.beat_id=beats.id
 			WHERE beats.challenge_id=?
 			GROUP BY 1
 			ORDER BY beats.id DESC`
 
 	if battle.Status == "complete" {
-		query = `SELECT beats.id, beats.url, beats.votes, users.nickname, votes.id IS NOT NULL AS voted, beats.user_id
+		query = `SELECT beats.id, beats.url, users.nickname, (SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=beats.id) as votes, voted.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, beats.user_id
 				FROM beats 
 				LEFT JOIN users on beats.user_id=users.id
-				LEFT JOIN votes on votes.user_id=beats.user_id AND votes.challenge_id=beats.challenge_id
+				LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id
+				LEFT JOIN likes on likes.user_id=? AND beats.id=likes.beat_id
 				WHERE beats.challenge_id=?
 				GROUP BY 1
 				ORDER BY votes DESC`
-		args = []interface{}{battleID}
-		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist, &voteID, &submission.UserID}
+		args = []interface{}{user.ID, battleID}
+		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Artist, &submission.Votes, &voteID, &likeID, &submission.UserID}
 	}
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
-		// This doesn't crash anything, but should be avoided.
-		fmt.Println(err)
-		http.Redirect(wr, req, "/404", 302)
+		http.Redirect(wr, req, "/502", 302)
 		return
 	}
 	defer rows.Close()
@@ -373,6 +377,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	hasEntered := false
 	userVotes := 0
 	for rows.Next() {
+		likeID = 0
 		voteID = 0
 		err = rows.Scan(scanArgs...)
 		if err != nil {
@@ -386,15 +391,20 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 		count++
 
-		submission.Color = "black"
+		submission.VoteColour = "black"
 		if voteID != 0 {
-			submission.Color = "#ff5800"
+			submission.VoteColour = "#ff5800"
 			if battle.Status == "complete" && submission.UserID == user.ID {
 				userVotes++
 			}
 			if battle.Status != "complete" {
 				userVotes++
 			}
+		}
+
+		submission.LikeColour = "black"
+		if likeID != 0 {
+			submission.LikeColour = "#ff5800"
 		}
 
 		u, _ := url.Parse(submission.URL)
@@ -452,7 +462,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 	// PERF - Shuffle entries per user.
 	if battle.Status != "complete" {
-		rand.Seed(int64(user.ID + battle.ID))
+		rand.Seed(int64(user.ID * battle.ID))
 		rand.Shuffle(len(entries), func(i, j int) {
 			entries[i], entries[j] = entries[j], entries[i]
 		})
