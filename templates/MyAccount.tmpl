@@ -6,8 +6,8 @@
         <nav class="battle-title">
           <h1 class="nav-left">My Battles</h1>
           <ul class="nav-links">
-              <!-- <li class="nav-item nav-download"><a href="/past">MY BEATS</a></li> -->
-              <li class="nav-item nav-submit"><a href="/battle/submit">NEW BATTLE</a></li>
+              <li class="nav-item nav-download"><a href="/myaccount/submissions">MY SUBMISSIONS</a></li>
+              <li class="nav-item nav-item-right nav-submit"><a href="/battle/submit">NEW BATTLE</a></li>
           </ul>
         </nav>
       </div>
@@ -26,7 +26,6 @@
       <zg-nodata>You haven't made a battle yet.</zg-nodata>
     </zing-grid>    
     </div>
-    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);zgRef.executeOnLoad(function() {$("a:contains('record.Tags')").remove();});})</script>
+    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
   {{ template "Footer" .Toast }}
-
 {{ end }}

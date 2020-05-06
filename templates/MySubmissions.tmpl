@@ -1,0 +1,46 @@
+{{ define "MySubmissions" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h1 class="nav-left">My Submissions</h1>
+          <ul class="nav-links">
+              <li class="nav-item nav-download"><a href="/myaccount">My Battles</a></li>
+              <li class="nav-item nav-item-right nav-submit"><a href="/battle/submit">NEW BATTLE</a></li>
+          </ul>
+        </nav>
+      </div>
+      <zing-grid caption="Submissions" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+        <zg-colgroup>
+          <zg-column cell-class="zing-left" header="Battle" index="battle" type="url" cell-class="link">
+            <a class="battle-url" href="/battle/[[record.challenge_id]]">[[index.battle]]</a>
+          </zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
+          <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
+          <zg-column cell-class="zing-both" header="Status" index="status"></zg-column>
+        </zg-colgroup>
+        <zg-nodata>You haven't entered any battles yet.</zg-nodata>
+      </zing-grid>
+    </div>
+    <script>window.addEventListener('load',()=>{const t=document.querySelector('zing-grid');const data={{.Battles}};t.setData(data);})
+    const t=document.querySelector('zing-grid');
+    t.addEventListener("grid:pagechange", t => {
+        setTimeout(function() {
+            $(".tooltipped").tooltip()
+        }, 1)
+    }), t.addEventListener("grid:refresh", t => {
+        setTimeout(function() {
+            $(".tooltipped").tooltip()
+        }, 1)
+    }), t.addEventListener("grid:pagesizechange", t => {
+        setTimeout(function() {
+            $(".tooltipped").tooltip()
+        }, 1)
+    }), t.addEventListener("grid:ready", t => {
+        setTimeout(function() {
+            $(".tooltipped").tooltip()
+        }, 1)
+    })</script>
+  {{ template "Footer" .Toast }}
+{{ end }}

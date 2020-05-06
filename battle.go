@@ -190,34 +190,6 @@ func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "ViewBattles", m)
 }
 
-// MyAccount - Retrieves all of user's battles and displays to user.
-func MyAccount(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
-
-	toast := GetToast(r.URL.Query().Get(":toast"))
-
-	var user = GetUser(w, r)
-
-	battles := GetBattles(db, "challenges.user_id", strconv.Itoa(user.ID))
-
-	battlesJSON, err := json.Marshal(battles)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	m := map[string]interface{}{
-		"Title":   "My Account",
-		"Battles": string(battlesJSON),
-		"User":    user,
-		"Toast":   toast,
-		"Tag":     policy.Sanitize(r.URL.Query().Get(":tag")),
-	}
-
-	tmpl.ExecuteTemplate(w, "MyAccount", m)
-}
-
 // GetBattles retrieves a battle from the database using an ID.
 func GetBattles(db *sql.DB, field string, value string) []Battle {
 	// FIELD & VALUE
@@ -377,6 +349,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 	hasEntered := false
 	userVotes := 0
 	for rows.Next() {
+		// TODO - CAN PROBABLY RESET SUBMISSION OBJECT HERE
 		likeID = 0
 		voteID = 0
 		err = rows.Scan(scanArgs...)

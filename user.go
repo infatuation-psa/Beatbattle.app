@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+	"net/url"
 	"strconv"
 
 	"github.com/markbates/goth/gothic"
@@ -558,4 +560,117 @@ func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
 	}
 
 	tmpl.ExecuteTemplate(wr, "Feedback", m)
+}
+
+// MyAccount - Retrieves all of user's battles and displays to user.
+func MyAccount(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+
+	battles := GetBattles(db, "challenges.user_id", strconv.Itoa(user.ID))
+
+	battlesJSON, err := json.Marshal(battles)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	m := map[string]interface{}{
+		"Title":   "My Battles",
+		"Battles": string(battlesJSON),
+		"User":    user,
+		"Toast":   toast,
+		"Tag":     policy.Sanitize(r.URL.Query().Get(":tag")),
+	}
+
+	tmpl.ExecuteTemplate(w, "MyAccount", m)
+}
+
+// MySubmissions - Retrieves all of user's battles and displays to user.
+func MySubmissions(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	
+	submission := Beat{}
+	entries := []Beat{}
+
+	query := `
+			SELECT beats.url, (SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=beats.id) as votes, voted.id IS NOT NULL AS voted, challenges.id, challenges.status, challenges.title
+			FROM beats 
+			LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id
+			LEFT JOIN challenges on challenges.id=beats.challenge_id
+			WHERE beats.user_id=?
+			GROUP BY 1
+			ORDER BY beats.id DESC`
+
+	rows, err := db.Query(query, user.ID)
+	if err != nil {
+		http.Redirect(w, r, "/502", 302)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		voted := 0
+		submission = Beat{}
+		err = rows.Scan(&submission.URL, &submission.Votes, &voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
+		if err != nil {
+			http.Redirect(w, r, "/502", 302)
+			return
+		}
+
+		submission.Status = strings.Title(submission.Status)
+
+		if voted == 0 {
+			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #1E19FF;">(*)</span></span>`
+		}
+
+		u, _ := url.Parse(submission.URL)
+		urlSplit := strings.Split(u.RequestURI(), "/")
+
+		if len(urlSplit) >= 4 {
+			secretURL := urlSplit[3]
+			if strings.Contains(secretURL, "s-") {
+				submission.URL = `<iframe height="20" scrolling="no" frameborder="no" allow="autoplay" show_user="false" src="https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
+			} else {
+				submission.URL = `<iframe height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
+			}
+		} else {
+			submission.URL = `<iframe height="20" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=false&show_user=false"></iframe>`
+		}
+
+		entries = append(entries, submission)
+	}
+
+	submissionsJSON, err := json.Marshal(entries)
+	if err != nil {
+		http.Redirect(w, r, "/502", 302)
+		return
+	}
+
+	m := map[string]interface{}{
+		"Title":   "My Submissions",
+		"Battles": string(submissionsJSON),
+		"User":    user,
+		"Toast":   toast,
+		"Tag":     policy.Sanitize(r.URL.Query().Get(":tag")),
+	}
+
+	tmpl.ExecuteTemplate(w, "MySubmissions", m)
 }
