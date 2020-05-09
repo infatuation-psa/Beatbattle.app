@@ -4,6 +4,10 @@
 select { display: none; }
 select.browser-default { display: block; }
 
+.darkmode--activated .select-wrapper input.select-dropdown {
+  color: white;
+}
+
 select {
   background-color: rgba(255, 255, 255, 0.90);
   width: 100%;
