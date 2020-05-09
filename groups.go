@@ -186,6 +186,53 @@ func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// InsertGroupRequest ...
+func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	defer r.Body.Close()
+
+	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		http.Redirect(w, r, "/404", 302)
+		return
+	}
+
+	requestExists := RowExists(db, "SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+
+	if requestExists {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/reqexists", 302)
+		return
+	}
+
+	hasPermissions := RowExists(db, "SELECT id FROM beatbattle.groups WHERE id = ? and status=?", groupID, "open")
+
+	if !hasPermissions {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/notopengrp", 302)
+		return
+	}
+
+	stmt := "INSERT INTO groups_requests(user_id, group_id) VALUES(?,?)"
+
+	ins, err := db.Prepare(stmt)
+	if err != nil {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/502", 302)
+		return
+	}
+	defer ins.Close()
+
+	ins.Exec(user.ID, groupID)
+
+	http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/successreq", 302)
+	return
+}
+
 // GroupInviteResponse ...
 func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
@@ -301,7 +348,7 @@ func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
 			}
 			defer ins.Close()
 
-			ins.Exec(user.ID, groupID)
+			ins.Exec(userID, groupID)
 		}
 	}
 
@@ -586,6 +633,8 @@ func GroupHTTP(w http.ResponseWriter, r *http.Request) {
 		invited = RowExists(db, "SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 		requested = RowExists(db, "SELECT user_id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 	}
+
+	print(invited)
 
 	m := map[string]interface{}{
 		"Title":     group.Title,

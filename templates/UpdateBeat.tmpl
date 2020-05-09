@@ -3,7 +3,7 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host">{{.Battle.Host}} | <span style="color: #ff5800">Submit Beat</span></span>
+        <span class="battle-host"><a href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a> | <span style="color: #ff5800">Submit Beat</span></span>
         <nav class="battle-title" style="padding-top: 0;">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>

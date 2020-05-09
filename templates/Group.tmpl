@@ -3,7 +3,7 @@
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host">{{.Group.OwnerNickname}}</span>
+        <span class="battle-host"><a href="/user/{{.Group.OwnerID}}">{{.Group.OwnerNickname}}</a></span>
         <nav class="battle-title" style="padding-top: 0;">
           <div class="nav-left">
           <h1>{{.Group.Title}}</h1>
@@ -15,17 +15,22 @@
             {{else}}
               {{if eq "inviteonly" .Group.Status}}
                 {{ if .InGroup }}
-                    <li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Group.ID}}/feedback">LEAVE</a></li>
+                    <li class="nav-item nav-item-right nav-download"><a href="/group/{{.Group.ID}}/leave">LEAVE</a></li>
                 {{ else }}
                   {{ if .Invited }}
-                    <li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Group.ID}}/feedback">DECLINE</a></li>
-                    <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/group/{{.Group.ID}}/update/">JOIN</a></li>
+                    <li class="nav-item nav-item-right nav-submit"><a class="modal-trigger modal-invite" data-target="respond" href="#respond">Respond</a></li>
                   {{ else }}
                     <li class="nav-item nav-item-right nav-disabled"><a>INVITE ONLY</a></li>
                   {{ end }}
                 {{ end }}
-              {{else}}              
-                <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/group/{{.Group.ID}}/update/">JOIN</a></li>
+              {{else}}     
+                {{ if .Invited }}
+                    <li class="nav-item nav-item-right nav-submit"><a class="modal-trigger modal-invite" data-target="respond" href="#respond">Respond</a></li>
+                {{ else if .Requested }}
+                    <li class="nav-item nav-item-right nav-disabled"><a>Requested</a></li>
+                {{ else }}
+                    <li class="nav-item nav-item-right nav-submit"><a href="/group/{{.Group.ID}}/join">JOIN</a></li>
+                {{ end }}         
               {{end}}
             {{end}}
           </ul>
@@ -35,13 +40,27 @@
       </div>
       <zing-grid caption='Members' layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
-          <zg-column cell-class="zing-left" header="Artist" index="nickname"></zg-column>
+          <zg-column cell-class="zing-left" header="Artist" index="nickname">
+            <a class="battle-url" href="/user/[[record.id]]">[[record.nickname]]</a>
+          </zg-column>
           <zg-column cell-class="zing-left" header="Role" index="role"></zg-column>
         </zg-colgroup>
         <zg-param name="loadByScroll" value="true"></zg-param>
         <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
-    <script>window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Users}}")});</script>
+    <div id="respond" class="modal">
+      <div class="modal-content">
+        <h4 id="modal-header">Invite to {{.Group.Title}}</h4>
+        <p id="modal-description">Do you accept or decline the invite?</p>
+      </div>
+      <div class="modal-footer">
+          <ul class="nav-links">
+              <li class="nav-item nav-submit"><a id="modal-accept" href="/me/groups/invite/{{.Group.ID}}/accept">ACCEPT</a></li>
+              <li class="nav-item nav-item-right nav-download"><a id="modal-decline" href="/me/groups/invite/{{.Group.ID}}/decline">DECLINE</a></li>
+          </ul>
+      </div>
+    </div>
+    <script>window.addEventListener("load",()=>{$('.modal').modal();const t=document.querySelector("zing-grid");t.setData("{{.Users}}")});</script>
   {{ template "Footer" .Toast }}
 {{ end }}

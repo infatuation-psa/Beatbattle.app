@@ -142,7 +142,7 @@ func main() {
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	state := string(RandString(16))
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
-		"linux:beatbattle:v1.0 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
+		"linux:beatbattle:v1.1 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
 
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
 	goth.UseProviders(discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("CALLBACK_URL"), discord.ScopeIdentify))
@@ -180,6 +180,7 @@ func main() {
 	router.Get("/group/{id}/update/{toast}", UpdateGroup) // Toast
 	router.Post("/group/{id}/update", UpdateGroupDB)      // Update in db
 	router.Get("/group/{id}/update", UpdateGroup)         // Update page
+	router.Get("/group/{id}/join", InsertGroupRequest)
 	router.Get("/group/{id}/{toast}", GroupHTTP)
 	router.Get("/group/{id}", GroupHTTP) // Update page
 	router.Get("/groups/{toast}", ViewGroups)
@@ -327,8 +328,11 @@ func GetToast(toast string) [2]string {
 	case "accept":
 		html = "Successfully joined group."
 		class = "toast-success"
+	case "successreq":
+		html = "Requested to join group."
+		class = "toast-success"
 	case "declinereq":
-		html = "User has not been added to the group"
+		html = "User has not been added to the group."
 		class = "toast-success"
 	case "decline":
 		html = "Successfully declined invite."
@@ -344,6 +348,12 @@ func GetToast(toast string) [2]string {
 		class = "toast-error"
 	case "invalid":
 		html = "Your SoundCloud url format is invalid."
+		class = "toast-error"
+	case "reqexists":
+		html = "You've already requested to join this group."
+		class = "toast-error"
+	case "notopengrp":
+		html = "This group is not open."
 		class = "toast-error"
 	}
 
