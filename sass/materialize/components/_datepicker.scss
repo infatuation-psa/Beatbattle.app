@@ -5,6 +5,25 @@
   max-height: none;
 }
 
+.darkmode--activated {
+  .timepicker-tick {
+    filter: invert(100%);
+  }
+  .datepicker-controls {
+    filter: invert(100%);
+  }
+
+  .timepicker-plate {
+   background: none;
+   border: 1px solid white;
+  }
+
+  .timepicker-digital-display, .datepicker-date-display {
+    background: none;
+    border-right: 1px solid white;
+  }
+}
+
 .datepicker-container.modal-content {
   display: flex;
   flex-direction: column;

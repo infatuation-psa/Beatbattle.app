@@ -540,6 +540,26 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
   max-height: none;
 }
 
+.darkmode--activated .timepicker-tick {
+  -webkit-filter: invert(100%);
+          filter: invert(100%);
+}
+
+.darkmode--activated .datepicker-controls {
+  -webkit-filter: invert(100%);
+          filter: invert(100%);
+}
+
+.darkmode--activated .timepicker-plate {
+  background: none;
+  border: 1px solid white;
+}
+
+.darkmode--activated .timepicker-digital-display, .darkmode--activated .datepicker-date-display {
+  background: none;
+  border-right: 1px solid white;
+}
+
 .datepicker-container.modal-content {
   display: -webkit-box;
   display: -ms-flexbox;
