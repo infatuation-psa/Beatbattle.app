@@ -44,6 +44,7 @@ Help Actions
 --------*/
 
 func init() {
+	whitelist = []string{"f1eightco-my.sharepoint.com", "sharepoint.com", "drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
 	/*
 	   Safety net for 'too many open files' issue on legacy code.
 	   Set a sane timeout duration for the http.DefaultClient, to ensure idle connections are terminated.
@@ -160,11 +161,15 @@ func main() {
 	router.Get("/login", Login)
 
 	// Me
+	router.Post("/user/{id}/invite", InsertGroupInvite)
 	router.Get("/user/{id}/groups", UserGroups)
 	router.Get("/user/{id}/submissions", UserSubmissions)
 	router.Get("/user/{id}", UserAccount)
 
 	// Me
+	router.Get("/me/groups/request/{id}/{response}", GroupRequestResponse)
+	router.Get("/me/groups/invite/{id}/{response}", GroupInviteResponse)
+	router.Get("/me/groups/{toast}", MyGroups)
 	router.Get("/me/groups", MyGroups)
 	router.Get("/me/submissions", MySubmissions)
 	router.Get("/me", MyAccount)
@@ -230,7 +235,7 @@ func GetToast(toast string) [2]string {
 	class := ""
 	switch message := toast; message {
 	case "404":
-		html = "Battle or beat not found."
+		html = "Requested resource not found."
 		class = "toast-error"
 	case "502":
 		html = "Server error."
@@ -316,6 +321,27 @@ func GetToast(toast string) [2]string {
 	case "successaddfeedback":
 		html = "Successfully added feedback."
 		class = "toast-success"
+	case "acceptreq":
+		html = "User has been added to the group."
+		class = "toast-success"
+	case "accept":
+		html = "Successfully joined group."
+		class = "toast-success"
+	case "declinereq":
+		html = "User has not been added to the group"
+		class = "toast-success"
+	case "decline":
+		html = "Successfully declined invite."
+		class = "toast-success"
+	case "successinv":
+		html = "Successfully invited user."
+		class = "toast-success"
+	case "ingroupreq":
+		html = "User already in group."
+		class = "toast-error"
+	case "ingroup":
+		html = "You're already in the group."
+		class = "toast-error"
 	case "invalid":
 		html = "Your SoundCloud url format is invalid."
 		class = "toast-error"

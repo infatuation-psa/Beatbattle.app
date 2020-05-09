@@ -79,7 +79,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If user doesn't exist, add to db
-	// TODO UPDATE NICKNAME
 	if userID == 0 {
 		sql := "INSERT INTO users(provider, provider_id, nickname) VALUES(?,?,?)"
 
@@ -101,7 +100,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		}
 		defer stmt.Close()
 
-		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name)
+		stmt.Exec(Account.Name, userID)
 	}
 
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
@@ -582,6 +581,11 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userGroups := []Group{}
+	if user.Authenticated {
+		userGroups = GetGroupsByRole(db, user.ID, "owner")
+	}
+
 	nickname := ""
 	err = db.QueryRow("SELECT nickname FROM users WHERE id = ?", userID).Scan(&nickname)
 	if err != nil {
@@ -598,13 +602,14 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := map[string]interface{}{
-		"Title":    nickname + "'s Battles",
-		"Battles":  string(battlesJSON),
-		"User":     user,
-		"Toast":    toast,
-		"Tag":      policy.Sanitize(r.URL.Query().Get(":tag")),
-		"UserID":   userID,
-		"Nickname": nickname,
+		"Title":      nickname + "'s Battles",
+		"Battles":    string(battlesJSON),
+		"User":       user,
+		"UserGroups": userGroups,
+		"Toast":      toast,
+		"Tag":        policy.Sanitize(r.URL.Query().Get(":tag")),
+		"UserID":     userID,
+		"Nickname":   nickname,
 	}
 
 	tmpl.ExecuteTemplate(w, "UserAccount", m)
@@ -628,6 +633,11 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 	if userID == user.ID {
 		http.Redirect(w, r, "/me", 302)
 		return
+	}
+
+	userGroups := []Group{}
+	if user.Authenticated {
+		userGroups = GetGroupsByRole(db, user.ID, "owner")
 	}
 
 	nickname := ""
@@ -695,13 +705,14 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := map[string]interface{}{
-		"Title":    nickname + "'s Submissions",
-		"Battles":  string(submissionsJSON),
-		"User":     user,
-		"Toast":    toast,
-		"Tag":      policy.Sanitize(r.URL.Query().Get(":tag")),
-		"UserID":   userID,
-		"Nickname": nickname,
+		"Title":      nickname + "'s Submissions",
+		"Battles":    string(submissionsJSON),
+		"User":       user,
+		"UserGroups": userGroups,
+		"Toast":      toast,
+		"Tag":        policy.Sanitize(r.URL.Query().Get(":tag")),
+		"UserID":     userID,
+		"Nickname":   nickname,
 	}
 
 	tmpl.ExecuteTemplate(w, "UserSubmissions", m)
@@ -729,6 +740,11 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userGroups := []Group{}
+	if user.Authenticated {
+		userGroups = GetGroupsByRole(db, user.ID, "owner")
+	}
+
 	nickname := ""
 	err = db.QueryRow("SELECT nickname FROM users WHERE id = ?", userID).Scan(&nickname)
 	if err != nil {
@@ -736,7 +752,7 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := GetGroups(db, "users_groups.user_id", strconv.Itoa(userID))
+	groups := GetGroups(db, userID)
 
 	groupsJSON, err := json.Marshal(groups)
 	if err != nil {
@@ -745,12 +761,13 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := map[string]interface{}{
-		"Title":    nickname + "'s Groups",
-		"Groups":   string(groupsJSON),
-		"User":     user,
-		"Toast":    toast,
-		"UserID":   userID,
-		"Nickname": nickname,
+		"Title":      nickname + "'s Groups",
+		"Groups":     string(groupsJSON),
+		"User":       user,
+		"UserGroups": userGroups,
+		"Toast":      toast,
+		"UserID":     userID,
+		"Nickname":   nickname,
 	}
 
 	tmpl.ExecuteTemplate(w, "UserGroups", m)
@@ -878,19 +895,35 @@ func MyGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups := GetGroups(db, "users_groups.user_id", strconv.Itoa(user.ID))
+	requests, invites, groups := GetUserGroups(db, user.ID)
 
-	groupsJSON, err := json.Marshal(groups)
-	if err != nil {
-		fmt.Println(err)
-		return
+	requestsJSON, _ := json.Marshal(requests)
+	invitesJSON, _ := json.Marshal(invites)
+	groupsJSON, _ := json.Marshal(groups)
+
+	requestsString := string(requestsJSON)
+	invitesString := string(invitesJSON)
+	groupsString := string(groupsJSON)
+
+	if requestsString == "[]" {
+		requestsString = ""
+	}
+
+	if invitesString == "[]" {
+		invitesString = ""
+	}
+
+	if groupsString == "[]" {
+		groupsString = ""
 	}
 
 	m := map[string]interface{}{
-		"Title":  "My Groups",
-		"Groups": string(groupsJSON),
-		"User":   user,
-		"Toast":  toast,
+		"Title":    "My Groups",
+		"Requests": requestsString,
+		"Invites":  invitesString,
+		"Groups":   groupsString,
+		"User":     user,
+		"Toast":    toast,
 	}
 
 	tmpl.ExecuteTemplate(w, "MyGroups", m)

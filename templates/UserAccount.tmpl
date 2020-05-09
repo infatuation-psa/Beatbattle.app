@@ -8,6 +8,9 @@
           <ul class="nav-links">
               <li class="nav-item nav-download"><a href="/user/{{.UserID}}/groups">GROUPS</a></li>
               <li class="nav-item nav-item-right nav-download"><a href="/user/{{.UserID}}/submissions">SUBMISSIONS</a></li>
+              {{if .UserGroups}}
+              <li class="nav-item nav-item-right nav-submit"><a class="modal-trigger" href="#invite">INVITE</a></li>
+              {{end}}
           </ul>
         </nav>
       </div>
@@ -25,6 +28,24 @@
       </zg-colgroup> 
     </zing-grid>    
     </div>
+    <div id="invite" class="modal">
+        <form id="invite-user" method="POST" action="/user/{{.UserID}}/invite">
+      <div class="modal-content">
+        <h4 id="modal-header">Invite</h4>
+        <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.Nickname}} to?</p>
+        <select name="group">
+          <option value="" disabled selected>Group</option>
+          {{ range .UserGroups }}
+          <option value="{{.ID}}">{{.Title}}</option>
+          {{ end }}
+        </select>
+      </div>
+      <div class="modal-footer">
+            <input type="submit" name="submit" class="nav-item nav-submit" value="INVITE" />
+      </div>
+        </form>
+    </div>
     <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
+    <script>$(document).ready(function(){$('.modal').modal();$('select').formSelect();});</script>
   {{ template "Footer" .Toast }}
 {{ end }}

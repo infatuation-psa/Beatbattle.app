@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gomarkdown/markdown"
 )
@@ -56,7 +57,7 @@ func ViewGroups(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r)
 
-	groups := GetGroups(db, "all", "all")
+	groups := GetGroups(db, 0)
 
 	groupsJSON, err := json.Marshal(groups)
 	if err != nil {
@@ -132,62 +133,331 @@ func InsertGroup(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// InsertGroupInvite ...
+func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	defer r.Body.Close()
+
+	userID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil {
+		http.Redirect(w, r, "/404", 302)
+		return
+	}
+
+	groupID, err := strconv.Atoi(policy.Sanitize(r.FormValue("group")))
+	if err != nil {
+		http.Redirect(w, r, "/404", 302)
+		return
+	}
+
+	inviteExists := RowExists(db, "SELECT id FROM groups_invites WHERE user_id = ? AND group_id = ?", userID, groupID)
+
+	if inviteExists {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/invexists", 302)
+		return
+	}
+
+	hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ? AND role = ?", user.ID, groupID, "owner")
+
+	if !hasPermissions {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/notuser", 302)
+		return
+	}
+
+	stmt := "INSERT INTO groups_invites(user_id, group_id) VALUES(?,?)"
+
+	ins, err := db.Prepare(stmt)
+	if err != nil {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/502", 302)
+		return
+	}
+	defer ins.Close()
+
+	ins.Exec(userID, groupID)
+
+	http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/successinv", 302)
+	return
+}
+
+// GroupInviteResponse ...
+func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	defer r.Body.Close()
+
+	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil && err != sql.ErrNoRows {
+		http.Redirect(w, r, "/me/groups/404", 302)
+		return
+	}
+
+	inviteExists := RowExists(db, "SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+	if !inviteExists {
+		http.Redirect(w, r, "/me/groups/404", 302)
+		return
+	}
+
+	response := r.URL.Query().Get(":response")
+
+	if response != "accept" && response != "decline" {
+		http.Redirect(w, r, "/me/groups/502", 302)
+		return
+	}
+
+	if response == "accept" {
+		inGroup := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		if inGroup {
+			response = "ingroup"
+		}
+
+		if !inGroup {
+			stmt := "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,'member')"
+
+			ins, err := db.Prepare(stmt)
+			if err != nil {
+				http.Redirect(w, r, "/me/groups/502", 302)
+				return
+			}
+			defer ins.Close()
+
+			ins.Exec(user.ID, groupID)
+		}
+	}
+
+	stmt := "DELETE FROM groups_invites WHERE user_id = ? and group_id = ?"
+
+	del, err := db.Prepare(stmt)
+	if err != nil {
+		http.Redirect(w, r, "/me/groups/502", 302)
+		return
+	}
+	defer del.Close()
+
+	del.Exec(user.ID, groupID)
+
+	http.Redirect(w, r, "/me/groups/"+response, 302)
+	return
+}
+
+// GroupRequestResponse ...
+func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	defer r.Body.Close()
+
+	requestID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil && err != sql.ErrNoRows {
+		http.Redirect(w, r, "/me/groups/404", 302)
+		return
+	}
+
+	userID := 0
+	groupID := 0
+	err = db.QueryRow("SELECT user_id, group_id FROM groups_requests WHERE id = ?", requestID).Scan(&userID, &groupID)
+	if err != nil {
+		http.Redirect(w, r, "/me/groups/404", 302)
+		return
+	}
+
+	response := r.URL.Query().Get(":response")
+
+	if response != "accept" && response != "decline" {
+		http.Redirect(w, r, "/me/groups/502", 302)
+		return
+	}
+
+	if response == "accept" {
+		inGroup := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", userID, groupID)
+		if inGroup {
+			response = "ingroup"
+		}
+
+		if !inGroup {
+			stmt := "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,'member')"
+
+			ins, err := db.Prepare(stmt)
+			if err != nil {
+				http.Redirect(w, r, "/me/groups/502", 302)
+				return
+			}
+			defer ins.Close()
+
+			ins.Exec(user.ID, groupID)
+		}
+	}
+
+	stmt := "DELETE FROM groups_requests WHERE id = ?"
+
+	del, err := db.Prepare(stmt)
+	if err != nil {
+		http.Redirect(w, r, "/me/groups/502", 302)
+		return
+	}
+	defer del.Close()
+
+	del.Exec(requestID)
+
+	http.Redirect(w, r, "/me/groups/"+response+"req", 302)
+	return
+}
+
+// GetUserGroups ...
+func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
+	queryRequests := `SELECT groups.id as group_id, groups.title, groups_requests.id as request_id, nickname from groups_requests
+					LEFT JOIN users_groups on groups_requests.group_id = users_groups.group_id
+					LEFT JOIN users on groups_requests.user_id = users.id
+					LEFT JOIN beatbattle.groups on groups.id = groups_requests.group_id
+					WHERE users_groups.user_id = ? and users_groups.role = "owner"`
+
+	queryInvites := `SELECT groups.id, groups.title, groups.description, "invited", groups.owner_id, users.nickname
+					FROM groups_invites
+					LEFT JOIN beatbattle.groups ON groups.id = groups_invites.group_id 
+					LEFT JOIN users on users.id=groups.owner_id
+					WHERE groups_invites.user_id = ?`
+
+	queryGroups := `SELECT groups.id, groups.title, groups.description, "requested", groups.owner_id, users.nickname
+					FROM groups_requests
+					LEFT JOIN beatbattle.groups ON groups.id = groups_requests.group_id 
+					LEFT JOIN users on users.id=groups.owner_id
+					WHERE groups_requests.user_id = ?
+					UNION
+					SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id, users.nickname
+					FROM users_groups
+					LEFT JOIN beatbattle.groups ON groups.id = users_groups.group_id 
+					LEFT JOIN users on users.id=groups.owner_id
+					WHERE users_groups.user_id = ?`
+
+	requests := []Group{}
+	invites := []Group{}
+	groups := []Group{}
+
+	rows, err := db.Query(queryRequests, value)
+
+	if err != nil && err != sql.ErrNoRows {
+		return nil, nil, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		group := Group{}
+		err = rows.Scan(&group.ID, &group.Title, &group.OwnerID, &group.OwnerNickname)
+		if err != nil {
+			return nil, nil, nil
+		}
+
+		group.StatusDisplay = "Requested"
+
+		requests = append(requests, group)
+	}
+
+	rows, err = db.Query(queryInvites, value)
+
+	if err != nil && err != sql.ErrNoRows {
+		return requests, nil, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		group := Group{}
+		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.OwnerID, &group.OwnerNickname)
+		if err != nil {
+			return requests, nil, nil
+		}
+
+		group.StatusDisplay = "Invited"
+
+		invites = append(invites, group)
+	}
+
+	rows, err = db.Query(queryGroups, value, value)
+
+	if err != nil && err != sql.ErrNoRows {
+		return requests, invites, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		group := Group{}
+		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.OwnerID, &group.OwnerNickname)
+		if err != nil {
+			return requests, invites, nil
+		}
+
+		group.StatusDisplay = strings.Title(group.Status)
+
+		groups = append(groups, group)
+	}
+
+	return requests, invites, groups
+}
+
+// GetGroupsByRole ...
+func GetGroupsByRole(db *sql.DB, value int, role string) []Group {
+	query := `SELECT group_info.id, group_info.title from users_groups
+			LEFT JOIN beatbattle.groups AS group_info ON group_info.id = users_groups.group_id
+			WHERE users_groups.user_id = ? and users_groups.role = ?`
+
+	rows, err := db.Query(query, value, role)
+
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	group := Group{}
+	groups := []Group{}
+
+	for rows.Next() {
+		err = rows.Scan(&group.ID, &group.Title)
+		if err != nil {
+			return nil
+		}
+
+		groups = append(groups, group)
+	}
+
+	return groups
+}
+
 // GetGroups retrieves battles from the database using a field and value.
-func GetGroups(db *sql.DB, field string, value string) []Group {
-	/* GENERAL STATEMENT FOR LATER
-	`SELECT groups.id, groups.title, groups.status, groups.owner_id, users.nickname
-	FROM beatbattle.groups
-	LEFT JOIN users on groups.owner_id = users.id
-	WHERE field = ?`
-	*/
-	// FIELD & VALUE
-
-	/*
-		querySELECT := `SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
-						FROM challenges
-						LEFT JOIN users ON challenges.user_id = users.id
-						LEFT JOIN beats ON challenges.id = beats.challenge_id`
-		queryWHERE := "WHERE " + field + "=?"
-		queryGROUP := "GROUP BY 1"
-		queryORDER := "ORDER BY challenges.deadline DESC"
-
-		query := querySELECT + " " + queryWHERE + " " + queryGROUP + " " + queryORDER
-	*/
-	query := `
-			SELECT groups.id, groups.title, groups.description, groups.status, groups.owner_id, users.nickname
+func GetGroups(db *sql.DB, value int) []Group {
+	query := `SELECT groups.id, groups.title, groups.description, groups.status, groups.owner_id, users.nickname
 			FROM beatbattle.groups
 			LEFT JOIN users on users.id=groups.owner_id`
+
 	args := []interface{}{}
 
-	if field == "users_groups.user_id" {
-		query = `
-				SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id, users.nickname
+	if value > 0 {
+		query = `SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id, users.nickname
 				FROM users_groups
 				LEFT JOIN beatbattle.groups ON groups.id = users_groups.group_id 
 				LEFT JOIN users on users.id=groups.owner_id
-				WHERE users_groups.user_id = ?
-				UNION
-				SELECT groups.id, groups.title, groups.description, "invited", groups.owner_id, users.nickname
-				FROM groups_invites
-				LEFT JOIN beatbattle.groups ON groups.id = groups_invites.group_id 
-				LEFT JOIN users on users.id=groups.owner_id
-				WHERE groups_invites.user_id = ?
-				UNION
-				SELECT groups.id, groups.title, groups.description, "requested", groups.owner_id, users.nickname
-				FROM groups_requests
-				LEFT JOIN beatbattle.groups ON groups.id = groups_requests.group_id 
-				LEFT JOIN users on users.id=groups.owner_id
-				WHERE groups_requests.user_id = ?`
-		args = []interface{}{value, value, value}
+				WHERE users_groups.user_id = ?`
+		args = []interface{}{value}
 	}
 
-	if args != nil {
-
-	}
 	rows, err := db.Query(query, args...)
 
 	if err != nil {
-		panic(err)
 		return nil
 	}
 	defer rows.Close()
@@ -220,7 +490,7 @@ func GetGroups(db *sql.DB, field string, value string) []Group {
 	return groups
 }
 
-// GetGroup retrieves a battle from the database using an ID.
+// GetGroup retrieves a group from the database using an ID.
 func GetGroup(db *sql.DB, groupID int) Group {
 	users := []GroupUser{}
 	group := Group{}
@@ -265,6 +535,8 @@ func GetGroup(db *sql.DB, groupID int) Group {
 		if err != nil {
 			return group
 		}
+
+		user.Role = strings.Title(user.Role)
 		users = append(users, user)
 	}
 

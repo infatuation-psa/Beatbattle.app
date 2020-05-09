@@ -42,5 +42,6 @@
         <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
-<script>window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Users}}")});</script>
+    <script>window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Users}}")});</script>
+  {{ template "Footer" .Toast }}
 {{ end }}

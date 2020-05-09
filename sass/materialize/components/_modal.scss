@@ -30,7 +30,7 @@
   }
 
   .modal-content {
-    padding: 24px;
+    padding: 2rem;
   }
   .modal-close {
     cursor: pointer;
@@ -39,11 +39,7 @@
   .modal-footer {
     border-radius: 0 0 2px 2px;
     background-color: #fafafa;
-    padding: 4px 6px;
-    height: 56px;
-    width: 100%;
-    text-align: right;
-
+    padding: 0 2rem 2rem;
     .btn, .btn-flat {
       margin: 6px 0;
     }

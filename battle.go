@@ -190,7 +190,7 @@ func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "ViewBattles", m)
 }
 
-// GetBattles retrieves a battle from the database using an ID.
+// GetBattles retrieves battles from the database using a field and value.
 func GetBattles(db *sql.DB, field string, value string) []Battle {
 	// FIELD & VALUE
 	querySELECT := `SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, users.nickname, COUNT(beats.id) as entry_count
