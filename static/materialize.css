@@ -222,8 +222,8 @@ body.keyboard-focused .dropdown-content li:focus {
 
 .modal .modal-footer {
   border-radius: 0 0 2px 2px;
-  background-color: #fafafa;
-  padding: 0 2rem 2rem;
+  background-color: #eee;
+  padding: 2rem 2rem;
 }
 
 .modal .modal-footer .btn, .modal .modal-footer .btn-flat {
@@ -991,7 +991,7 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
   height: 32px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.6) !important;
+  color: rgba(0, 0, 0, 0.6);
   line-height: 32px;
   padding: 0 12px;
   border-radius: 16px;
@@ -1000,13 +1000,13 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
 }
 
 .chip:hover {
-  color: black !important;
+  color: black;
 }
 
 .chip:focus {
   outline: none;
-  background-color: #ff5800 !important;
-  color: #fff !important;
+  background-color: #ff5800;
+  color: #fff;
 }
 
 .chip > img {

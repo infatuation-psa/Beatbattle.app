@@ -6,7 +6,7 @@
         <li class="nav-item"><a href="https://discord.gg/GTYqBfV">DISCORD</a></li>
         {{if .Name}}<li class="nav-item"><a href="/groups">Groups</a></li>
         <li class="nav-item"><a href="/me">Me</a></li>{{end}}
-        <li class="nav-item">{{if .Name}}<a href="/logout/{{.Provider}}">LOG OUT</a>{{else}}<a href="/login">LOG IN</a>{{end}}</li>
+        <li class="nav-item nav-item-rightmost">{{if .Name}}<a href="/logout/{{.Provider}}">LOG OUT</a>{{else}}<a href="/login">LOG IN</a>{{end}}</li>
     </ul>
     </div>
 </nav>

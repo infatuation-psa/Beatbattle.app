@@ -204,6 +204,13 @@ func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userInGroup := RowExists(db, "SELECT id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+
+	if userInGroup {
+		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/ingroup", 302)
+		return
+	}
+
 	requestExists := RowExists(db, "SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 
 	if requestExists {

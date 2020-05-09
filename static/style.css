@@ -2,6 +2,160 @@
   font-family: 'Inconsolata', monospace;
 }
 
+#hidden {
+  display: none !important;
+}
+
+.darkmode--activated .modal,
+.darkmode--activated .modal .modal-content,
+.darkmode--activated .modal .modal-footer {
+  color: white;
+  background: black;
+  border: 1px solid white;
+}
+
+.darkmode--activated zing-grid .material-icons {
+  mix-blend-mode: difference;
+}
+
+.darkmode--activated .nav-submit,
+.darkmode--activated .battle-host,
+.darkmode--activated .battle-deadline,
+.darkmode--activated .login {
+  mix-blend-mode: difference;
+}
+
+.chip.dark-toggle {
+  background: none;
+  border: 1px solid white;
+  color: white;
+}
+
+.chip.dark-toggle:hover {
+  color: #ff5800;
+  border: 1px solid #ff5800;
+}
+
+.chip.dark-toggle:focus {
+  color: white;
+  border: 1px solid #ff5800 !important;
+}
+
+.chip.dark-toggle:active {
+  color: white;
+  border: 1px solid #ff5800 !important;
+}
+
+.darkmode--activated .chip {
+  background: none;
+  border: 1px solid white;
+  color: white;
+}
+
+.darkmode--activated .chip:hover {
+  color: #ff5800;
+  border: 1px solid #ff5800;
+}
+
+.darkmode--activated .chip:focus {
+  color: white;
+  border: 1px solid #ff5800 !important;
+}
+
+.darkmode--activated .chip:active {
+  color: white;
+  border: 1px solid #ff5800 !important;
+}
+
+footer {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  text-align: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.dark-toggle {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  background: none;
+  border: none;
+  margin-right: 1rem !important;
+  font-size: 1.2rem;
+}
+
+.dark-toggle:hover {
+  cursor: pointer;
+}
+
+.footer-icon {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.footer-icon img {
+  max-height: 1.25rem;
+}
+
+.darkmode--activated .nav-download {
+  mix-blend-mode: difference;
+}
+
+.darkmode--activated .modal .nav-item {
+  mix-blend-mode: normal;
+}
+
+.darkmode--activated .nav-download {
+  color: black;
+  background: white;
+  border: 1px solid white;
+}
+
+.darkmode--activated .nav-download:hover {
+  color: white;
+  background: none;
+}
+
+.darkmode--activated .main-menu {
+  mix-blend-mode: difference;
+}
+
+.darkmode--activated zing-grid {
+  background: black;
+  color: white;
+  --zg-pager-color: #ff5800;
+  --zg-icon-color: #ff5800;
+  --zg-cell-background_sorted: #222;
+  --zg-head-cell-background_sorted: #222;
+  --zg-row-body-background_hover: #222;
+  --zg-head-cell-icon-color_sorted: #ff5800;
+  --zg-select-background: none;
+  --zg-select-color_active: #ff5800;
+  --zg-select-color: white;
+  --zg-button-icon-background_hover: white;
+  --zg-button-background_hover: none;
+  --zg-watermark-background: none;
+  --zg-nodata-background: none;
+  --zg-watermark-color: white;
+  --zg-pager-color: #ff5800;
+  --zg-input-color: white;
+}
+
+.darkmode--activated zg-head, .darkmode--activated zg-row {
+  --zg-pager-color: #ff5800;
+  --zg-icon-color: #ff5800;
+  --zg-head-cell-icon-color_sorted: #ff5800;
+  background: black;
+  color: white;
+}
+
 body, html {
   margin: 0;
   padding: 0;
@@ -293,6 +447,14 @@ button:focus {
   color: white;
 }
 
+.main-menu .nav-item-rightmost a {
+  padding-right: 0;
+}
+
+.main-menu .nav-item-rightmost:hover a {
+  padding-right: 1rem;
+}
+
 .main-menu .nav-item a {
   color: white;
   white-space: nowrap;
@@ -432,13 +594,16 @@ zg-caption {
 }
 
 zing-grid {
-  --theme-color-primary: $error-color !important;
-  --zg-button-color_hover: $error-color !important;
+  width: auto;
+  overflow: auto;
+  --zg-button-icon-background_hover: black;
   --zg-pager-color: #ff5800;
   --zg-icon-color: #ff5800;
   --zg-cell-background_sorted: #eeeeee;
   --zg-head-cell-background_sorted: #eeeeee;
   --zg-row-body-background_hover: #eeeeee;
+  --zg-head-cell-icon-color_sorted: #ff5800;
+  --zg-watermark-color: black;
 }
 
 zing-grid .battle-url {
@@ -452,10 +617,6 @@ zing-grid .battle-url:hover {
 
 zg-caption zg-button {
   position: relative;
-}
-
-.footer-icon img {
-  max-height: 1.25rem;
 }
 
 zg-cell {

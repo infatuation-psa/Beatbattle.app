@@ -7,6 +7,129 @@ $error-color: #1E19FF
 * 
 	font-family: 'Inconsolata', monospace 
 
+#hidden
+	display: none !important
+
+.darkmode--activated .modal,
+.darkmode--activated .modal .modal-content,
+.darkmode--activated .modal .modal-footer
+	color: white
+	background: black
+	border: 1px solid white
+
+.darkmode--activated zing-grid .material-icons
+	mix-blend-mode: difference
+
+.darkmode--activated .nav-submit,
+.darkmode--activated .battle-host,
+.darkmode--activated .battle-deadline,
+.darkmode--activated .login
+	mix-blend-mode: difference
+
+.chip.dark-toggle
+	background: none
+	border: 1px solid white
+	color: white
+
+	&:hover
+		color: $main-color
+		border: 1px solid $main-color
+
+	&:focus
+		color: white
+		border: 1px solid $main-color !important
+
+	&:active
+		color: white
+		border: 1px solid $main-color !important
+	
+.darkmode--activated .chip
+	background: none
+	border: 1px solid white
+	color: white
+
+	&:hover
+		color: $main-color
+		border: 1px solid $main-color
+
+	&:focus
+		color: white
+		border: 1px solid $main-color !important
+
+	&:active
+		color: white
+		border: 1px solid $main-color !important
+
+footer
+	display: flex
+	text-align: center
+	justify-content: center
+	align-items: center
+
+.dark-toggle
+	display: flex
+	background: none
+	border: none
+	margin-right: 1rem !important
+	font-size: 1.2rem
+	
+	&:hover
+		cursor: pointer
+
+.footer-icon
+	display: flex
+
+.footer-icon img
+	max-height: 1.25rem
+
+.darkmode--activated .nav-download
+	mix-blend-mode: difference
+
+.darkmode--activated .modal .nav-item
+	mix-blend-mode: normal
+
+.darkmode--activated .nav-download
+	color: black
+	background: white
+	border: 1px solid white
+	&:hover
+		color: white
+		background: none
+
+.darkmode--activated .main-menu 
+	mix-blend-mode: difference
+
+.darkmode--activated zing-grid
+	background: black
+	color: white
+	--zg-pager-color: #ff5800
+	--zg-icon-color: #ff5800 
+	--zg-cell-background_sorted: #222
+	--zg-head-cell-background_sorted: #222
+	--zg-row-body-background_hover: #222
+	--zg-head-cell-icon-color_sorted: #ff5800
+	--zg-select-background: none
+	--zg-select-color_active: #ff5800
+	--zg-select-color: white
+	--zg-button-icon-background_hover: white
+	--zg-button-background_hover: none
+	--zg-watermark-background: none
+	--zg-nodata-background: none
+	--zg-watermark-color: white
+	--zg-pager-color: #ff5800
+	--zg-input-color: white
+	
+.zing-grid-clipboard
+	overflow:hidden
+
+.darkmode--activated zg-head, .darkmode--activated zg-row
+	--zg-pager-color: #ff5800
+	--zg-icon-color: #ff5800 
+	--zg-head-cell-icon-color_sorted: #ff5800
+	background: black
+	color: white
+
+
 body, html 
 	margin: 0 
 	padding: 0 
@@ -195,6 +318,12 @@ button:focus
 .main-menu 
 	background-color: black 
 	color: white 
+	.nav-item-rightmost 
+		a
+			padding-right: 0
+		&:hover
+			a
+				padding-right: 1rem
 	.nav-item 
 		a 
 			color: white 
@@ -274,13 +403,16 @@ input[type=url]
 zg-caption 
 	background: black 
 zing-grid 
-	--theme-color-primary: $error-color !important
-	--zg-button-color_hover: $error-color !important
+	width: auto
+	overflow: auto
+	--zg-button-icon-background_hover: black
 	--zg-pager-color: #ff5800
 	--zg-icon-color: #ff5800 
 	--zg-cell-background_sorted: #eeeeee
 	--zg-head-cell-background_sorted: #eeeeee
 	--zg-row-body-background_hover: #eeeeee
+	--zg-head-cell-icon-color_sorted: #ff5800
+	--zg-watermark-color: black
 	.battle-url
 		color: $main-color !important
 		font-weight: bold
@@ -291,9 +423,6 @@ zing-grid
 zg-caption
 	zg-button
 		position: relative
-
-.footer-icon img
-	max-height: 1.25rem
 
 zg-cell
 	padding: 1rem

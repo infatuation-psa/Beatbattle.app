@@ -52,9 +52,7 @@
           <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
           {{ else }}
           <zg-column width="85px" cell-class="zing-left" type="row-number" header="Entry #"></zg-column>
-          <zg-column cell-class="zing-left" header="Track" index="url">
-            [[record.url]]
-          </zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
           {{ end }}          
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="" header="Votes" index="votes"></zg-column>
@@ -94,6 +92,63 @@
         <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
-<script>function expandWaveform(){var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Beats}}"),t.executeOnLoad(function(){expandWaveform(),$("form").submit(function(t){t.preventDefault();var e=$(this).attr("action"),o=$(this).attr("method"),n=$(this).serialize(),r=$(this).find("zg-icon");i=$(this).find(".material-icons"),row=$(this).closest("zg-row").attr("aria-rowindex"),col=$(this).closest("zg-cell").attr("aria-colindex"),$.ajax({url:e,type:o,data:n,beforeSend:function(t){t.setRequestHeader("X-Requested-With","xmlhttprequest")}}).done(function(t){const e=JSON.parse(t);e.Redirect?window.location.replace(e.Redirect):(M.toast({html:e.ToastHTML,classes:e.ToastClass}),"liked"==e.ToastQuery&&i.attr("style","color: #ff5800"),"unliked"==e.ToastQuery&&i.attr("style","color: black"),"successvote"==e.ToastQuery&&($(".votes-remaining").html(parseInt($(".votes-remaining").html(),10)-1),r.attr("style","--zg-icon-color: #ff5800")),"successdelvote"==e.ToastQuery&&($(".votes-remaining").html(parseInt($(".votes-remaining").html(),10)+1),r.attr("style","--zg-icon-color: black")))})}),$(".tooltipped").tooltip()}),t.addEventListener("grid:pagechange",t=>{expandWaveform(),setTimeout(function(){$(".tooltipped").tooltip()},1)}),t.addEventListener("grid:refresh",t=>{expandWaveform(),setTimeout(function(){$(".tooltipped").tooltip()},1)}),t.addEventListener("grid:pagesizechange",t=>{expandWaveform(),setTimeout(function(){$(".tooltipped").tooltip()},1)}),t.addEventListener("grid:ready",t=>{expandWaveform(),setTimeout(function(){$(".tooltipped").tooltip()},1)})});var _href=$("#edit-button").attr("href");function loveSort(t,e){return console.log(t),"#ff5800"==t.like_colour?-1:"#ff5800"==e.like_colour?1:t.like_colour>e.like_colour?1:-1}function voteSort(t,e){return console.log(t),"#ff5800"==t.vote_colour?-1:"#ff5800"==e.vote_colour?1:t.vote_colour>e.vote_colour?1:-1}$("#edit-button").attr("href",_href+"timezone/"+Intl.DateTimeFormat().resolvedOptions().timeZone);</script>
+    <script>const darkmode = new Darkmode();</script>
+<script>{{if eq "complete" .Battle.Status}}function expandWaveform(){}{{else}}function expandWaveform(){var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}{{end}}</script>
+<script>
+window.addEventListener("load", () => {
+    const t = document.querySelector("zing-grid");
+    t.setData("{{.Beats}}"), t.executeOnLoad(function() {
+        $("form").submit(function(t) {
+            t.preventDefault();
+            var e = $(this).attr("action"),
+                o = $(this).attr("method"),
+                n = $(this).serialize(),
+                r = $(this).find("zg-icon");
+            i = $(this).find(".material-icons"), row = $(this).closest("zg-row").attr("aria-rowindex"), col = $(this).closest("zg-cell").attr("aria-colindex"), $.ajax({
+                url: e,
+                type: o,
+                data: n,
+                beforeSend: function(t) {
+                    t.setRequestHeader("X-Requested-With", "xmlhttprequest")
+                }
+            }).done(function(t) {
+                const e = JSON.parse(t);
+                e.Redirect ? window.location.replace(e.Redirect) : (M.toast({
+                    html: e.ToastHTML,
+                    classes: e.ToastClass
+                }), "liked" == e.ToastQuery && i.attr("style", "color: #ff5800"), "unliked" == e.ToastQuery && i.attr("style", "color: black"), "successvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) - 1), r.attr("style", "--zg-icon-color: #ff5800")), "successdelvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) + 1), r.attr("style", "--zg-icon-color: black")))
+            })
+        }), onChange()
+    }), t.addEventListener("grid:pagechange", t => {
+        onChange()
+    }), t.addEventListener("grid:refresh", t => {
+        onChange()
+    }), t.addEventListener("grid:pagesizechange", t => {
+        onChange()
+    }), t.addEventListener("grid:ready", t => {
+        onChange()
+    })
+});
+var _href = $("#edit-button").attr("href");
+
+function onChange() {
+    setTimeout(function() {
+        $(".tooltipped").tooltip()
+    }, 1)
+    expandWaveform()
+    if (darkmode.isActivated()) {
+      $(".material-icons[style='color: black;']").css("color", "white")
+    }
+}
+
+function loveSort(t, e) {
+    return console.log(t), "#ff5800" == t.like_colour ? -1 : "#ff5800" == e.like_colour ? 1 : t.like_colour > e.like_colour ? 1 : -1
+}
+
+function voteSort(t, e) {
+    return console.log(t), "#ff5800" == t.vote_colour ? -1 : "#ff5800" == e.vote_colour ? 1 : t.vote_colour > e.vote_colour ? 1 : -1
+}
+$("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone);
+</script>
 {{ template "Footer" .Toast }}
 {{ end }}

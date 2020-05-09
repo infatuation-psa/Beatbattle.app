@@ -1,12 +1,12 @@
 .chip {
   &:hover {
-    color: black !important;
+    color: black;
   }
 
   &:focus {
     outline: none;
-    background-color: $chip-selected-color !important;
-    color: #fff !important;
+    background-color: $chip-selected-color;
+    color: #fff;
   }
 
   white-space: nowrap;
@@ -14,7 +14,7 @@
   height: 32px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(0,0,0,.6) !important;
+  color: rgba(0,0,0,.6);
   line-height: 32px;
   padding: 0 12px;
   border-radius: 16px;
