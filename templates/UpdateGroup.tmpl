@@ -1,0 +1,21 @@
+{{ define "UpdateGroup" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <form id="update-group" method="POST" action="/group/{{.Group.ID}}/update">
+        <nav class="battle-title">
+            <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" value="{{.Group.Title}}" placeholder="Group Title" required>
+            <input type="submit" name="submit" class="nav-item-right nav-submit" value="UPDATE" />
+        </nav>
+        <textarea rows="1" class="submit-border submit-nobox" id="description" name="description" maxlength="1024" placeholder="Group Description (Supports Markdown Syntax)" required>{{.Group.Description}}</textarea>
+        <div class="submit-nobox">
+          <input class="styled-checkbox" id="inviteonly" name="inviteonly" type="checkbox" {{if .InviteOnly}}checked{{end}}>
+          <label for="inviteonly">Invite Only</label>
+        </div>
+        </form>
+      </div>
+      </div>
+      <script>autosize($('textarea'));</script>
+  {{ template "Footer" .Toast }}
+{{ end }}

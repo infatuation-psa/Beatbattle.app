@@ -46,7 +46,9 @@
       <zing-grid caption='{{ if .EntryPosition }}<span style="color: #ff5800">{{.EntryPosition}}</span>/{{end}}{{.Battle.Entries}} Entries {{if eq "complete" .Battle.Status}}{{else}}| <span class="votes-remaining">{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Remaining{{end}}' layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if eq "complete" .Battle.Status}}
-          <zg-column cell-class="zing-left" header="Artist" index="artist"></zg-column>
+          <zg-column cell-class="zing-left" header="Artist" index="artist">
+            <a class="battle-url" href="/user/[[record.user_id]]">[[record.artist]]</a>
+          </zg-column>
           <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
           {{ else }}
           <zg-column width="85px" cell-class="zing-left" type="row-number" header="Entry #"></zg-column>

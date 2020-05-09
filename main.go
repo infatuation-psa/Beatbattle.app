@@ -56,7 +56,6 @@ func init() {
 		log.Print("No .env file found")
 	}
 
-	whitelist = []string{"f1eightco-my.sharepoint.com", "sharepoint.com", "drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
 	policy = bluemonday.UGCPolicy()
 	//policy.AllowStandardURLs()
 
@@ -159,10 +158,29 @@ func main() {
 	router.Post("/vote/{id}", AddVote)
 	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
-	router.Get("/myaccount/submissions", MySubmissions)
-	router.Get("/myaccount", MyAccount)
-	router.Get("/groups/submit", SubmitGroup)
 
+	// Me
+	router.Get("/user/{id}/groups", UserGroups)
+	router.Get("/user/{id}/submissions", UserSubmissions)
+	router.Get("/user/{id}", UserAccount)
+
+	// Me
+	router.Get("/me/groups", MyGroups)
+	router.Get("/me/submissions", MySubmissions)
+	router.Get("/me", MyAccount)
+
+	// Groups
+	router.Post("/group/submit", InsertGroup)
+	router.Get("/group/submit", SubmitGroup)
+	router.Get("/group/{id}/update/{toast}", UpdateGroup) // Toast
+	router.Post("/group/{id}/update", UpdateGroupDB)      // Update in db
+	router.Get("/group/{id}/update", UpdateGroup)         // Update page
+	router.Get("/group/{id}/{toast}", GroupHTTP)
+	router.Get("/group/{id}", GroupHTTP) // Update page
+	router.Get("/groups/{toast}", ViewGroups)
+	router.Get("/groups", ViewGroups)
+
+	// Battles
 	router.Get("/battles/{tag}", ViewTaggedBattles)
 
 	// Battle

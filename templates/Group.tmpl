@@ -1,0 +1,46 @@
+{{ define "Group" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <span class="battle-host">{{.Group.OwnerNickname}}</span>
+        <nav class="battle-title" style="padding-top: 0;">
+          <div class="nav-left">
+          <h1>{{.Group.Title}}</h1>
+          <span class="battle-deadline">{{.Group.StatusDisplay}} Group</span>
+          </div>
+          <ul class="nav-links">
+            {{if .IsOwner}}
+              <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/group/{{.Group.ID}}/update/">EDIT</a></li>
+            {{else}}
+              {{if eq "inviteonly" .Group.Status}}
+                {{ if .InGroup }}
+                    <li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Group.ID}}/feedback">LEAVE</a></li>
+                {{ else }}
+                  {{ if .Invited }}
+                    <li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Group.ID}}/feedback">DECLINE</a></li>
+                    <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/group/{{.Group.ID}}/update/">JOIN</a></li>
+                  {{ else }}
+                    <li class="nav-item nav-item-right nav-disabled"><a>INVITE ONLY</a></li>
+                  {{ end }}
+                {{ end }}
+              {{else}}              
+                <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/group/{{.Group.ID}}/update/">JOIN</a></li>
+              {{end}}
+            {{end}}
+          </ul>
+        </nav>
+        <h3>Description</h3>
+        <div style="padding-bottom: 2rem;" class="battle-rules">{{.Group.DescriptionHTML}}</div>
+      </div>
+      <zing-grid caption='Members' layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+        <zg-colgroup>
+          <zg-column cell-class="zing-left" header="Artist" index="nickname"></zg-column>
+          <zg-column cell-class="zing-left" header="Role" index="role"></zg-column>
+        </zg-colgroup>
+        <zg-param name="loadByScroll" value="true"></zg-param>
+        <zg-nodata>No one has entered this battle yet.</zg-nodata>
+      </zing-grid>
+    </div>
+<script>window.addEventListener("load",()=>{const t=document.querySelector("zing-grid");t.setData("{{.Users}}")});</script>
+{{ end }}

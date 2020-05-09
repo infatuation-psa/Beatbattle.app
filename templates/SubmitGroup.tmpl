@@ -8,9 +8,11 @@
             <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Group Title" required>
             <input type="submit" name="submit" class="nav-item-right nav-submit" value="PUBLISH" />
         </nav>
-        <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="1024" placeholder="Group Description (Supports Markdown Syntax)" required></textarea>
-        <input type="checkbox" id="status" name="status">
-        <label for="status">New users require approval</label>
+        <textarea rows="1" class="submit-border submit-nobox" id="description" name="description" maxlength="1024" placeholder="Group Description (Supports Markdown Syntax)" required></textarea>
+        <div class="submit-nobox">
+          <input class="styled-checkbox" id="inviteonly" name="inviteonly" type="checkbox">
+          <label for="inviteonly">Invite Only</label>
+        </div>
         </div>
         </form>
       </div>

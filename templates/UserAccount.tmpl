@@ -1,17 +1,17 @@
-{{ define "MyAccount" }}
+{{ define "UserAccount" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
     <div class="container">
       <div class="battle-information">
         <nav class="battle-title">
-          <h1 class="nav-left">{{.User.Name}}</h1>
+          <h1 class="nav-left">{{.Nickname}}</h1>
           <ul class="nav-links">
-              <li class="nav-item nav-download"><a href="/me/groups">GROUPS</a></li>
-              <li class="nav-item nav-item-right nav-download"><a href="/me/submissions">SUBMISSIONS</a></li>
+              <li class="nav-item nav-download"><a href="/user/{{.UserID}}/groups">GROUPS</a></li>
+              <li class="nav-item nav-item-right nav-download"><a href="/user/{{.UserID}}/submissions">SUBMISSIONS</a></li>
           </ul>
         </nav>
       </div>
-    <zing-grid nodata="You haven't made a battle yet." caption="Battles" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+    <zing-grid caption="Battles" layout-controls="disabled" nodata="{{.Nickname}} hasn't started a battle yet." sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
       <zg-colgroup>
         <zg-column cell-class="zing-left" header="Battle" index="title" type="url" cell-class="link">
           <template>
@@ -20,8 +20,8 @@
           </template>
         </zg-column>
         <zg-column cell-class="zing-left" header="Status" index="status"></zg-column>
-        <zg-column cell-class="zing-left" index="host"></zg-column>
-        <zg-column cell-class="zing-both" header="Entries" index="entries"></zg-column>
+        <zg-column cell-class="zing-left"  index="host"></zg-column>
+        <zg-column cell-class="zing-both"  header="Entries" index="entries"></zg-column>
       </zg-colgroup> 
     </zing-grid>    
     </div>

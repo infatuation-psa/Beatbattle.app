@@ -1,0 +1,26 @@
+{{ define "ViewGroups" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h1 class="nav-left">Groups</h1>
+          <ul class="nav-links">
+              <li class="nav-item nav-download"><a href="/me/groups">MY GROUPS</a></li>
+              <li class="nav-item nav-item-right nav-submit"><a href="/group/submit">NEW GROUP</a></li>
+          </ul>
+        </nav>
+      </div>
+      <zing-grid nodata="No groups have been created yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+        <zg-colgroup>
+          <zg-column cell-class="zing-left" header="Group" index="title">
+            <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
+          </zg-column>
+          <zg-column cell-class="zing-left" header="Status" index="status"></zg-column>
+          <zg-column cell-class="zing-both" header="Owner" index="owner_nickname"></zg-column>
+        </zg-colgroup>
+      </zing-grid>
+    </div>
+    <script>window.addEventListener('load',()=>{const t=document.querySelector('zing-grid');const data={{.Groups}};t.setData(data);})</script>
+  {{ template "Footer" .Toast }}
+{{ end }}

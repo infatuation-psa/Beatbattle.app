@@ -4,7 +4,8 @@
     <a href="/" class="nav-left"><img src="/static/logo.svg"></a>
     <ul class="nav-links">
         <li class="nav-item"><a href="https://discord.gg/GTYqBfV">DISCORD</a></li>
-        {{if .Name}}<li class="nav-item"><a href="/myaccount">{{ .Name }}</a></li>{{end}}
+        {{if .Name}}<li class="nav-item"><a href="/groups">Groups</a></li>
+        <li class="nav-item"><a href="/me">Me</a></li>{{end}}
         <li class="nav-item">{{if .Name}}<a href="/logout/{{.Provider}}">LOG OUT</a>{{else}}<a href="/login">LOG IN</a>{{end}}</li>
     </ul>
     </div>
