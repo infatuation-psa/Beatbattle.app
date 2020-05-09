@@ -3,12 +3,67 @@
 
 $main-color: #ff5800
 $error-color: #1E19FF
+$active-color: #666
 
 * 
 	font-family: 'Inconsolata', monospace 
 
+@-webkit-keyframes autofill 
+    0%,100% 
+        color: black
+        background: transparent
+
+@-webkit-keyframes autofill-darkmode
+    0%,100% 
+        color: white
+        background: transparent
+
+input:-webkit-autofill
+    -webkit-animation-delay: 1s /* Safari support - any positive time runs instantly */
+    -webkit-animation-name: autofill
+    -webkit-animation-fill-mode: both
+
 #hidden
 	display: none !important
+	
+.submit-feedback:not(:focus)
+	opacity: 0.5
+
+.darkmode--activated
+	.battle-rules
+		color: white
+	.btn-link
+		color: white !important
+	.submit-border, .chips.submit-border
+		border-bottom: 1px solid white
+	.submit-form
+		border: 1px solid white
+	.styled-checkbox+label:before
+		background: none
+	.submit-nobox
+		color: white
+	textarea
+		background: none
+		color: white
+		resize: none !important
+		border-bottom: 1px solid white !important
+	.nav-disabled
+		border: 1px solid white
+		color: white
+	.submit-text,
+	.chips .input,
+	input
+		color: white
+		mix-blend-mode: difference
+	input:-webkit-autofill
+		-webkit-animation-delay: 1s /* Safari support - any positive time runs instantly */
+		-webkit-animation-name: autofill-darkmode
+
+.darkmode--activated
+  background-color: black
+
+  h1, h3, p
+	  color: white
 
 .darkmode--activated .modal,
 .darkmode--activated .modal .modal-content,
@@ -17,16 +72,7 @@ $error-color: #1E19FF
 	background: black
 	border: 1px solid white
 
-.darkmode--activated zing-grid .material-icons
-	mix-blend-mode: difference
-
-.darkmode--activated .nav-submit,
-.darkmode--activated .battle-host,
-.darkmode--activated .battle-deadline,
-.darkmode--activated .login
-	mix-blend-mode: difference
-
-.chip.dark-toggle
+.darkmode--activated .chip
 	background: none
 	border: 1px solid white
 	color: white
@@ -76,17 +122,14 @@ footer
 	&:hover
 		cursor: pointer
 
+.btn-link
+	color: black !important
+
 .footer-icon
 	display: flex
 
 .footer-icon img
 	max-height: 1.25rem
-
-.darkmode--activated .nav-download
-	mix-blend-mode: difference
-
-.darkmode--activated .modal .nav-item
-	mix-blend-mode: normal
 
 .darkmode--activated .nav-download
 	color: black
@@ -95,9 +138,6 @@ footer
 	&:hover
 		color: white
 		background: none
-
-.darkmode--activated .main-menu 
-	mix-blend-mode: difference
 
 .darkmode--activated zing-grid
 	background: black
@@ -194,6 +234,7 @@ body, html
 	background-color: white 
 	padding: 4rem 
 	h1 
+		color: black !important
 		padding-bottom: 1rem 
 	.nav-links 
 		display: inline-block 
@@ -246,7 +287,7 @@ button:focus
 .submit-nobox, .submit-header 
 	padding: 0 !important 
 	margin: 0 !important 
-	border: 0 !important 
+	border: 0
 	width: 100%
 
 .submit-wide    
@@ -280,8 +321,8 @@ button:focus
 	color: #bbb 
 	margin-right: 0.75rem 
 
-.submit-border 
-	border-bottom: 1px solid black !important 
+.submit-border, .chips.submit-border
+	border-bottom: 1px solid black
 	box-sizing: border-box 
 
 .btn-link 
@@ -339,9 +380,8 @@ input[type=button], input[type=submit], input[type=reset]
 	padding: 0.75rem 1rem 
 	font-size: 1rem
 input[type=url] 
-	border: 1px solid black 
+	border: none 
 	padding: 0.75rem 1rem 
-	border-right: none 
 	font-size: 1rem
 .battle-chips
 	padding-bottom: 2rem
@@ -367,9 +407,16 @@ input[type=url]
 	margin-bottom: 1rem
 	font-size: 1rem
 .submit-form 
-	padding-top: 2rem
+	margin-top: 2rem
+	border: 1px solid black
 	display: flex 
 	flex-wrap: wrap
+	input[type="submit"]:hover
+		border-top: none
+		border-right: none
+		border-bottom: none
+		margin: 1px 1px 1px 0
+
 .nav-download 
 	background-color: black 
 	color: white 

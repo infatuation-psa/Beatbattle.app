@@ -2,8 +2,88 @@
   font-family: 'Inconsolata', monospace;
 }
 
+@-webkit-keyframes autofill {
+  0%, 100% {
+    color: black;
+    background: transparent;
+  }
+}
+
+@-webkit-keyframes autofill-darkmode {
+  0%, 100% {
+    color: white;
+    background: transparent;
+  }
+}
+
+input:-webkit-autofill {
+  -webkit-animation-delay: 1s;
+  -webkit-animation-name: autofill;
+  -webkit-animation-fill-mode: both;
+}
+
 #hidden {
   display: none !important;
+}
+
+.submit-feedback:not(:focus) {
+  opacity: 0.5;
+}
+
+.darkmode--activated .battle-rules {
+  color: white;
+}
+
+.darkmode--activated .btn-link {
+  color: white !important;
+}
+
+.darkmode--activated .submit-border, .darkmode--activated .chips.submit-border {
+  border-bottom: 1px solid white;
+}
+
+.darkmode--activated .submit-form {
+  border: 1px solid white;
+}
+
+.darkmode--activated .styled-checkbox + label:before {
+  background: none;
+}
+
+.darkmode--activated .submit-nobox {
+  color: white;
+}
+
+.darkmode--activated textarea {
+  background: none;
+  color: white;
+  resize: none !important;
+  border-bottom: 1px solid white !important;
+}
+
+.darkmode--activated .nav-disabled {
+  border: 1px solid white;
+  color: white;
+}
+
+.darkmode--activated .submit-text,
+.darkmode--activated .chips .input,
+.darkmode--activated input {
+  color: white;
+  mix-blend-mode: difference;
+}
+
+.darkmode--activated input:-webkit-autofill {
+  -webkit-animation-delay: 1s;
+  -webkit-animation-name: autofill-darkmode;
+}
+
+.darkmode--activated {
+  background-color: black;
+}
+
+.darkmode--activated h1, .darkmode--activated h3, .darkmode--activated p {
+  color: white;
 }
 
 .darkmode--activated .modal,
@@ -14,34 +94,23 @@
   border: 1px solid white;
 }
 
-.darkmode--activated zing-grid .material-icons {
-  mix-blend-mode: difference;
-}
-
-.darkmode--activated .nav-submit,
-.darkmode--activated .battle-host,
-.darkmode--activated .battle-deadline,
-.darkmode--activated .login {
-  mix-blend-mode: difference;
-}
-
-.chip.dark-toggle {
+.darkmode--activated .chip {
   background: none;
   border: 1px solid white;
   color: white;
 }
 
-.chip.dark-toggle:hover {
+.darkmode--activated .chip:hover {
   color: #ff5800;
   border: 1px solid #ff5800;
 }
 
-.chip.dark-toggle:focus {
+.darkmode--activated .chip:focus {
   color: white;
   border: 1px solid #ff5800 !important;
 }
 
-.chip.dark-toggle:active {
+.darkmode--activated .chip:active {
   color: white;
   border: 1px solid #ff5800 !important;
 }
@@ -94,6 +163,10 @@ footer {
   cursor: pointer;
 }
 
+.btn-link {
+  color: black !important;
+}
+
 .footer-icon {
   display: -webkit-box;
   display: -ms-flexbox;
@@ -105,14 +178,6 @@ footer {
 }
 
 .darkmode--activated .nav-download {
-  mix-blend-mode: difference;
-}
-
-.darkmode--activated .modal .nav-item {
-  mix-blend-mode: normal;
-}
-
-.darkmode--activated .nav-download {
   color: black;
   background: white;
   border: 1px solid white;
@@ -121,10 +186,6 @@ footer {
 .darkmode--activated .nav-download:hover {
   color: white;
   background: none;
-}
-
-.darkmode--activated .main-menu {
-  mix-blend-mode: difference;
 }
 
 .darkmode--activated zing-grid {
@@ -245,6 +306,7 @@ body, html {
 }
 
 .container-inner h1 {
+  color: black !important;
   padding-bottom: 1rem;
 }
 
@@ -322,7 +384,7 @@ button:focus {
 .submit-nobox, .submit-header {
   padding: 0 !important;
   margin: 0 !important;
-  border: 0 !important;
+  border: 0;
   width: 100%;
 }
 
@@ -382,8 +444,8 @@ button:focus {
   margin-right: 0.75rem;
 }
 
-.submit-border {
-  border-bottom: 1px solid black !important;
+.submit-border, .chips.submit-border {
+  border-bottom: 1px solid black;
   -webkit-box-sizing: border-box;
           box-sizing: border-box;
 }
@@ -481,9 +543,8 @@ input[type=button], input[type=submit], input[type=reset] {
 }
 
 input[type=url] {
-  border: 1px solid black;
+  border: none;
   padding: 0.75rem 1rem;
-  border-right: none;
   font-size: 1rem;
 }
 
@@ -522,12 +583,20 @@ input[type=url] {
 }
 
 .submit-form {
-  padding-top: 2rem;
+  margin-top: 2rem;
+  border: 1px solid black;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
   -ms-flex-wrap: wrap;
       flex-wrap: wrap;
+}
+
+.submit-form input[type="submit"]:hover {
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  margin: 1px 1px 1px 0;
 }
 
 .nav-download {

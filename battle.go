@@ -364,7 +364,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 
 		count++
 
-		submission.VoteColour = "black;"
+		submission.VoteColour = ""
 		if voteID != 0 {
 			submission.VoteColour = "#ff5800"
 			if battle.Status == "complete" && submission.UserID == user.ID {
@@ -375,7 +375,7 @@ func BattleHTTP(wr http.ResponseWriter, req *http.Request) {
 			}
 		}
 
-		submission.LikeColour = "black;"
+		submission.LikeColour = ""
 		if likeID != 0 {
 			submission.LikeColour = "#ff5800"
 		}

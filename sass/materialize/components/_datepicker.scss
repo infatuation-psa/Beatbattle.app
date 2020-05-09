@@ -6,13 +6,9 @@
 }
 
 .darkmode--activated {
-  .timepicker-tick {
-    filter: invert(100%);
+  .month-prev, .month-next {
+    filter:invert(100%);
   }
-  .datepicker-controls {
-    filter: invert(100%);
-  }
-
   .timepicker-plate {
    background: none;
    border: 1px solid white;

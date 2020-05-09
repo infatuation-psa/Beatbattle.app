@@ -61,16 +61,14 @@
           <zg-column cell-class="zing-left" sorter="voteSort" header="Vote" index="vote_colour">
             <form action="/vote/[[record.id]]" method="post">
               <button type="submit" class="btn-link">
-                <zg-icon style="--zg-icon-color: [[record.vote_colour]];" name="checkmark">
-                  <svg id="svg--9432" slot="icon" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
-                  </svg>
-                </zg-icon>
+                <span class="material-icons" row-class="dark" style="color: [[index.vote_colour]]">
+                done
+                </span>
               </button>
             </form>
           </zg-column>
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" style="width: 100%;" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          <form action="/feedback/[[record.id]]" style="width: 100%;"  method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox submit-feedback" /></form>
           </zg-column>
           {{ end }}
           {{if eq "entry" .Battle.Status}}
@@ -81,7 +79,7 @@
           <zg-column cell-class="zing-right" sorter="loveSort" header="Love" index="like_colour">
             <form action="/like/[[record.id]]" method="post">
               <button type="submit" class="btn-link">
-                <span class="material-icons" row-class="dark" style="color: [[record.like_colour]]">
+                <span class="material-icons" row-class="dark" style="color: [[index.like_colour]]">
                 favorite_border
                 </span>
               </button>
@@ -98,47 +96,44 @@
 window.addEventListener("load", () => {
     const t = document.querySelector("zing-grid");
     t.setData("{{.Beats}}"), t.executeOnLoad(function() {
-        $("form").submit(function(t) {
-            t.preventDefault();
-            var e = $(this).attr("action"),
-                o = $(this).attr("method"),
-                n = $(this).serialize(),
-                r = $(this).find("zg-icon");
-            i = $(this).find(".material-icons"), row = $(this).closest("zg-row").attr("aria-rowindex"), col = $(this).closest("zg-cell").attr("aria-colindex"), $.ajax({
-                url: e,
-                type: o,
-                data: n,
-                beforeSend: function(t) {
-                    t.setRequestHeader("X-Requested-With", "xmlhttprequest")
-                }
-            }).done(function(t) {
-                const e = JSON.parse(t);
-                e.Redirect ? window.location.replace(e.Redirect) : (M.toast({
-                    html: e.ToastHTML,
-                    classes: e.ToastClass
-                }), "liked" == e.ToastQuery && i.attr("style", "color: #ff5800"), "unliked" == e.ToastQuery && i.attr("style", "color: black"), "successvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) - 1), r.attr("style", "--zg-icon-color: #ff5800")), "successdelvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) + 1), r.attr("style", "--zg-icon-color: black")))
-            })
-        }), onChange()
+        setTimeout(function(){onChange()},1)
     }), t.addEventListener("grid:pagechange", t => {
-        onChange()
+        setTimeout(function(){onChange()},1)
     }), t.addEventListener("grid:refresh", t => {
-        onChange()
+        setTimeout(function(){onChange()},1)
     }), t.addEventListener("grid:pagesizechange", t => {
-        onChange()
+        setTimeout(function(){onChange()},1)
     }), t.addEventListener("grid:ready", t => {
-        onChange()
+        setTimeout(function(){onChange()},1)
     })
 });
 var _href = $("#edit-button").attr("href");
 
 function onChange() {
-    setTimeout(function() {
-        $(".tooltipped").tooltip()
-    }, 1)
-    expandWaveform()
-    if (darkmode.isActivated()) {
-      $(".material-icons[style='color: black;']").css("color", "white")
-    }
+  $("form").unbind("submit")
+  $("form").submit(function(t) {
+    t.preventDefault();
+    var e = $(this).attr("action"),
+        o = $(this).attr("method"),
+        n = $(this).serialize(),
+        r = $(this).find(".material-icons");
+    i = $(this).find(".material-icons"), row = $(this).closest("zg-row").attr("aria-rowindex"), col = $(this).closest("zg-cell").attr("aria-colindex"), $.ajax({
+        url: e,
+        type: o,
+        data: n,
+        beforeSend: function(t) {
+            t.setRequestHeader("X-Requested-With", "xmlhttprequest")
+        }
+    }).done(function(t) {
+        const e = JSON.parse(t);
+        e.Redirect ? window.location.replace(e.Redirect) : (M.toast({
+            html: e.ToastHTML,
+            classes: e.ToastClass,
+        }), "liked" == e.ToastQuery && i.attr("style", "color: #ff5800"), "unliked" == e.ToastQuery && i.attr("style", ""), "successvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) - 1), r.attr("style", "color: #ff5800")), "successdelvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) + 1), r.attr("style", "")))
+    })
+  })
+  $(".tooltipped").tooltip()
+  expandWaveform()
 }
 
 function loveSort(t, e) {

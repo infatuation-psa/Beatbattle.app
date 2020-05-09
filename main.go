@@ -352,6 +352,9 @@ func GetToast(toast string) [2]string {
 	case "reqexists":
 		html = "You've already requested to join this group."
 		class = "toast-error"
+	case "invexists":
+		html = "User has already been invited to the group."
+		class = "toast-error"
 	case "notopengrp":
 		html = "This group is not open."
 		class = "toast-error"
