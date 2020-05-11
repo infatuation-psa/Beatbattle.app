@@ -521,61 +521,6 @@ func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "SubmitBattle", m)
 }
 
-// TemplateBattle ...
-func TemplateBattle(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
-
-	toast := GetToast(r.URL.Query().Get(":toast"))
-
-	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
-	if err != nil {
-		http.Redirect(w, r, "/404", 302)
-		return
-	}
-
-	region := r.URL.Query().Get(":region")
-	country := r.URL.Query().Get(":country")
-
-	defer r.Body.Close()
-
-	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
-	if err != nil {
-		loc, _ = time.LoadLocation("America/Toronto")
-	}
-
-	battle := GetBattle(db, battleID)
-	if battle.Title == "" {
-		http.Redirect(w, r, "/404", 302)
-		return
-	}
-
-	var user = GetUser(w, r)
-	if battle.UserID != user.ID {
-		http.Redirect(w, r, "/notuser", 302)
-		return
-	}
-
-	// For time.Parse
-	layout := "Jan 2, 2006-03:04 PM"
-
-	deadline := strings.Split(battle.Deadline.In(loc).Format(layout), "-")
-	votingDeadline := strings.Split(battle.VotingDeadline.In(loc).Format(layout), "-")
-
-	m := map[string]interface{}{
-		"Title":              "Update Battle",
-		"Battle":             battle,
-		"User":               user,
-		"DeadlineDate":       deadline[0],
-		"DeadlineTime":       deadline[1],
-		"VotingDeadlineDate": votingDeadline[0],
-		"VotingDeadlineTime": votingDeadline[1],
-		"Toast":              toast,
-	}
-
-	tmpl.ExecuteTemplate(w, "TemplateBattle", m)
-}
-
 // UpdateBattle ...
 func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()

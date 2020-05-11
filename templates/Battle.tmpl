@@ -4,43 +4,41 @@
     <div class="container">
       <div class="battle-information">
         <span class="battle-host"><a href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a> | {{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF">Voting</span>{{else}}Finished{{end}}</span>
-        <nav class="battle-title" style="padding-top: 0;">
+        <nav class="battle-title">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
           <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
           </div>
           <ul class="nav-links">
             {{if .IsOwner}}
-              <li class="nav-item nav-item-right nav-download"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
+              <li class="nav-item nav-secondary"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
               {{if eq "complete" .Battle.Status}}
-                <li class="nav-item nav-item-right nav-disabled"><a>CLOSED</a></li>
+                <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{else}}              
-                <li class="nav-item nav-item-right nav-submit"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
+                <li class="nav-item nav-cta"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
               {{end}}
             {{else}}
               {{if .Battle.Attachment}}
-              <li class="nav-item nav-item-right nav-download"><a href="{{.Battle.Attachment}}">FILES</a></li>
+              <li class="nav-item nav-secondary"><a href="{{.Battle.Attachment}}">FILES</a></li>
               {{end}}
               {{if eq "entry" .Battle.Status}}
                 {{ if .EnteredBattle }}
-                <li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>
-                <li class="nav-item nav-item-right nav-submit"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
+                <li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>
+                <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
                 {{ else }}
-                <li class="nav-item nav-item-right nav-submit"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
+                <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
                 {{ end }}
               {{ else }}
-              {{if .EnteredBattle}}<li class="nav-item nav-item-right nav-download"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>{{ end }}
-              <li class="nav-item nav-item-right nav-disabled"><a>CLOSED</a></li>
+              {{if .EnteredBattle}}<li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>{{ end }}
+              <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{end}}
             {{end}}
           </ul>
         </nav>
         <h3>Rules</h3>
-        {{if .Battle.Tags }}
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
+        {{if .Battle.Tags }}
         <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
-        {{else}}
-        <div style="padding-bottom: 2rem;" class="battle-rules">{{.Battle.RulesHTML}}</div>
         {{end}}
       </div>
       <zing-grid caption='{{ if .EntryPosition }}<span style="color: #ff5800">{{.EntryPosition}}</span>/{{end}}{{.Battle.Entries}} Entries {{if eq "complete" .Battle.Status}}{{else}}| <span class="votes-remaining">{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Remaining{{end}}' layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
@@ -68,12 +66,12 @@
             </form>
           </zg-column>
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" style="width: 100%;"  method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox submit-feedback" /></form>
+          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox submit-feedback" /></form>
           </zg-column>
           {{ end }}
           {{if eq "entry" .Battle.Status}}
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" style="width: 100%;"  method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
           </zg-column>
           {{ end }}
           <zg-column cell-class="zing-right" sorter="loveSort" header="Love" index="like_colour">

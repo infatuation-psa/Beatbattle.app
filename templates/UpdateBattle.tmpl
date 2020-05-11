@@ -6,8 +6,10 @@
         <form id="submit-battle" method="POST" action="/battle/{{.Battle.ID}}/update">
         <nav class="battle-title">
             <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" value="{{.Battle.Title}}" placeholder="Battle Title" required>
-            <input type="submit" name="submit" class="nav-item-right nav-download" value="DRAFT" />
-            <input type="submit" name="submit" class="nav-item-right nav-submit" value="PUBLISH" />
+            <ul class="nav-links">
+              <li class="nav-item nav-secondary"><input type="submit" name="submit" value="DRAFT" /></li>
+              <li class="nav-item nav-cta"><input type="submit" name="submit" value="PUBLISH" /></li>
+            </ul>
         </nav>
         <div class="chips submit-border">
           <input placeholder="Enter Up To 3 Tags (Optional)" maxlength="32" class="submit-nobox custom-class">

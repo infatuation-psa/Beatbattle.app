@@ -6,20 +6,20 @@
         <nav class="battle-title">
           <h1 class="nav-left">{{.User.Name}}</h1>
           <ul class="nav-links">
-              <li class="nav-item nav-download"><a href="/me">BATTLES</a></li>
-              <li class="nav-item nav-item-right nav-download"><a href="/me/submissions">SUBMISSIONS</a></li>
+              <li class="nav-item nav-secondary"><a href="/me">BATTLES</a></li>
+              <li class="nav-item nav-secondary"><a href="/me/submissions">SUBMISSIONS</a></li>
           </ul>
         </nav>
       </div>          
       {{if .Requests }}
-      <zing-grid style="margin-bottom: 2rem" id="requests-grid" nodata="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid id="requests-grid" nodata="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
           </zg-column>
           <zg-column cell-class="zing-left" header="Owner" index="owner_nickname"></zg-column>
           <zg-column cell-class="zing-both" header="Accept" index="id">
-          <li class="nav-item nav-submit">
+          <li class="nav-item nav-cta">
             <a class="modal-trigger modal-request" data-title="[[record.title]]" data-id="[[record.owner_id]]" data-name="[[record.owner_nickname]]" data-target="respond" href="#respond">Respond</a>
           </li>
           </zg-column>
@@ -27,7 +27,7 @@
       </zing-grid>
       {{ end }}
       {{if .Invites }}
-      <zing-grid style="margin-bottom: 2rem" id="invites-grid" nodata="You don't have any active invites." caption="Invites" layout-controls="disabled"sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid id="invites-grid" nodata="You don't have any active invites." caption="Invites" layout-controls="disabled"sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
@@ -35,7 +35,7 @@
           <zg-column cell-class="zing-left" header="Role" index="status"></zg-column>
           <zg-column cell-class="zing-left" header="User" index="owner_nickname"></zg-column>
           <zg-column cell-class="zing-both" header="Join" index="id">
-          <li class="nav-item nav-submit">
+          <li class="nav-item nav-cta">
             <a class="modal-trigger modal-invite" data-title="[[record.title]]" data-id="[[record.id]]" data-target="respond" href="#respond">Respond</a>
           </li>
           </zg-column>
@@ -59,8 +59,8 @@
       </div>
       <div class="modal-footer">
           <ul class="nav-links">
-              <li class="nav-item nav-submit"><a id="modal-accept" href="/me/groups/">ACCEPT</a></li>
-              <li class="nav-item nav-item-right nav-download"><a id="modal-decline" href="/me/groups">DECLINE</a></li>
+              <li class="nav-item nav-cta"><a id="modal-accept" href="/me/groups/">ACCEPT</a></li>
+              <li class="nav-item nav-secondary"><a id="modal-decline" href="/me/groups">DECLINE</a></li>
           </ul>
       </div>
     </div>

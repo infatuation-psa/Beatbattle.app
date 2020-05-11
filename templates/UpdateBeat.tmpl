@@ -4,20 +4,20 @@
     <div class="container">
       <div class="battle-information">
         <span class="battle-host"><a href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a> | <span style="color: #ff5800">Submit Beat</span></span>
-        <nav class="battle-title" style="padding-top: 0;">
+        <nav class="battle-title">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
           <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
           </div>
           <ul class="nav-links">
-            <li class="nav-item nav-download"><a onclick="return confirm('Are you sure you want to delete your battle entry?')" href="/beat/{{.Battle.ID}}/delete">DELETE</a></li>
+            <li class="nav-item nav-secondary"><a onclick="return confirm('Are you sure you want to delete your battle entry?')" href="/beat/{{.Battle.ID}}/delete">DELETE</a></li>
           </ul>
         </nav>
         <h3>Rules</h3>
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/update">
           <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track (use the share link for private tracks)." required>
-          <input type="submit" class="nav-submit" value="UPDATE" />
+          <input type="submit" class="nav-cta" value="UPDATE" />
         </form>
       </div>
       </div>

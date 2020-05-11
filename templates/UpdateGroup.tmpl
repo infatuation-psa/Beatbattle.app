@@ -6,7 +6,9 @@
         <form id="update-group" method="POST" action="/group/{{.Group.ID}}/update">
         <nav class="battle-title">
             <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" value="{{.Group.Title}}" placeholder="Group Title" required>
-            <input type="submit" name="submit" class="nav-item-right nav-submit" value="UPDATE" />
+            <ul class="nav-links">
+              <li class="nav-item nav-cta"><input type="submit" name="submit" value="UPDATE" /></li>
+            </ul>
         </nav>
         <textarea rows="1" class="submit-border submit-nobox" id="description" name="description" maxlength="1024" placeholder="Group Description (Supports Markdown Syntax)" required>{{.Group.Description}}</textarea>
         <div class="submit-nobox">
