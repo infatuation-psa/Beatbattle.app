@@ -84,43 +84,30 @@ func ParseDeadline(db *sql.DB, deadline time.Time, battleID int, deadlineType st
 	minutes := int(diff.Minutes() - float64(days*24*60) - float64(hours*60))
 
 	if days > 0 {
-		deadlineParsed += strconv.Itoa(days) + " day"
-	}
-	if days > 1 {
-		deadlineParsed += "s"
-	}
-	if shortForm && days > 0 {
-		return deadlineParsed + " left"
+		deadlineParsed += strconv.Itoa(days) + "d "
 	}
 
 	if hours > 0 {
-		if !strings.HasSuffix(deadlineParsed, "- ") {
-			deadlineParsed += ", "
-		}
-		deadlineParsed += strconv.Itoa(hours) + " hour"
-	}
-	if hours > 1 {
-		deadlineParsed += "s"
-	}
-	if shortForm && hours > 0 {
-		return deadlineParsed + " left"
+		deadlineParsed += strconv.Itoa(hours) + "h "
 	}
 
 	if minutes > 0 {
-		if !strings.HasSuffix(deadlineParsed, "- ") {
-			deadlineParsed += ", "
+		deadlineParsed += strconv.Itoa(minutes) + "m "
+	} else {
+		deadlineParsed += "1m "
+	}
+
+	if !shortForm {
+		if curStatus == "entry" {
+			deadlineParsed += "til voting starts"
 		}
-		deadlineParsed += strconv.Itoa(minutes) + " minute"
-	}
-	if minutes > 1 {
-		deadlineParsed += "s"
+
+		if curStatus == "voting" {
+			deadlineParsed += "til voting ends"
+		}
 	}
 
-	if deadlineParsed == "" {
-		// TODO - Fix bug where none are shown
-	}
-
-	return deadlineParsed + " left"
+	return deadlineParsed
 }
 
 // ViewBattles - Retrieves all battles and displays to user. Homepage.
