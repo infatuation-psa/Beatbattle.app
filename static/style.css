@@ -671,6 +671,10 @@ input[type=url] {
   margin-left: 0.5rem;
 }
 
+.modal .nav-item + .nav-item {
+  margin-left: 0.5rem;
+}
+
 .battle-information {
   display: -webkit-box;
   display: -ms-flexbox;

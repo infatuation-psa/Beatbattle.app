@@ -44,7 +44,7 @@ Help Actions
 --------*/
 
 func init() {
-	whitelist = []string{"f1eightco-my.sharepoint.com", "sharepoint.com", "drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
+	whitelist = []string{"audius.co", "f1eightco-my.sharepoint.com", "sharepoint.com", "drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
 	/*
 	   Safety net for 'too many open files' issue on legacy code.
 	   Set a sane timeout duration for the http.DefaultClient, to ensure idle connections are terminated.
@@ -194,7 +194,7 @@ func main() {
 	router.Get("/battle/{id}/update/{toast}", UpdateBattle)                     // Toast
 	router.Post("/battle/{id}/update", UpdateBattleDB)                          // Update in db
 	router.Get("/battle/{id}/update", UpdateBattle)                             // Update page
-	router.Get("/battle/{id}/delete", DeleteBattle)
+	router.Post("/battle/{id}/delete", DeleteBattle)
 	router.Get("/battle/{id}/feedback", ViewFeedback)
 
 	router.Get("/battle/submit/{toast}", SubmitBattle)
@@ -268,10 +268,10 @@ func GetToast(toast string) [2]string {
 	case "maxvotes":
 		html = "You're at your max votes for this battle."
 		class = "toast-error"
-	case "deadlinebefore":
+	case "deadb4":
 		html = "The deadline cannot be before right now."
 		class = "toast-error"
-	case "votedeadlinebefore":
+	case "voteb4":
 		html = "The voting deadline cannot be before the deadline."
 		class = "toast-error"
 	case "maxvotesinvalid":

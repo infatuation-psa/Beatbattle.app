@@ -11,7 +11,7 @@
           </div>
           <ul class="nav-links">
             {{if .IsOwner}}
-              <li class="nav-item nav-secondary"><a onclick="return confirm('Are you sure you want to delete your beat battle?')" href="/battle/{{.Battle.ID}}/delete">DELETE</a></li>
+              <li class="nav-item nav-secondary"><a class="modal-trigger" href="#deleteBattle">Delete</a></li>
               {{if eq "complete" .Battle.Status}}
                 <li class="nav-item nav-disabled"><a>CLOSED</a></li>
               {{else}}              
@@ -57,7 +57,7 @@
           {{ end }}          
           {{if eq "voting" .Battle.Status}}
           <zg-column cell-class="zing-left" sorter="voteSort" header="Vote" index="vote_colour">
-            <form action="/vote/[[record.id]]" method="post">
+            <form class="form-ajax" action="/vote/[[record.id]]" method="post">
               <button type="submit" class="btn-link">
                 <span class="material-icons" row-class="dark" style="color: [[index.vote_colour]]">
                 done
@@ -66,16 +66,16 @@
             </form>
           </zg-column>
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox submit-feedback" /></form>
+          <form class="form-ajax" action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox submit-feedback" /></form>
           </zg-column>
           {{ end }}
           {{if eq "entry" .Battle.Status}}
           <zg-column cell-class="zing-feedback" header="Feedback" index="feedback">
-          <form action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
+          <form class="form-ajax" action="/feedback/[[record.id]]" method="post"><input type="text" name="feedback" maxlength="256" placeholder="Your Feedback (Optional)" value="[[record.feedback]]" class="submit-nobox" /></form>
           </zg-column>
           {{ end }}
           <zg-column cell-class="zing-right" sorter="loveSort" header="Love" index="like_colour">
-            <form action="/like/[[record.id]]" method="post">
+            <form class="form-ajax" action="/like/[[record.id]]" method="post">
               <button type="submit" class="btn-link">
                 <span class="material-icons" row-class="dark" style="color: [[index.like_colour]]">
                 favorite_border
@@ -88,6 +88,23 @@
         <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
+    {{if .IsOwner}}
+    <div id="deleteBattle" class="modal">
+      <div class="modal-content">
+        <h4 id="modal-header">Delete Battle</h4>
+        <p id="modal-description">Are you sure you want to delete this battle?</p>
+      </div>
+      <div class="modal-footer">
+        <form action="/battle/{{.Battle.ID}}/delete" method="post">
+          <input type="hidden" name="delete" id="delete" value="yes">
+          <ul class="nav-links">
+            <li class="nav-item nav-cta"><input type="submit" id="modal-accept" value="ACCEPT"></li>
+          </ul>
+        </form>
+      </div>
+    </div>
+    <script>$(document).ready(function(){$('.modal').modal();});</script>
+    {{end}}
     <script>const darkmode = new Darkmode();</script>
 <script>{{if eq "complete" .Battle.Status}}function expandWaveform(){}{{else}}function expandWaveform(){var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}{{end}}</script>
 <script>
@@ -108,8 +125,8 @@ window.addEventListener("load", () => {
 var _href = $("#edit-button").attr("href");
 
 function onChange() {
-  $("form").unbind("submit")
-  $("form").submit(function(t) {
+  $(".form-ajax").unbind("submit")
+  $(".form-ajax").submit(function(t) {
     t.preventDefault();
     var e = $(this).attr("action"),
         o = $(this).attr("method"),

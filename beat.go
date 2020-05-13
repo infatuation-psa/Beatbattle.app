@@ -35,7 +35,6 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
-
 	defer r.Body.Close()
 
 	// TODO - Change this GetBattle statement or change GetBattle, this doesn't need a * sql statement.
