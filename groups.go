@@ -470,7 +470,17 @@ func GetGroupsByRole(db *sql.DB, value int, role string) []Group {
 			LEFT JOIN beatbattle.groups AS group_info ON group_info.id = users_groups.group_id
 			WHERE users_groups.user_id = ? and users_groups.role = ?`
 
-	rows, err := db.Query(query, value, role)
+	args := []interface{}{value, role}
+
+	if role == "member" {
+		query = `SELECT group_info.id, group_info.title from users_groups
+				LEFT JOIN beatbattle.groups AS group_info ON group_info.id = users_groups.group_id
+				WHERE users_groups.user_id = ?`
+
+		args = []interface{}{value}
+	}
+
+	rows, err := db.Query(query, args...)
 
 	if err != nil {
 		return nil

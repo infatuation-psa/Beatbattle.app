@@ -36,6 +36,16 @@
               <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time" placeholder="Voting Deadline Time" required>
           </div>
         </div>
+        {{ if .UserGroups }}        
+        <div class="container-form submit-border">  
+          <select name="group">
+            <option value="0" disabled selected>Group (Optional)</option>
+            {{ range .UserGroups }}
+            <option value="{{.ID}}">{{.Title}}</option>
+            {{ end }}
+          </select>
+        </div>
+        {{ end }}
         <input type="url" class="submit-nobox" id="attachment" name="attachment" placeholder="Battle Attachment (URL, Optional)">
         <input type="hidden" name="timezone" id="timezone" value="">
         <input type="hidden" name="tags" id="tags" value="">
@@ -43,6 +53,7 @@
         </form>
       </div>
     </div>
+    <script>$(document).ready(function(){$('.modal').modal();$('select').formSelect();});</script>
     <script>function chipUpdate(){$("#tags").val(JSON.stringify(this.chipsData))}autosize($("textarea")),$(document).ready(function(){$(".chips").chips({limit:3,placeholder:"Enter Up To 3 Tags (Optional)",secondaryPlaceholder:"+Tag",onChipAdd:chipUpdate,onChipDelete:chipUpdate}),$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)});</script>
   {{ template "Footer" .Toast }}
 {{ end }}

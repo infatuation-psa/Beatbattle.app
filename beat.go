@@ -27,24 +27,37 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
-	URL := r.URL.RequestURI()
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
-	defer r.Body.Close()
 
-	// TODO - Change this GetBattle statement or change GetBattle, this doesn't need a * sql statement.
+	toast := GetToast(r.URL.Query().Get(":toast"))
+	URL := r.URL.RequestURI()
+
+	// TODO - Reduce strain her (not *).
 	battle := GetBattle(db, battleID)
 	if battle.Title == "" {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
-	var user = GetUser(w, r)
+	if battle.GroupID != 0 {
+		hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+
+		if !hasPermissions {
+			http.Redirect(w, r, "/notingroup", 302)
+			return
+		}
+	}
 
 	tpl := "SubmitBeat"
 	title := "Submit Beat"
@@ -73,13 +86,23 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
 	if err != nil {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
-	defer r.Body.Close()
+
+	battle := GetBattle(db, battleID)
+	if battle.GroupID != 0 {
+		hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+
+		if !hasPermissions {
+			http.Redirect(w, r, "/notingroup", 302)
+			return
+		}
+	}
 
 	redirectURL := "/beat/" + strconv.Itoa(battleID) + "/submit"
 
@@ -152,13 +175,13 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
 	if err != nil {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""

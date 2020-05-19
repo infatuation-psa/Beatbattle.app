@@ -1,4 +1,8 @@
 /* NAVIGATION STYLING */
+.submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within {
+  border-bottom: 1px solid #ff5800 !important;
+}
+
 .nav-secondary, .nav-secondary input {
   color: white;
   background: black;
@@ -144,6 +148,14 @@ zing-grid + zing-grid {
 
 .submit-feedback:not(:focus) {
   opacity: 0.5;
+}
+
+.darkmode--activated input[type="text"] {
+  color: white;
+}
+
+.darkmode--activated .chips.input-field input {
+  color: white;
 }
 
 .darkmode--activated .submit-form .submit-password {

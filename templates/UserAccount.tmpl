@@ -33,12 +33,14 @@
       <div class="modal-content">
         <h4 id="modal-header">Invite</h4>
         <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.Nickname}} to?</p>
+        <div class="container-form submit-border">   
         <select name="group">
           <option value="" disabled selected>Group</option>
           {{ range .UserGroups }}
           <option value="{{.ID}}">{{.Title}}</option>
           {{ end }}
         </select>
+        </div>
       </div>
       <div class="modal-footer">
             <input type="submit" name="submit" class="nav-item nav-cta" value="INVITE" />

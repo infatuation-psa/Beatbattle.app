@@ -5,7 +5,10 @@ $main-color: #ff5800
 $error-color: #1E19FF
 $active-color: #666
 
-/* NAVIGATION STYLING */	
+/* NAVIGATION STYLING */
+
+.submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within
+	border-bottom: 1px solid $main-color !important
 
 .nav-secondary, .nav-secondary input
 	color: white 
@@ -101,6 +104,10 @@ zing-grid + zing-grid
 	opacity: 0.5
 
 .darkmode--activated
+	input[type="text"]
+		color: white
+	.chips.input-field input
+		color: white
 	.submit-form .submit-password
 		border: 1px solid white
 	.submit-form .submit-url

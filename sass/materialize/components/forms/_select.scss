@@ -4,8 +4,12 @@
 select { display: none; }
 select.browser-default { display: block; }
 
-.darkmode--activated .select-wrapper input.select-dropdown {
+.darkmode--activated .submit-border .select-wrapper input.select-dropdown {
   color: white;
+}
+
+.darkmode--activated .select-wrapper .caret {
+  fill: white;
 }
 
 select {
@@ -22,6 +26,7 @@ select {
 }
 
 .select-wrapper {
+  width: 100%;
   &.valid .helper-text[data-success],
   &.invalid ~ .helper-text[data-error] {
     @extend %hidden-text;
@@ -61,20 +66,15 @@ select {
   position: relative;
 
   input.select-dropdown {
-    &:focus {
-      border-bottom: 1px solid $secondary-color;
-    }
     position: relative;
     cursor: pointer;
     background-color: transparent;
     border: none;
-    border-bottom: 1px solid grey;
     outline: none;
-    height: 3rem;
+    padding: 1rem 0;
     line-height: 3rem;
     width: 100%;
     font-size: 16px;
-    margin: 0 0 8px 0;
     padding: 0;
     display: block;
     user-select:none;
@@ -88,7 +88,7 @@ select {
     bottom: 0;
     margin: auto 0;
     z-index: 0;
-    fill: rgba(0,0,0,.87);
+    fill: black;
   }
 
   & + label {

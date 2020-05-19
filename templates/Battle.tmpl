@@ -26,7 +26,11 @@
                 <li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>
                 <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
                 {{ else }}
+                {{ if .CanEnter }}
                 <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
+                {{ else }}
+                <li class="nav-item nav-disabled"><a>NOT IN GROUP</a></li>
+                {{ end }}
                 {{ end }}
               {{ else }}
               {{if .EnteredBattle}}<li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>{{ end }}

@@ -33,6 +33,7 @@ type Battle struct {
 	Entries        int           `json:"entries"`
 	ID             int           `gorm:"column:id" json:"id"`
 	MaxVotes       int           `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
+	GroupID        int           `gorm:"column:group_id" json:"group_id"`
 	Tags           []Tag
 }
 
@@ -116,8 +117,9 @@ func ViewBattles(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
-	URL := r.URL.RequestURI()
 	defer r.Body.Close()
+
+	URL := r.URL.RequestURI()
 
 	tpl := "Index"
 	status := "entry"
@@ -153,10 +155,11 @@ func ViewTaggedBattles(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
+	defer r.Body.Close()
+
 	title := "Battles Tagged With " + policy.Sanitize(r.URL.Query().Get(":tag"))
 	battles := GetBattles(db, "tags.tag", policy.Sanitize(r.URL.Query().Get(":tag")))
 	activeTag := policy.Sanitize(r.URL.Query().Get(":tag"))
-	defer r.Body.Close()
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
@@ -435,11 +438,18 @@ func BattleHTTP(w http.ResponseWriter, r *http.Request) {
 
 	isOwner := RowExists(db, "SELECT id FROM challenges WHERE user_id = ? AND id = ?", user.ID, battleID)
 
+	canEnter := true
+
+	if battle.GroupID != 0 {
+		canEnter = RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+	}
+
 	m := map[string]interface{}{
 		"Title":          battle.Title,
 		"Battle":         battle,
 		"Beats":          string(e),
 		"User":           user,
+		"CanEnter":       canEnter,
 		"EnteredBattle":  hasEntered,
 		"EntryPosition":  entryPosition,
 		"IsOwner":        isOwner,
@@ -455,14 +465,14 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 	battle := Battle{}
 
 	query := `
-		SELECT challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, challenges.user_id, users.nickname
+		SELECT challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, challenges.user_id, users.nickname, challenges.group_id
 		FROM challenges 
 		LEFT JOIN users ON challenges.user_id = users.id 
         WHERE challenges.id = ?`
 
 	err := db.QueryRow(query, battleID).Scan(&battle.ID,
 		&battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline, &battle.Attachment, &battle.Status,
-		&battle.Password, &battle.MaxVotes, &battle.UserID, &battle.Host)
+		&battle.Password, &battle.MaxVotes, &battle.UserID, &battle.Host, &battle.GroupID)
 
 	if err != nil {
 		return battle
@@ -494,14 +504,28 @@ func GetBattle(db *sql.DB, battleID int) Battle {
 
 // SubmitBattle ...
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	db := dbConn()
+	defer db.Close()
+
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
 	defer r.Body.Close()
 
-	var user = GetUser(w, r)
+	toast := GetToast(r.URL.Query().Get(":toast"))
+
+	userGroups := []Group{}
+	if user.Authenticated {
+		userGroups = GetGroupsByRole(db, user.ID, "member")
+	}
+
 	m := map[string]interface{}{
-		"Title": "Submit Battle",
-		"User":  user,
-		"Toast": toast,
+		"Title":      "Submit Battle",
+		"User":       user,
+		"UserGroups": userGroups,
+		"Toast":      toast,
 	}
 
 	tmpl.ExecuteTemplate(w, "SubmitBattle", m)
@@ -512,6 +536,13 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
+	user := GetUser(w, r)
+	if !user.Authenticated {
+		http.Redirect(w, r, "/login/noauth", 302)
+		return
+	}
+	defer r.Body.Close()
+
 	toast := GetToast(r.URL.Query().Get(":toast"))
 	region := r.URL.Query().Get(":region")
 	country := r.URL.Query().Get(":country")
@@ -521,7 +552,6 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
 	if err != nil {
@@ -534,10 +564,14 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user = GetUser(w, r)
 	if battle.UserID != user.ID {
 		http.Redirect(w, r, "/notuser", 302)
 		return
+	}
+
+	userGroups := []Group{}
+	if user.Authenticated {
+		userGroups = GetGroupsByRole(db, user.ID, "member")
 	}
 
 	// For time.Parse
@@ -550,6 +584,7 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 		"Title":              "Update Battle",
 		"Battle":             battle,
 		"User":               user,
+		"UserGroups":         userGroups,
 		"DeadlineDate":       deadline[0],
 		"DeadlineTime":       deadline[1],
 		"VotingDeadlineDate": votingDeadline[0],
@@ -570,13 +605,27 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
-	defer r.Body.Close()
+
+	groupID, err := strconv.Atoi(policy.Sanitize(r.FormValue("group")))
+	if err != nil {
+		groupID = 0
+	}
+
+	if groupID != 0 {
+		hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+
+		if !hasPermissions {
+			http.Redirect(w, r, "/battle/submit/notuser", 302)
+			return
+		}
+	}
 
 	curStatus := "entry"
 	userID := -1
@@ -657,6 +706,7 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		MaxVotes:       maxVotes,
 		UserID:         user.ID,
 		Status:         status,
+		GroupID:        groupID,
 	}
 
 	v := validator.New()
@@ -670,11 +720,9 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.Body.Close()
-
 	query := `
 			UPDATE challenges 
-			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?
+			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?, group_id = ?
 			WHERE id = ? AND user_id = ?`
 
 	ins, err := db.Prepare(query)
@@ -684,7 +732,7 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ins.Close()
 
-	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battleID, user.ID)
+	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battle.GroupID, battleID, user.ID)
 
 	if err != nil {
 		http.Redirect(w, r, "/failadd", 302)
@@ -701,19 +749,33 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 func InsertBattle(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
-	defer r.Body.Close()
 
 	user := GetUser(w, r)
 	if !user.Authenticated {
 		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	entries := 0
 	err := db.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", user.ID).Scan(&entries)
 	if err != nil && err != sql.ErrNoRows {
 		http.Redirect(w, r, "/502", 302)
 		return
+	}
+
+	groupID, err := strconv.Atoi(policy.Sanitize(r.FormValue("group")))
+	if err != nil {
+		groupID = 0
+	}
+
+	if groupID != 0 {
+		hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+
+		if !hasPermissions {
+			http.Redirect(w, r, "/battle/submit/notuser", 302)
+			return
+		}
 	}
 
 	if entries >= 3 {
@@ -783,6 +845,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		Entries:        0,
 		ID:             0,
 		MaxVotes:       maxVotes,
+		GroupID:        groupID,
 	}
 
 	v := validator.New()
@@ -801,7 +864,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes) VALUES(?,?,?,?,?,?,?,?,?)"
+	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes, group_id) VALUES(?,?,?,?,?,?,?,?,?,?)"
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
@@ -812,7 +875,7 @@ func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	var battleInsertedID int64 = 0
 	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
-		battle.Status, battle.Password, user.ID, battle.VotingDeadline, battle.MaxVotes)
+		battle.Status, battle.Password, battle.UserID, battle.VotingDeadline, battle.MaxVotes, battle.GroupID)
 	if err != nil {
 		http.Redirect(w, r, "/502", 302)
 		return
@@ -900,7 +963,6 @@ func GetTags(db *sql.DB, battleID int) []Tag {
 	query := `SELECT tags.tag FROM challenges_tags LEFT JOIN tags ON tags.id = challenges_tags.tag_id WHERE challenges_tags.challenge_id = ?`
 
 	rows, err := db.Query(query, battleID)
-
 	if err != nil {
 		return Tags
 	}
@@ -930,13 +992,13 @@ func DeleteBattle(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login/noauth", 302)
 		return
 	}
+	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	if r.FormValue("delete") == "yes" {
 		stmt := "DELETE FROM challenges WHERE user_id = ? AND id = ?"

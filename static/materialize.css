@@ -15,13 +15,6 @@
           box-shadow: 0 24px 38px 3px rgba(0, 0, 0, 0.14), 0 9px 46px 8px rgba(0, 0, 0, 0.12), 0 11px 15px -7px rgba(0, 0, 0, 0.2);
 }
 
-.hoverable {
-  -webkit-transition: -webkit-box-shadow .25s;
-  transition: -webkit-box-shadow .25s;
-  transition: box-shadow .25s;
-  transition: box-shadow .25s, -webkit-box-shadow .25s;
-}
-
 .hoverable:hover {
   -webkit-box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
           box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
@@ -336,8 +329,12 @@ select.browser-default {
   display: block;
 }
 
-.darkmode--activated .select-wrapper input.select-dropdown {
+.darkmode--activated .submit-border .select-wrapper input.select-dropdown {
   color: white;
+}
+
+.darkmode--activated .select-wrapper .caret {
+  fill: white;
 }
 
 select {
@@ -354,6 +351,7 @@ select {
 }
 
 .select-wrapper {
+  width: 100%;
   position: relative;
 }
 
@@ -368,13 +366,11 @@ select {
   cursor: pointer;
   background-color: transparent;
   border: none;
-  border-bottom: 1px solid grey;
   outline: none;
-  height: 3rem;
+  padding: 1rem 0;
   line-height: 3rem;
   width: 100%;
   font-size: 16px;
-  margin: 0 0 8px 0;
   padding: 0;
   display: block;
   -webkit-user-select: none;
@@ -384,10 +380,6 @@ select {
   z-index: 1;
 }
 
-.select-wrapper input.select-dropdown:focus {
-  border-bottom: 1px solid #ff5800;
-}
-
 .select-wrapper .caret {
   position: absolute;
   right: 0;
@@ -395,7 +387,7 @@ select {
   bottom: 0;
   margin: auto 0;
   z-index: 0;
-  fill: rgba(0, 0, 0, 0.87);
+  fill: black;
 }
 
 .select-wrapper + label {
@@ -405,19 +397,19 @@ select {
 }
 
 select:disabled {
-  color: rgba(0, 0, 0, 0.42);
+  color: #bbb;
 }
 
 .select-wrapper.disabled + label {
-  color: rgba(0, 0, 0, 0.42);
+  color: #bbb;
 }
 
 .select-wrapper.disabled .caret {
-  fill: rgba(0, 0, 0, 0.42);
+  fill: #bbb;
 }
 
 .select-wrapper input.select-dropdown:disabled {
-  color: rgba(0, 0, 0, 0.42);
+  color: #bbb;
   cursor: default;
   -webkit-user-select: none;
      -moz-user-select: none;
@@ -1054,8 +1046,6 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
           box-shadow: none;
   min-height: 45px;
   outline: none;
-  -webkit-transition: all .3s;
-  transition: all .3s;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;

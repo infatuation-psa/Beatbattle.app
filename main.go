@@ -132,11 +132,12 @@ func main() {
 	router := pat.New()
 
 	srv := &http.Server{
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		TLSConfig:    tlsConfig,
-		Handler:      router,
+		ReadTimeout:       1 * time.Second,
+		WriteTimeout:      1 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		TLSConfig:         tlsConfig,
+		Handler:           router,
 	}
 
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
@@ -345,6 +346,9 @@ func GetToast(toast string) [2]string {
 		class = "toast-error"
 	case "ingroup":
 		html = "You're already in the group."
+		class = "toast-error"
+	case "notingroup":
+		html = "Not in group."
 		class = "toast-error"
 	case "invalid":
 		html = "Your SoundCloud url format is invalid."
