@@ -11,20 +11,7 @@
           </ul>
         </nav>
       </div>
-    <zing-grid caption="Battles" layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
-      <zg-colgroup>
-        <zg-column cell-class="zing-left" header="Battle" index="title" type="url" cell-class="link">
-          <template>
-          <a class="battle-url" href="/battle/[[record.id]]">[[index.title]]</a>
-            <div class="chips zing-chips"><a href="/battles/[[record.Tags.0.tag]]" class="chip">[[record.Tags.0.tag]]</a><a href="/battles/[[record.Tags.1.tag]]" class="chip">[[record.Tags.1.tag]]</a><a href="/battles/[[record.Tags.2.tag]]" class="chip">[[record.Tags.2.tag]]</a></div>
-          </template>
-        </zg-column>
-        <zg-column cell-class="zing-left" header="Status" index="status"></zg-column>
-        <zg-column cell-class="zing-left" index="host"></zg-column>
-        <zg-column cell-class="zing-both" header="Entries" index="entries"></zg-column>
-      </zg-colgroup> 
-      <zg-nodata>No battles have past yet.</zg-nodata>
-    </zing-grid>    
+    {{ template "BattleGrid" }}
     </div>
     <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
   {{ template "Footer" .Toast }}

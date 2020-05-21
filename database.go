@@ -7,7 +7,7 @@ import (
 )
 
 // dbConn ...
-func dbConn() (db *sql.DB) {
+func dbInit() (db *sql.DB) {
 	dbDriver := "mysql"
 	dbUser := os.Getenv("MYSQL_USER")
 	dbPass := os.Getenv("MYSQL_PASS")
@@ -21,7 +21,7 @@ func dbConn() (db *sql.DB) {
 }
 
 // RowExists ...
-func RowExists(db *sql.DB, sqlStmt string, args ...interface{}) bool {
+func RowExists(sqlStmt string, args ...interface{}) bool {
 	var empty int
 	err := db.QueryRow(sqlStmt, args...).Scan(&empty)
 	if err != nil {

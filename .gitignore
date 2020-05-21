@@ -39,6 +39,7 @@
 ehthumbs.db
 Thumbs.db
 
+*.crt
 *.cert
 *.key
 sessions/

@@ -24,12 +24,10 @@ type Beat struct {
 
 // SubmitBeat ...
 func SubmitBeat(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -44,14 +42,14 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 	URL := r.URL.RequestURI()
 
 	// TODO - Reduce strain her (not *).
-	battle := GetBattle(db, battleID)
+	battle := GetBattle(battleID)
 	if battle.Title == "" {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
 	if battle.GroupID != 0 {
-		hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
 
 		if !hasPermissions {
 			http.Redirect(w, r, "/notingroup", 302)
@@ -78,12 +76,10 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 // InsertBeat ...
 func InsertBeat(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -94,9 +90,9 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	battle := GetBattle(db, battleID)
+	battle := GetBattle(battleID)
 	if battle.GroupID != 0 {
-		hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
 
 		if !hasPermissions {
 			http.Redirect(w, r, "/notingroup", 302)
@@ -148,7 +144,7 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	response := "/successadd"
 
 	// IF EXISTS UPDATE
-	if RowExists(db, "SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
+	if RowExists("SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
 		stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
 		response = "/successupdate"
 	}
@@ -167,12 +163,10 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBeat updates the beat in the DB
 func UpdateBeat(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -228,12 +222,10 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 
 // DeleteBeat ...
 func DeleteBeat(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 

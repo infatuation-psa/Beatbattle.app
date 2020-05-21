@@ -4,21 +4,67 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/markbates/goth/gothic"
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 )
+
+// User struct.
+type User struct {
+	ID            int    `gorm:"column:id"`
+	Provider      string `gorm:"column:provider"`
+	ProviderID    string `gorm:"column:provider_id"`
+	Name          string `gorm:"column:nickname"`
+	Avatar        string
+	RefreshToken  string
+	AccessToken   string    `gorm:"column:access_token"`
+	ExpiresAt     time.Time `gorm:"column:expiry"`
+	Authenticated bool
+}
+
+// HashAndSalt returns a hashed password.
+func HashAndSalt(pwd []byte) string {
+	// Use GenerateFromPassword to hash & salt pwd.
+	// MinCost is just an integer constant provided by the bcrypt
+	// package along with DefaultCost & MaxCost.
+	// The cost can be any value you want provided it isn't lower
+	// than the MinCost (4)
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+	}
+	// GenerateFromPassword returns a byte slice so we need to
+	// convert the bytes to a string and return it
+	return string(hash)
+}
+
+func comparePasswords(hashedPwd string, plainPwd []byte) bool {
+	// Since we'll be getting the hashed password from the DB it
+	// will be a string so we'll need to convert it to a byte slice
+	byteHash := []byte(hashedPwd)
+	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
+}
 
 // Callback ...
 func Callback(w http.ResponseWriter, r *http.Request) {
-	// STORE SESSION TOKEN & AUTH TOKEN, VERIFY VALID
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
+		println("err1")
 		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
@@ -26,11 +72,14 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	Account := User{}
 
 	handler := r.URL.Query().Get(":provider")
+	defer r.Body.Close()
+
 	if handler != "reddit" {
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
+			println("err2")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
@@ -38,6 +87,11 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		Account.Name = user.Name
 		Account.Avatar = user.AvatarURL
 		Account.ProviderID = user.UserID
+
+		// Auth
+		Account.RefreshToken = user.RefreshToken
+		Account.AccessToken = user.AccessToken
+		Account.ExpiresAt = user.ExpiresAt
 		Account.Authenticated = true
 	}
 
@@ -48,6 +102,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
+			println("err2")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
@@ -63,13 +118,13 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		Account.Name = user.Name
 		Account.Avatar = ""
 		Account.ProviderID = user.ID
+
+		// Auth
+		Account.RefreshToken = token.RefreshToken
+		Account.AccessToken = token.AccessToken
+		Account.ExpiresAt = token.Expiry
 		Account.Authenticated = true
 	}
-
-	defer r.Body.Close()
-
-	db := dbConn()
-	defer db.Close()
 
 	userID := 0
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
@@ -78,29 +133,32 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	accessTokenEncrypted := HashAndSalt([]byte(Account.AccessToken))
 	// If user doesn't exist, add to db
 	if userID == 0 {
-		sql := "INSERT INTO users(provider, provider_id, nickname) VALUES(?,?,?)"
+		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry) VALUES(?,?,?,?)"
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
+			println("err5")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
 		defer stmt.Close()
 
-		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name)
+		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt)
 	} else {
-		sql := "UPDATE users SET nickname = ? WHERE id = ?"
+		sql := "UPDATE users SET nickname = ?, access_token = ?, expiry = ? WHERE id = ?"
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
+			println("err6")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
 		defer stmt.Close()
 
-		stmt.Exec(Account.Name, userID)
+		stmt.Exec(Account.Name, accessTokenEncrypted, Account.ExpiresAt, userID)
 	}
 
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
@@ -117,6 +175,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
+		println("err7")
 		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
@@ -193,18 +252,8 @@ func GenericLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
-// User struct.
-type User struct {
-	ID            int
-	Provider      string
-	ProviderID    string
-	Name          string
-	Avatar        string
-	Authenticated bool
-}
-
 // GetUser ...
-func GetUser(res http.ResponseWriter, req *http.Request) User {
+func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
 	var user User
 	user.ID = 0
 
@@ -213,18 +262,95 @@ func GetUser(res http.ResponseWriter, req *http.Request) User {
 		session, err = store.New(req, "beatbattle")
 		if err != nil {
 			http.Redirect(res, req, "/login/cache", 302)
-			return user
+			return User{}
 		}
 		session.Values["user"] = User{}
 		err = session.Save(req, res)
 		if err != nil {
-			http.Redirect(res, req, "/login/cache", 302)
-			return user
+			http.Redirect(res, req, "/login/cachesave", 302)
+			return User{}
 		}
 	}
 
 	if session.Values["user"] != nil {
 		user = session.Values["user"].(User)
+
+		// Kick out users who haven't logged in since the update.
+		if user.AccessToken == "" {
+			session.Values["user"] = User{}
+			err = session.Save(req, res)
+			if err != nil {
+				http.Redirect(res, req, "/login/relog", 302)
+			}
+			return User{}
+		}
+
+		if validate {
+			var dbHash string
+			err := db.QueryRow("SELECT access_token, expiry FROM users WHERE id = ?", user.ID).Scan(&dbHash, &user.ExpiresAt)
+			if err != nil {
+				return User{}
+			}
+
+			if time.Until(user.ExpiresAt) < 0 {
+				var newToken *oauth2.Token
+				// Refresh Access Token
+				if user.Provider == "discord" {
+					newToken, err = discordProvider.RefreshToken(user.RefreshToken)
+					if err != nil {
+						session.Values["user"] = User{}
+						err = session.Save(req, res)
+						if err != nil {
+							http.Redirect(res, req, "/login/relog", 302)
+						}
+						return User{}
+					}
+				}
+
+				if user.Provider == "reddit" {
+					// TODO - Refresh reddit token
+					return user
+					/*
+						newToken, err = redditAuth.GetToken(state, user.RefreshToken)
+						if err != nil {
+							session.Values["user"] = User{}
+							err = session.Save(req, res)
+							if err != nil {
+								http.Redirect(res, req, "/login/relog", 302)
+							}
+							return User{}
+						}
+					*/
+				}
+
+				user.AccessToken = newToken.AccessToken
+				user.RefreshToken = newToken.RefreshToken
+				user.ExpiresAt = newToken.Expiry
+
+				sql := "UPDATE users SET access_token = ?, expiry = ? WHERE id = ?"
+
+				stmt, err := db.Prepare(sql)
+				if err != nil {
+					println("err6")
+					http.Redirect(res, req, "/login/cache", 302)
+					return User{}
+				}
+				defer stmt.Close()
+
+				accessTokenEncrypted := HashAndSalt([]byte(user.AccessToken))
+				dbHash = accessTokenEncrypted
+				stmt.Exec(accessTokenEncrypted, user.ExpiresAt, user.ID)
+			}
+
+			if !comparePasswords(dbHash, []byte(user.AccessToken)) {
+				session.Values["user"] = User{}
+				err = session.Save(req, res)
+				if err != nil {
+					http.Redirect(res, req, "/login/relog", 302)
+				}
+				return User{}
+			}
+		}
 	}
 
 	return user
@@ -261,12 +387,10 @@ func AjaxResponse(w http.ResponseWriter, r *http.Request, redirect bool, ajax bo
 
 // AddVote ...
 func AddVote(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	ajax := r.Header.Get("X-Requested-With") == "xmlhttprequest"
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
 		AjaxResponse(w, r, true, ajax, "/login/", "noauth")
 		return
@@ -369,12 +493,10 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 
 // AddLike ...
 func AddLike(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	ajax := r.Header.Get("X-Requested-With") == "xmlhttprequest"
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
 		AjaxResponse(w, r, true, ajax, "/login/", "noauth")
 		return
@@ -398,7 +520,7 @@ func AddLike(w http.ResponseWriter, r *http.Request) {
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
-	if !RowExists(db, "SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
+	if !RowExists("SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
 		ins, err := db.Prepare("INSERT INTO likes(user_id, beat_id) VALUES (?, ?)")
 		if err != nil {
 			AjaxResponse(w, r, true, ajax, "/", "502")
@@ -424,12 +546,10 @@ func AddLike(w http.ResponseWriter, r *http.Request) {
 
 // AddFeedback ...
 func AddFeedback(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	ajax := r.Header.Get("X-Requested-With") == "xmlhttprequest"
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
 		AjaxResponse(w, r, true, ajax, "/login/", "noauth")
 		return
@@ -459,7 +579,7 @@ func AddFeedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !RowExists(db, "SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
+	if !RowExists("SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
 		ins, err := db.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
 		if err != nil {
 			AjaxResponse(w, r, true, ajax, "/", "502")
@@ -484,29 +604,27 @@ func AddFeedback(w http.ResponseWriter, r *http.Request) {
 }
 
 // ViewFeedback - Retreives battle and displays to user.
-func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
-	db := dbConn()
-	defer db.Close()
+func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(req.URL.Query().Get(":toast"))
+	toast := GetToast(r.URL.Query().Get(":toast"))
 
-	user := GetUser(wr, req)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(wr, req, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 
-	battleID, err := strconv.Atoi(req.URL.Query().Get(":id"))
+	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(wr, req, "/404", 302)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
 	// Retrieve battle, return to front page if battle doesn't exist.
-	battle := GetBattle(db, battleID)
+	battle := GetBattle(battleID)
 
 	if battle.Title == "" {
-		http.Redirect(wr, req, "/404", 302)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
@@ -518,9 +636,7 @@ func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
 
 	rows, err := db.Query(query, battleID, user.ID)
 	if err != nil {
-		// This doesn't crash anything, but should be avoided.
-		fmt.Println(err)
-		http.Redirect(wr, req, "/404", 302)
+		http.Redirect(w, r, "/404", 302)
 		return
 	}
 	defer rows.Close()
@@ -536,8 +652,7 @@ func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
 	for rows.Next() {
 		err = rows.Scan(&curFeedback.From, &curFeedback.Feedback)
 		if err != nil {
-			fmt.Println(err)
-			http.Redirect(wr, req, "/502", 302)
+			http.Redirect(w, r, "/502", 302)
 			return
 		}
 
@@ -558,13 +673,11 @@ func ViewFeedback(wr http.ResponseWriter, req *http.Request) {
 		"Toast":    toast,
 	}
 
-	tmpl.ExecuteTemplate(wr, "Feedback", m)
+	tmpl.ExecuteTemplate(w, "Feedback", m)
 }
 
 // UserAccount - Retrieves all of user's battles and displays to user.
 func UserAccount(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
@@ -575,7 +688,7 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 	if userID == user.ID {
 		http.Redirect(w, r, "/me", 302)
 		return
@@ -593,7 +706,7 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	battles := GetBattles(db, "challenges.user_id", strconv.Itoa(userID))
+	battles := GetBattles("challenges.user_id", strconv.Itoa(userID))
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
@@ -617,8 +730,6 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 
 // UserSubmissions - Retrieves all of user's battles and displays to user.
 func UserSubmissions(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
@@ -629,7 +740,7 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 	if userID == user.ID {
 		http.Redirect(w, r, "/me", 302)
 		return
@@ -722,8 +833,6 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 
 // UserGroups - Retrieves all of user's groups and displays to user.
 func UserGroups(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
@@ -734,7 +843,7 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 	if userID == user.ID {
 		http.Redirect(w, r, "/me", 302)
 		return
@@ -775,14 +884,12 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 
 // MyAccount - Retrieves all of user's battles and displays to user.
 func MyAccount(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 
-	battles := GetBattles(db, "challenges.user_id", strconv.Itoa(user.ID))
+	battles := GetBattles("challenges.user_id", strconv.Itoa(user.ID))
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
@@ -803,14 +910,12 @@ func MyAccount(w http.ResponseWriter, r *http.Request) {
 
 // MySubmissions - Retrieves all of user's battles and displays to user.
 func MySubmissions(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 
@@ -884,14 +989,12 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 
 // MyGroups - Retrieves all of user's groups and displays to user.
 func MyGroups(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 

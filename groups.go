@@ -35,10 +35,11 @@ type GroupUser struct {
 
 // SubmitGroup ...
 func SubmitGroup(w http.ResponseWriter, r *http.Request) {
+
 	toast := GetToast(r.URL.Query().Get(":toast"))
 	defer r.Body.Close()
 
-	var user = GetUser(w, r)
+	var user = GetUser(w, r, false)
 	m := map[string]interface{}{
 		"Title": "Submit Group",
 		"User":  user,
@@ -50,12 +51,10 @@ func SubmitGroup(w http.ResponseWriter, r *http.Request) {
 
 // ViewGroups - Retrieves all groups and displays to user.
 func ViewGroups(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
 	toast := GetToast(r.URL.Query().Get(":toast"))
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 
 	groups := GetGroups(db, 0)
 
@@ -77,12 +76,10 @@ func ViewGroups(w http.ResponseWriter, r *http.Request) {
 
 // InsertGroup ...
 func InsertGroup(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -135,12 +132,10 @@ func InsertGroup(w http.ResponseWriter, r *http.Request) {
 
 // InsertGroupInvite ...
 func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -157,14 +152,14 @@ func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inviteExists := RowExists(db, "SELECT id FROM groups_invites WHERE user_id = ? AND group_id = ?", userID, groupID)
+	inviteExists := RowExists("SELECT id FROM groups_invites WHERE user_id = ? AND group_id = ?", userID, groupID)
 
 	if inviteExists {
 		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/invexists", 302)
 		return
 	}
 
-	hasPermissions := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ? AND role = ?", user.ID, groupID, "owner")
+	hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ? AND role = ?", user.ID, groupID, "owner")
 
 	if !hasPermissions {
 		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/notuser", 302)
@@ -188,12 +183,10 @@ func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
 
 // InsertGroupRequest ...
 func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -204,21 +197,21 @@ func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userInGroup := RowExists(db, "SELECT id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+	userInGroup := RowExists("SELECT id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 
 	if userInGroup {
 		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/ingroup", 302)
 		return
 	}
 
-	requestExists := RowExists(db, "SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+	requestExists := RowExists("SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 
 	if requestExists {
 		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/reqexists", 302)
 		return
 	}
 
-	hasPermissions := RowExists(db, "SELECT id FROM beatbattle.groups WHERE id = ? and status=?", groupID, "open")
+	hasPermissions := RowExists("SELECT id FROM beatbattle.groups WHERE id = ? and status=?", groupID, "open")
 
 	if !hasPermissions {
 		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/notopengrp", 302)
@@ -242,12 +235,10 @@ func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
 
 // GroupInviteResponse ...
 func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -258,7 +249,7 @@ func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inviteExists := RowExists(db, "SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+	inviteExists := RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 	if !inviteExists {
 		http.Redirect(w, r, "/me/groups/404", 302)
 		return
@@ -272,7 +263,7 @@ func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if response == "accept" {
-		inGroup := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		inGroup := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 		if inGroup {
 			response = "ingroup"
 		}
@@ -308,12 +299,10 @@ func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 
 // GroupRequestResponse ...
 func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -340,7 +329,7 @@ func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if response == "accept" {
-		inGroup := RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", userID, groupID)
+		inGroup := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", userID, groupID)
 		if inGroup {
 			response = "ingroup"
 		}
@@ -614,9 +603,6 @@ func GroupHTTP(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
 	defer r.Body.Close()
 
-	db := dbConn()
-	defer db.Close()
-
 	isOwner := false
 	inGroup := false
 	invited := false
@@ -628,7 +614,7 @@ func GroupHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 
 	// Retrieve group, return to front page if group doesn't exist.
 	group := GetGroup(db, groupID)
@@ -645,10 +631,10 @@ func GroupHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Authenticated {
-		isOwner = RowExists(db, "SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
-		inGroup = RowExists(db, "SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
-		invited = RowExists(db, "SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
-		requested = RowExists(db, "SELECT user_id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		isOwner = RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
+		inGroup = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		invited = RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		requested = RowExists("SELECT user_id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 	}
 
 	print(invited)
@@ -673,22 +659,20 @@ func UpdateGroup(w http.ResponseWriter, r *http.Request) {
 	toast := GetToast(r.URL.Query().Get(":toast"))
 	defer r.Body.Close()
 
-	db := dbConn()
-	defer db.Close()
 	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
 		http.Redirect(w, r, "/404", 302)
 		return
 	}
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, false)
 
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 
-	isOwner := RowExists(db, "SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
+	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
 	if !isOwner {
 		http.Redirect(w, r, "/notuser", 302)
 		return
@@ -720,12 +704,10 @@ func UpdateGroup(w http.ResponseWriter, r *http.Request) {
 
 // UpdateGroupDB ...
 func UpdateGroupDB(w http.ResponseWriter, r *http.Request) {
-	db := dbConn()
-	defer db.Close()
 
-	user := GetUser(w, r)
+	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/noauth", 302)
+		http.Redirect(w, r, "/login/relog", 302)
 		return
 	}
 	defer r.Body.Close()
@@ -736,7 +718,7 @@ func UpdateGroupDB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isOwner := RowExists(db, "SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
+	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
 	if !isOwner {
 		http.Redirect(w, r, "/notuser", 302)
 		return

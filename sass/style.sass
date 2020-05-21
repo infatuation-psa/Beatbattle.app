@@ -28,7 +28,7 @@ $active-color: #666
 		color: #ff5800 
 		background: none 
 .nav-cta	
-	border: 1px solid #ff5800 
+	border: 1px solid #ff5800
 .nav-inner 
 	width: 80% 
 	display: flex 
@@ -72,9 +72,6 @@ $active-color: #666
 
 .darkmode--activated .nav-secondary	
 	border: 1px solid white
-
-input[type="submit"]
-	border: none
 
 * 
 	font-family: 'Inconsolata', monospace 
@@ -356,7 +353,7 @@ button:focus
 .submit-label 
 	display: flex 
 	flex-flow: row wrap 
-	input 
+	input, .select-wrapper
 		flex: 1 
 
 .submit-split1, .submit-split2
@@ -368,7 +365,7 @@ button:focus
 .submit-split2
     flex-grow: 1
 
-.submit-text, .submit-label input 
+.submit-text, .submit-label input, .submit-label .select-wrapper
 	place-self: center 
 	display: flex 
 
@@ -447,11 +444,6 @@ input[type=url]
 .submit-form 
 	display: flex 
 	flex-wrap: wrap
-	input[type="submit"]:hover
-		border-top: none
-		border-right: none
-		border-bottom: none
-		margin: 1px 1px 1px 0
 .battle-title .nav-item + .nav-item
 	margin-left: 0.5rem 
 .modal .nav-item + .nav-item
@@ -474,12 +466,13 @@ zing-grid
 	--zg-row-body-background_hover: #eeeeee
 	--zg-head-cell-icon-color_sorted: #ff5800
 	--zg-watermark-color: black
-	.battle-url
-		color: $main-color !important
-		font-weight: bold
-		&:hover
-			border-bottom: 1px solid $main-color
 	//border: 0
+
+.battle-url
+	color: $main-color !important
+	font-weight: bold
+	&:hover
+		border-bottom: 1px solid $main-color
 
 zg-caption
 	zg-button

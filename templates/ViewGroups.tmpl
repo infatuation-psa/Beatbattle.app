@@ -17,7 +17,9 @@
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
           </zg-column>
           <zg-column cell-class="zing-left" header="Status" index="status"></zg-column>
-          <zg-column cell-class="zing-both" header="Owner" index="owner_nickname"></zg-column>
+          <zg-column cell-class="zing-both" header="Owner" index="owner_nickname">
+            <a class="battle-url" href="/user/[[record.owner_id]]">[[index.owner_nickname]]</a>
+          </zg-column>
         </zg-colgroup>
       </zing-grid>
     </div>

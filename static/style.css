@@ -110,10 +110,6 @@
   border: 1px solid white;
 }
 
-input[type="submit"] {
-  border: none;
-}
-
 * {
   font-family: 'Inconsolata', monospace;
 }
@@ -513,7 +509,7 @@ button:focus {
           flex-flow: row wrap;
 }
 
-.submit-label input {
+.submit-label input, .submit-label .select-wrapper {
   -webkit-box-flex: 1;
       -ms-flex: 1;
           flex: 1;
@@ -537,7 +533,7 @@ button:focus {
           flex-grow: 1;
 }
 
-.submit-text, .submit-label input {
+.submit-text, .submit-label input, .submit-label .select-wrapper {
   place-self: center;
   display: -webkit-box;
   display: -ms-flexbox;
@@ -672,13 +668,6 @@ input[type=url] {
       flex-wrap: wrap;
 }
 
-.submit-form input[type="submit"]:hover {
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
-  margin: 1px 1px 1px 0;
-}
-
 .battle-title .nav-item + .nav-item {
   margin-left: 0.5rem;
 }
@@ -718,12 +707,12 @@ zing-grid {
   --zg-watermark-color: black;
 }
 
-zing-grid .battle-url {
+.battle-url {
   color: #ff5800 !important;
   font-weight: bold;
 }
 
-zing-grid .battle-url:hover {
+.battle-url:hover {
   border-bottom: 1px solid #ff5800;
 }
 

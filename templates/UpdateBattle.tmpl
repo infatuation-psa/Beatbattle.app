@@ -14,6 +14,25 @@
         <div class="chips submit-border">
           <input placeholder="Enter Up To 3 Tags (Optional)" maxlength="32" class="submit-nobox custom-class">
         </div>
+        <div class="container-form submit-border submit-label submit-wide">
+          <span class="submit-text">Battle Type</span>
+          <select class="submit-nobox" name="type">
+            <option value="beat" {{if eq "Beat" .Battle.Type}}selected{{end}}>Beat Battle</option>
+            <option value="rap" {{if eq "Rap" .Battle.Type}}selected{{end}}>Rap Battle</option>
+            <option value="art" disabled>Art Battle (Coming Soon)</option>
+          </select>
+        </div>
+        {{ if .UserGroups }}   
+        <div class="container-form submit-border submit-label submit-wide">
+          <span class="submit-text">Group (Optional)</span>
+          <select class="submit-nobox" name="group">
+            <option {{if eq 0 .Battle.GroupID}}selected{{end}} value="0">None</option>
+            {{ range .UserGroups }}
+            <option {{if eq .ID $.Battle.GroupID}}selected{{end}} value="{{.ID}}">{{.Title}}</option>
+            {{ end }}
+          </select>
+        </div>
+        {{ end }}
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="1024" placeholder="Battle Rules (Supports Markdown Syntax)" required>{{.Battle.Rules}}</textarea>
         <input type="text" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="64" placeholder="Password (Optional)">
         <div class="submit-border submit-label submit-wide">
@@ -36,16 +55,6 @@
               <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time"  value="{{.VotingDeadlineTime}}" placeholder="Voting Deadline Time" required>
           </div>
         </div>
-        {{ if .UserGroups }}     
-        <div class="container-form submit-border">   
-          <select name="group">
-            <option {{if eq 0 .Battle.GroupID}}disabled{{end}} value="0" selected>Group (Optional)</option>
-            {{ range .UserGroups }}
-            <option {{if eq .ID $.Battle.GroupID}}selected{{end}} value="{{.ID}}">{{.Title}}</option>
-            {{ end }}
-          </select>
-        </div>
-        {{ end }}
         <input type="url" class="submit-border submit-nobox" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (URL, Optional)">
         <input type="hidden" name="timezone" id="timezone" value="">
         <input type="hidden" name="tags" id="tags" value="">

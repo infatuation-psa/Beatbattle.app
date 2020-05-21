@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"database/sql"
 	"encoding/gob"
 	"html/template"
 	"log"
@@ -10,9 +11,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/cameronstanley/go-reddit"
 	"github.com/microcosm-cc/bluemonday"
 
-	"github.com/cameronstanley/go-reddit"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/gorilla/pat"
@@ -31,6 +32,7 @@ Variables
 
 // store will hold all session data
 var store *sessions.FilesystemStore
+var discordProvider *discord.Provider
 var redditAuth *reddit.Authenticator
 
 // tmpl holds all parsed templates
@@ -38,13 +40,16 @@ var tmpl *template.Template
 var policy *bluemonday.Policy
 
 var whitelist []string
+var state string
+var db *sql.DB
 
 /*-------
 Help Actions
 --------*/
 
 func init() {
-	whitelist = []string{"audius.co", "f1eightco-my.sharepoint.com", "sharepoint.com", "drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
+	// TODO - BREAK WHITELIST UP INTO TWO (TRACK WHITELIST, ATTACHMENT WHITELIST)
+	whitelist = []string{"audius.co", "archive.org", "f1eightco-my.sharepoint.com", "sharepoint.com", "drive.google.com", "youtube.com", "bandcamp.com", "soundcloud.com", "sellfy.com", "onedrive.com", "dropbox.com", "mega.nz", "amazon.com/clouddrive", "filetransfer.io", "wetransfer.com", "we.tt"}
 	/*
 	   Safety net for 'too many open files' issue on legacy code.
 	   Set a sane timeout duration for the http.DefaultClient, to ensure idle connections are terminated.
@@ -104,6 +109,9 @@ func RandString(length int) string {
 }
 
 func main() {
+	db = dbInit()
+	defer db.Close()
+
 	tlsConfig := &tls.Config{
 		// Causes servers to use Go's default ciphersuite preferences,
 		// which are tuned to avoid attacks. Does nothing on clients.
@@ -141,12 +149,18 @@ func main() {
 	}
 
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	state := string(RandString(16))
+
+	// TODO - IS IT SAFE TO STORE STATE?
+	state = os.Getenv("REDDIT_STATE")
+
+	discordProvider = discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify)
+
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
 		"linux:beatbattle:v1.1 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
+	redditAuth.RequestPermanentToken = true
 
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
-	goth.UseProviders(discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("CALLBACK_URL"), discord.ScopeIdentify))
+	goth.UseProviders(discordProvider)
 
 	router.PathPrefix("/static/").Handler(static)
 
@@ -219,7 +233,7 @@ func main() {
 
 	http.Handle("/", router)
 
-	log.Fatal(srv.ListenAndServeTLS("server.cert", "server.key"))
+	log.Fatal(srv.ListenAndServeTLS("server.crt", "server.key"))
 }
 
 func contains(arr []string, str string) bool {
@@ -294,10 +308,14 @@ func GetToast(toast string) [2]string {
 		html = "You must submit a SoundCloud link."
 		class = "toast-error"
 	case "cache":
+	case "cachesave":
 		html = "If this happens again, try clearing your cache."
 		class = "toast-error"
 	case "feedbackself":
 		html = "You can't give yourself feedback."
+		class = "toast-error"
+	case "invalidtype":
+		html = "That is not a valid battle type."
 		class = "toast-error"
 	case "liked":
 		html = "Submission loved."
@@ -361,6 +379,9 @@ func GetToast(toast string) [2]string {
 		class = "toast-error"
 	case "notopengrp":
 		html = "This group is not open."
+		class = "toast-error"
+	case "relog":
+		html = "Login session expired."
 		class = "toast-error"
 	}
 
