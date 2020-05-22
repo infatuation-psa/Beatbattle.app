@@ -136,11 +136,12 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	accessTokenEncrypted := HashAndSalt([]byte(Account.AccessToken))
 	// If user doesn't exist, add to db
 	if userID == 0 {
-		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry) VALUES(?,?,?,?)"
+		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry) VALUES(?,?,?,?,?)"
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
 			println("err5")
+			panic(err)
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
