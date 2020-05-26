@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -64,7 +63,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
-		println("err1")
 		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
@@ -79,7 +77,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			println("err2")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
@@ -102,7 +99,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			println("err2")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
@@ -140,8 +136,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
-			println("err5")
-			panic(err)
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
@@ -153,7 +147,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
-			println("err6")
 			http.Redirect(w, r, "/login/cache", 302)
 			return
 		}
@@ -169,14 +162,12 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	Account.ID = userID
-	print(userID)
 	session.Values["user"] = Account
 
 	err = session.Save(r, w)
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
-		println("err7")
 		http.Redirect(w, r, "/login/cache", 302)
 		return
 	}
@@ -332,7 +323,6 @@ func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
 
 				stmt, err := db.Prepare(sql)
 				if err != nil {
-					println("err6")
 					http.Redirect(res, req, "/login/cache", 302)
 					return User{}
 				}
@@ -384,6 +374,50 @@ func AjaxResponse(w http.ResponseWriter, r *http.Request, redirect bool, ajax bo
 	}
 
 	http.Redirect(w, r, redirectPath+toastQuery, 302)
+}
+
+// CalculateVotes - Manual function to force vote recalculation.
+func CalculateVotes(w http.ResponseWriter, r *http.Request) {
+	var user = GetUser(w, r, true)
+
+	if user.ID != 3 {
+		http.Redirect(w, r, "/notauth", 302)
+		return
+	}
+
+	query := `SELECT id, votes FROM beats`
+
+	rows, err := db.Query(query)
+
+	if err != nil {
+		http.Redirect(w, r, "/502", 302)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		id := 0
+		votes := 1
+		rows.Scan(&id, &votes)
+
+		err := db.QueryRow("SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=?", id).Scan(&votes)
+
+		if err != nil {
+			http.Redirect(w, r, "/502", 302)
+			return
+		}
+
+		updateQuery := "UPDATE beats SET votes = ? WHERE id = ?"
+
+		upd, err := db.Prepare(updateQuery)
+		if err != nil {
+			http.Redirect(w, r, "/502", 302)
+			return
+		}
+		defer upd.Close()
+
+		upd.Exec(votes, id)
+	}
 }
 
 // AddVote ...
@@ -452,14 +486,24 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			sql := "INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)"
-			stmt, err := tx.Prepare(sql)
+			ins, err := tx.Prepare(sql)
 			if err != nil {
 				AjaxResponse(w, r, true, ajax, redirectURL, "404")
 				return
 			}
-			defer stmt.Close()
+			defer ins.Close()
 
-			stmt.Exec(beatID, user.ID, battleID)
+			ins.Exec(beatID, user.ID, battleID)
+
+			updSQL := "UPDATE beats SET votes = votes + 1 WHERE id = ?"
+			upd, err := tx.Prepare(updSQL)
+			if err != nil {
+				AjaxResponse(w, r, true, ajax, redirectURL, "404")
+				return
+			}
+			defer upd.Close()
+
+			upd.Exec(beatID)
 			tx.Commit()
 
 			AjaxResponse(w, r, false, ajax, redirectURL, "successvote")
@@ -486,6 +530,16 @@ func AddVote(w http.ResponseWriter, r *http.Request) {
 	defer stmt.Close()
 
 	stmt.Exec(voteID)
+
+	updSQL := "UPDATE beats SET votes = votes - 1 WHERE id = ?"
+	upd, err := tx.Prepare(updSQL)
+	if err != nil {
+		AjaxResponse(w, r, true, ajax, redirectURL, "404")
+		return
+	}
+	defer upd.Close()
+
+	upd.Exec(beatID)
 	tx.Commit()
 
 	AjaxResponse(w, r, false, ajax, redirectURL, "successdelvote")
@@ -662,7 +716,6 @@ func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 
 	e, err := json.Marshal(feedback)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -711,7 +764,6 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -763,7 +815,7 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 	entries := []Beat{}
 
 	query := `
-			SELECT beats.url, (SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=beats.id) as votes, voted.id IS NOT NULL AS voted, challenges.id, challenges.status, challenges.title
+			SELECT beats.url, beats.votes, voted.id IS NOT NULL AS voted, challenges.id, challenges.status, challenges.title
 			FROM beats 
 			LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id
 			LEFT JOIN challenges on challenges.id=beats.challenge_id
@@ -866,7 +918,6 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 
 	groupsJSON, err := json.Marshal(groups)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -894,7 +945,6 @@ func MyAccount(w http.ResponseWriter, r *http.Request) {
 
 	battlesJSON, err := json.Marshal(battles)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -924,7 +974,7 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 	entries := []Beat{}
 
 	query := `
-			SELECT beats.url, (SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=beats.id) as votes, voted.id IS NOT NULL AS voted, challenges.id, challenges.status, challenges.title
+			SELECT beats.url, beats.votes, voted.id IS NOT NULL AS voted, challenges.id, challenges.status, challenges.title
 			FROM beats 
 			LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id
 			LEFT JOIN challenges on challenges.id=beats.challenge_id

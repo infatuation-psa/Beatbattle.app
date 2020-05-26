@@ -309,7 +309,7 @@ func BattleHTTP(w http.ResponseWriter, r *http.Request) {
 			ORDER BY beats.id DESC`
 
 	if battle.Status == "complete" {
-		query = `SELECT beats.id, beats.url, users.nickname, (SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=beats.id) as votes, voted.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, beats.user_id
+		query = `SELECT beats.id, beats.url, users.nickname, beats.votes, voted.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, beats.user_id
 				FROM beats 
 				LEFT JOIN users on beats.user_id=users.id
 				LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id

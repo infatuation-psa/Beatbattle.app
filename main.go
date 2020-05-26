@@ -180,6 +180,7 @@ func main() {
 	router.Get("/user/{id}/groups", UserGroups)
 	router.Get("/user/{id}/submissions", UserSubmissions)
 	router.Get("/user/{id}", UserAccount)
+	router.Get("/recalculate", CalculateVotes)
 
 	// Me
 	router.Get("/me/groups/request/{id}/{response}", GroupRequestResponse)
