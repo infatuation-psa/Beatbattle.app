@@ -158,6 +158,10 @@ zing-grid + zing-grid {
   border: 1px solid white;
 }
 
+.darkmode--activated .submit-url {
+  color: white !important;
+}
+
 .darkmode--activated .submit-form .submit-url {
   color: white !important;
   border: 1px solid white;
