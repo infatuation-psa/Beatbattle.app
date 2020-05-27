@@ -1,5 +1,5 @@
 {{ define "Footer" }}
-<footer><button class="chip dark-toggle">dark mode</button><a class="footer-icon" href="https://twitter.com/PSAInfatuation"><img src="/static/img/twitter-logo.svg" /></a></footer>
+<footer><a class="footer-url" href="/faq">FAQ</a><button class="chip dark-toggle">dark mode</button><a class="footer-icon" href="https://twitter.com/PSAInfatuation"><img src="/static/img/twitter-logo.svg" /></a></footer>
     {{if index . 1}}<script>$(document).ready(function() { M.toast({ html: {{index . 0}}, classes: {{index . 1}} }); });</script>{{end}}
       <script type="text/javascript" src="/static/materialize.min.js"></script>
       <script>const darkmode = new Darkmode();</script>

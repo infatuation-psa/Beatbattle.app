@@ -103,6 +103,22 @@ func StringWithCharset(length int, charset string) string {
 	return string(b)
 }
 
+// FrequentQuestions ...
+func FrequentQuestions(w http.ResponseWriter, r *http.Request) {
+	user := GetUser(w, r, false)
+
+	toast := GetToast(r.URL.Query().Get(":toast"))
+	defer r.Body.Close()
+
+	m := map[string]interface{}{
+		"Title": "Frequently Asked Questions",
+		"User":  user,
+		"Toast": toast,
+	}
+
+	tmpl.ExecuteTemplate(w, "FAQ", m)
+}
+
 // RandString ...
 func RandString(length int) string {
 	return StringWithCharset(length, charset)
@@ -201,6 +217,8 @@ func main() {
 	router.Get("/group/{id}", GroupHTTP) // Update page
 	router.Get("/groups/{toast}", ViewGroups)
 	router.Get("/groups", ViewGroups)
+
+	router.Get("/faq", FrequentQuestions)
 
 	// Battles
 	router.Get("/battles/{tag}", ViewTaggedBattles)

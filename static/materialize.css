@@ -1092,4 +1092,105 @@ body.keyboard-focused .select-dropdown.dropdown-content li:focus {
   -webkit-transform: translateY(-140%);
           transform: translateY(-140%);
 }
+
+.collapsible {
+  border-top: 1px solid #ff5800;
+  border-right: 1px solid #ff5800;
+  border-left: 1px solid #ff5800;
+  width: 100%;
+}
+
+.collapsible li {
+  list-style: none;
+}
+
+.collapsible-header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1.5;
+  padding: 1rem;
+  background-color: none;
+  border-bottom: 1px solid #ff5800;
+}
+
+.collapsible-header:focus {
+  outline: 0;
+}
+
+.collapsible-header i {
+  width: 2rem;
+  font-size: 1.6rem;
+  display: inline-block;
+  text-align: center;
+  margin-right: 1rem;
+}
+
+.collapsible-body {
+  display: none;
+  border-bottom: 1px solid #ff5800;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+  padding: 2rem;
+}
+
+.sidenav .collapsible,
+.sidenav.sidenav-fixed .collapsible {
+  border: none;
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+
+.sidenav .collapsible li,
+.sidenav.sidenav-fixed .collapsible li {
+  padding: 0;
+}
+
+.sidenav .collapsible-header,
+.sidenav.sidenav-fixed .collapsible-header {
+  background-color: transparent;
+  border: none;
+  line-height: inherit;
+  height: inherit;
+  padding: 0 1rem;
+}
+
+.sidenav .collapsible-header:hover,
+.sidenav.sidenav-fixed .collapsible-header:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sidenav .collapsible-header i,
+.sidenav.sidenav-fixed .collapsible-header i {
+  line-height: inherit;
+}
+
+.sidenav .collapsible-body,
+.sidenav.sidenav-fixed .collapsible-body {
+  border: 0;
+  background-color: none;
+}
+
+.sidenav .collapsible-body li a,
+.sidenav.sidenav-fixed .collapsible-body li a {
+  padding: 0 1.5rem 0 2rem;
+}
+
+.collapsible.popout {
+  border: none;
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+
+.collapsible.popout > li {
+  margin: 0 24px;
+  -webkit-transition: margin 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: margin 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.collapsible.popout > li.active {
+  margin: 16px 0;
+}
 /*# sourceMappingURL=materialize.css.map */

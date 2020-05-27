@@ -146,6 +146,10 @@ zing-grid + zing-grid {
   opacity: 0.5;
 }
 
+.darkmode--activated .collapsible {
+  color: white;
+}
+
 .darkmode--activated input[type="text"],
 .darkmode--activated input[type=url] {
   color: white;
@@ -721,12 +725,16 @@ zing-grid {
   --zg-watermark-color: black;
 }
 
-.battle-url {
+.footer-url {
+  margin-right: 1rem;
+}
+
+.battle-url, .footer-url {
   color: #ff5800 !important;
   font-weight: bold;
 }
 
-.battle-url:hover {
+.battle-url:hover, .footer-url:hover {
   border-bottom: 1px solid #ff5800;
 }
 
