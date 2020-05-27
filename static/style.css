@@ -475,6 +475,8 @@ footer {
   text-align: center;
   background-color: black;
   padding: 1rem 0 !important;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
   color: white;
   width: 100%;
   z-index: 10;
@@ -630,6 +632,15 @@ button:focus {
   -webkit-box-pack: center;
       -ms-flex-pack: center;
           justify-content: center;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+.main-menu {
+  padding: 1rem 0 !important;
+}
+
+.battle-title {
   padding: 1rem 0 !important;
 }
 
