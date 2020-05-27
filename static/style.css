@@ -474,7 +474,7 @@ h1, .heading-1 {
 footer {
   text-align: center;
   background-color: black;
-  padding: 1rem 0;
+  padding: 1rem 0 !important;
   color: white;
   width: 100%;
   z-index: 10;
@@ -612,9 +612,6 @@ button:focus {
   -webkit-box-align: center;
       -ms-flex-align: center;
           align-items: center;
-  -webkit-box-pack: center;
-      -ms-flex-pack: center;
-          justify-content: center;
   -webkit-box-orient: vertical;
   -webkit-box-direction: normal;
       -ms-flex-flow: column;
@@ -633,7 +630,7 @@ button:focus {
   -webkit-box-pack: center;
       -ms-flex-pack: center;
           justify-content: center;
-  padding: 1rem 0;
+  padding: 1rem 0 !important;
 }
 
 .battle-host + .battle-title {
