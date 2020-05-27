@@ -101,7 +101,8 @@ zing-grid + zing-grid
 	opacity: 0.5
 
 .darkmode--activated
-	input[type="text"]
+	input[type="text"],
+	input[type=url]
 		color: white
 	.chips.input-field input
 		color: white
@@ -203,6 +204,12 @@ footer .chip
 .footer-icon img
 	max-height: 1.25rem
 
+.zing-vote-header
+	color: #ff5800
+
+	zg-icon svg path
+		fill: #ff5800 !important
+
 .darkmode--activated zing-grid
 	background: black
 	color: white
@@ -253,7 +260,7 @@ body, html
 	padding: 1rem 0 1rem 1rem
 
 .zing-right
-	padding: 1rem 1rem 1rem 0
+	padding: 1rem
 
 .zing-both
 	padding: 1rem

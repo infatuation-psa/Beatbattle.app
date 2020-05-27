@@ -146,7 +146,8 @@ zing-grid + zing-grid {
   opacity: 0.5;
 }
 
-.darkmode--activated input[type="text"] {
+.darkmode--activated input[type="text"],
+.darkmode--activated input[type=url] {
   color: white;
 }
 
@@ -300,6 +301,14 @@ footer .chip:hover {
   max-height: 1.25rem;
 }
 
+.zing-vote-header {
+  color: #ff5800;
+}
+
+.zing-vote-header zg-icon svg path {
+  fill: #ff5800 !important;
+}
+
 .darkmode--activated zing-grid {
   background: black;
   color: white;
@@ -357,7 +366,7 @@ body, html {
 }
 
 .zing-right {
-  padding: 1rem 1rem 1rem 0;
+  padding: 1rem;
 }
 
 .zing-both {
