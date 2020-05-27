@@ -1,4 +1,17 @@
 /* NAVIGATION STYLING */
+body {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
 .submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within {
   border-bottom: 1px solid #ff5800 !important;
 }
@@ -280,6 +293,7 @@ footer {
   -webkit-box-align: center;
       -ms-flex-align: center;
           align-items: center;
+  margin-top: auto;
 }
 
 footer .chip {
@@ -464,9 +478,7 @@ footer {
   text-align: center;
   background-color: black;
   padding: 1rem 0;
-  position: fixed;
   color: white;
-  bottom: 0;
   width: 100%;
   z-index: 10;
 }
@@ -593,6 +605,7 @@ button:focus {
   margin-left: auto;
   margin-right: auto;
   max-width: 80%;
+  width: 100%;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -606,7 +619,7 @@ button:focus {
   -webkit-box-direction: normal;
       -ms-flex-flow: column;
           flex-flow: column;
-  margin-bottom: 6rem;
+  margin-bottom: 2rem;
 }
 
 .main-menu, .battle-title {

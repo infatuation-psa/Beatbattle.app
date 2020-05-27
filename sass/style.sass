@@ -7,6 +7,11 @@ $active-color: #666
 
 /* NAVIGATION STYLING */
 
+body
+	display: flex
+	flex-direction: column
+	align-items: center
+
 .submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within
 	border-bottom: 1px solid $main-color !important
 
@@ -190,6 +195,7 @@ footer
 	text-align: center
 	justify-content: center
 	align-items: center
+	margin-top: auto
 
 footer .chip
 	border: none
@@ -329,9 +335,7 @@ footer
 	text-align: center 
 	background-color: black 
 	padding: 1rem 0 
-	position: fixed 
 	color: white 
-	bottom: 0 
 	width: 100% 
 	z-index: 10
 
@@ -408,11 +412,12 @@ button:focus
 	margin-left: auto 
 	margin-right: auto 
 	max-width: 80% 
+	width: 100%
 	display: flex 
 	align-items: center 
 	justify-content: center 
 	flex-flow: column 
-	margin-bottom: 6rem
+	margin-bottom: 2rem
 .main-menu, .battle-title 
 	width: 100% 
 	display: flex 
