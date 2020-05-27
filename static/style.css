@@ -600,6 +600,12 @@ button:focus {
   font-weight: bold;
 }
 
+.main-menu, footer {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 auto;
+          flex: 0 0 auto;
+}
+
 .container {
   -webkit-box-flex: 1;
       -ms-flex: 1 0 auto;
