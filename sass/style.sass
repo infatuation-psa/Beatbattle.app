@@ -7,6 +7,10 @@ $active-color: #666
 
 /* NAVIGATION STYLING */
 
+body
+	display: flex
+	flex-direction: column
+
 .submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within
 	border-bottom: 1px solid $main-color !important
 
@@ -404,6 +408,7 @@ button:focus
 	font-weight: bold 
 	
 .container 
+	flex: 1 0 auto
 	margin-left: auto 
 	margin-right: auto 
 	max-width: 80% 
@@ -413,23 +418,29 @@ button:focus
 	justify-content: center 
 	flex-flow: column 
 	margin-bottom: 2rem
+
 .main-menu, .battle-title 
 	width: 100% 
 	display: flex 
 	align-items: center 
 	justify-content: center 
 	padding: 1rem 0 
+
 .battle-host + .battle-title
 	padding: 0
+
 .battle-title 
 	color: black !important 
 	justify-content: space-between 
+
 input[type=button], input[type=submit], input[type=reset]
 	padding: 0.75rem 1rem 
 	font-size: 1rem
+
 input[type=url] 
 	padding: 0.75rem 1rem 
 	font-size: 1rem
+
 .battle-chips
 	min-height: 0 !important
 	display: block !important
@@ -446,6 +457,7 @@ input[type=url]
 	flex-grow: 1
 	border: 1px solid black
 	border-right: 0
+
 .submit-password
 	width: 100%
 	flex-grow: 1
@@ -453,20 +465,26 @@ input[type=url]
 	padding: 0.75rem 1rem 
 	margin-bottom: 1rem
 	font-size: 1rem
+
 .submit-form 
 	display: flex 
 	flex-wrap: wrap
+
 .battle-title .nav-item + .nav-item
 	margin-left: 0.5rem 
+
 .modal .nav-item + .nav-item
 	margin-left: 0.5rem 
+
 .battle-information 
 	display: flex 
 	width: 100% 
 	justify-content: center 
 	flex-flow: column 
+
 zg-caption 
 	background: black 
+	
 zing-grid 
 	width: auto
 	overflow: auto

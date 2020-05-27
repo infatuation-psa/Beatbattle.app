@@ -1,4 +1,14 @@
 /* NAVIGATION STYLING */
+body {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+}
+
 .submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within {
   border-bottom: 1px solid #ff5800 !important;
 }
@@ -589,6 +599,9 @@ button:focus {
 }
 
 .container {
+  -webkit-box-flex: 1;
+      -ms-flex: 1 0 auto;
+          flex: 1 0 auto;
   margin-left: auto;
   margin-right: auto;
   max-width: 80%;
