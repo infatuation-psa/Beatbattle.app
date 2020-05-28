@@ -153,8 +153,9 @@
     </div>
     <script>$(document).ready(function(){$('.modal').modal();});</script>
     {{end}}
-<script>{{if eq "complete" .Battle.Status}}function expandWaveform(){}{{else}}function expandWaveform(){var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}{{end}}</script>
 <script src="/static/battle.min.js"></script>
+<script>{{if eq "complete" .Battle.Status}}function expandWaveform(){}{{else}}
+function expandWaveform(){$("iframe").css("width","20px");var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}{{end}}</script>
 <script>
 window.addEventListener("load", () => {
     var beats = '{{.Beats}}'; 

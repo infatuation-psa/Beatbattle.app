@@ -8,6 +8,8 @@ function onChange() {
       embed = button.data("embed");
       var toembed = button.closest(".embedded-track");
       toembed.html(embed);
+      expandWaveform();
+      toembed.find("iframe").css("width", "100%");
     });
   });
   if ($("zing-grid").hasClass("zing-vote")) {

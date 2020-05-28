@@ -330,7 +330,7 @@ func BattleHTTP(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	ua := r.Header.Get("User-Agent")
-	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry/`)
+	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry|iPhone/`)
 	isMobile := mobileUA.MatchString(ua)
 	fmt.Println(strconv.FormatBool(isMobile))
 	fmt.Println(ua)
