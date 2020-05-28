@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -830,6 +831,10 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	ua := r.Header.Get("User-Agent")
+	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry/`)
+	isMobile := mobileUA.MatchString(ua)
+
 	for rows.Next() {
 		voted := 0
 		submission = Beat{}
@@ -851,12 +856,12 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 			} else {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 		}
 
 		entries = append(entries, submission)
@@ -870,12 +875,13 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 
 	m := map[string]interface{}{
 		"Title":      nickname + "'s Submissions",
-		"Battles":    string(submissionsJSON),
+		"Beats":      string(submissionsJSON),
 		"User":       user,
 		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(r.URL.Query().Get(":tag")),
 		"UserID":     userID,
+		"IsMobile":   isMobile,
 		"Nickname":   nickname,
 	}
 
@@ -989,6 +995,10 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	ua := r.Header.Get("User-Agent")
+	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry/`)
+	isMobile := mobileUA.MatchString(ua)
+
 	for rows.Next() {
 		voted := 0
 		submission = Beat{}
@@ -1010,12 +1020,12 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 			} else {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 		}
 
 		entries = append(entries, submission)
@@ -1028,11 +1038,12 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := map[string]interface{}{
-		"Title":   "My Submissions",
-		"Battles": string(submissionsJSON),
-		"User":    user,
-		"Toast":   toast,
-		"Tag":     policy.Sanitize(r.URL.Query().Get(":tag")),
+		"Title":    "My Submissions",
+		"Beats":    string(submissionsJSON),
+		"User":     user,
+		"Toast":    toast,
+		"IsMobile": isMobile,
+		"Tag":      policy.Sanitize(r.URL.Query().Get(":tag")),
 	}
 
 	tmpl.ExecuteTemplate(w, "MySubmissions", m)

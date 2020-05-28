@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -328,6 +329,12 @@ func BattleHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	ua := r.Header.Get("User-Agent")
+	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry/`)
+	isMobile := mobileUA.MatchString(ua)
+	fmt.Println(strconv.FormatBool(isMobile))
+	fmt.Println(ua)
+
 	// PERF
 	entryPosition := 0
 	hasEntered := false
@@ -376,12 +383,12 @@ func BattleHTTP(w http.ResponseWriter, r *http.Request) {
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 			} else {
-				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+			submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 		}
 
 		if battle.Status == "complete" && voteID == 0 {
@@ -449,6 +456,7 @@ func BattleHTTP(w http.ResponseWriter, r *http.Request) {
 		"EntryPosition":  entryPosition,
 		"IsOwner":        isOwner,
 		"Toast":          toast,
+		"IsMobile":       isMobile,
 		"VotesRemaining": battle.MaxVotes - userVotes,
 	}
 
