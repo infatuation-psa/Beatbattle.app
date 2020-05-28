@@ -108,6 +108,10 @@ body {
   text-decoration: none;
 }
 
+input[type="submit"] {
+  border: 0;
+}
+
 .darkmode--activated .nav-secondary,
 .darkmode--activated .nav-secondary input[type="submit"] {
   color: black;

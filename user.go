@@ -64,7 +64,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
-		http.Redirect(w, r, "/login/cache", 302)
+		SetToast(w, r, "cache")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
@@ -78,7 +79,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			http.Redirect(w, r, "/login/cache", 302)
+			SetToast(w, r, "cache")
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 		Account.Provider = user.Provider
@@ -100,7 +102,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			http.Redirect(w, r, "/login/cache", 302)
+			SetToast(w, r, "cache")
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 		client := redditAuth.GetAuthClient(token)
@@ -108,7 +111,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			session.Options.MaxAge = -1
 			err = session.Save(r, w)
-			http.Redirect(w, r, "/login/cache", 302)
+			SetToast(w, r, "cache")
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 		Account.Provider = "reddit"
@@ -126,7 +130,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	userID := 0
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -137,7 +142,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
-			http.Redirect(w, r, "/login/cache", 302)
+			SetToast(w, r, "cache")
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 		defer stmt.Close()
@@ -148,7 +154,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
-			http.Redirect(w, r, "/login/cache", 302)
+			SetToast(w, r, "cache")
+			http.Redirect(w, r, "/login", 302)
 			return
 		}
 		defer stmt.Close()
@@ -158,7 +165,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 
 	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -169,16 +177,18 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
-		http.Redirect(w, r, "/login/cache", 302)
+		SetToast(w, r, "cache")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
-	http.Redirect(w, r, "/", 302)
+	SetToast(w, r, "502")
+	http.Redirect(w, r, "", 302)
 }
 
 // Login ...
 func Login(w http.ResponseWriter, r *http.Request) {
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 	defer r.Body.Close()
 
 	m := map[string]interface{}{
@@ -211,7 +221,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
-		http.Redirect(w, r, "/login/cache", 302)
+		SetToast(w, r, "cache")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
@@ -219,7 +230,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	err = session.Save(r, w)
 	if err != nil {
-		http.Redirect(w, r, "/login/cache", 302)
+		SetToast(w, r, "cache")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
@@ -230,7 +242,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 func GenericLogout(w http.ResponseWriter, r *http.Request) {
 	session, err := store.Get(r, "beatbattle")
 	if err != nil {
-		http.Redirect(w, r, "/login/cache", 302)
+		SetToast(w, r, "cache")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
@@ -238,7 +251,8 @@ func GenericLogout(w http.ResponseWriter, r *http.Request) {
 
 	err = session.Save(r, w)
 	if err != nil {
-		http.Redirect(w, r, "/login/cache", 302)
+		SetToast(w, r, "cache")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
@@ -246,21 +260,23 @@ func GenericLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetUser ...
-func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
+func GetUser(w http.ResponseWriter, r *http.Request, validate bool) User {
 	var user User
 	user.ID = 0
 
-	session, err := store.Get(req, "beatbattle")
+	session, err := store.Get(r, "beatbattle")
 	if err != nil {
-		session, err = store.New(req, "beatbattle")
+		session, err = store.New(r, "beatbattle")
 		if err != nil {
-			http.Redirect(res, req, "/login/cache", 302)
+			SetToast(w, r, "cache")
+			http.Redirect(w, r, "/login", 302)
 			return User{}
 		}
 		session.Values["user"] = User{}
-		err = session.Save(req, res)
+		err = session.Save(r, w)
 		if err != nil {
-			http.Redirect(res, req, "/login/cachesave", 302)
+			SetToast(w, r, "cachesave")
+			http.Redirect(w, r, "/login", 302)
 			return User{}
 		}
 	}
@@ -271,9 +287,10 @@ func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
 		// Kick out users who haven't logged in since the update.
 		if user.AccessToken == "" {
 			session.Values["user"] = User{}
-			err = session.Save(req, res)
+			err = session.Save(r, w)
 			if err != nil {
-				http.Redirect(res, req, "/login/relog", 302)
+				SetToast(w, r, "relog")
+				http.Redirect(w, r, "/login", 302)
 			}
 			return User{}
 		}
@@ -292,9 +309,10 @@ func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
 					newToken, err = discordProvider.RefreshToken(user.RefreshToken)
 					if err != nil {
 						session.Values["user"] = User{}
-						err = session.Save(req, res)
+						err = session.Save(r, w)
 						if err != nil {
-							http.Redirect(res, req, "/login/relog", 302)
+							SetToast(w, r, "relog")
+							http.Redirect(w, r, "/login", 302)
 						}
 						return User{}
 					}
@@ -324,7 +342,8 @@ func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
 
 				stmt, err := db.Prepare(sql)
 				if err != nil {
-					http.Redirect(res, req, "/login/cache", 302)
+					SetToast(w, r, "cache")
+					http.Redirect(w, r, "/login", 302)
 					return User{}
 				}
 				defer stmt.Close()
@@ -336,9 +355,10 @@ func GetUser(res http.ResponseWriter, req *http.Request, validate bool) User {
 
 			if !comparePasswords(dbHash, []byte(user.AccessToken)) {
 				session.Values["user"] = User{}
-				err = session.Save(req, res)
+				err = session.Save(r, w)
 				if err != nil {
-					http.Redirect(res, req, "/login/relog", 302)
+					SetToast(w, r, "relog")
+					http.Redirect(w, r, "/login", 302)
 				}
 				return User{}
 			}
@@ -358,12 +378,14 @@ func AjaxResponse(w http.ResponseWriter, r *http.Request, redirect bool, ajax bo
 		ToastQuery string
 	}
 
+	SetToast(w, r, toastQuery)
+
 	if redirect && !ajax {
-		http.Redirect(w, r, redirectPath+toastQuery, 302)
+		http.Redirect(w, r, redirectPath, 302)
 		return
 	}
 
-	toast := GetToast(toastQuery)
+	toast := GetToast(w, r)
 	data := AjaxData{ToastHTML: toast[0], ToastClass: toast[1], ToastQuery: toastQuery}
 
 	if ajax {
@@ -382,7 +404,8 @@ func CalculateVotes(w http.ResponseWriter, r *http.Request) {
 	var user = GetUser(w, r, true)
 
 	if user.ID != 3 {
-		http.Redirect(w, r, "/notauth", 302)
+		SetToast(w, r, "notauth")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -391,7 +414,8 @@ func CalculateVotes(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(query)
 
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer rows.Close()
@@ -404,7 +428,8 @@ func CalculateVotes(w http.ResponseWriter, r *http.Request) {
 		err := db.QueryRow("SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=?", id).Scan(&votes)
 
 		if err != nil {
-			http.Redirect(w, r, "/502", 302)
+			SetToast(w, r, "502")
+			http.Redirect(w, r, "", 302)
 			return
 		}
 
@@ -412,7 +437,8 @@ func CalculateVotes(w http.ResponseWriter, r *http.Request) {
 
 		upd, err := db.Prepare(updateQuery)
 		if err != nil {
-			http.Redirect(w, r, "/502", 302)
+			SetToast(w, r, "502")
+			http.Redirect(w, r, "", 302)
 			return
 		}
 		defer upd.Close()
@@ -662,17 +688,19 @@ func AddFeedback(w http.ResponseWriter, r *http.Request) {
 // ViewFeedback - Retreives battle and displays to user.
 func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
+		SetToast(w, r, "relog")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -680,7 +708,8 @@ func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 	battle := GetBattle(battleID)
 
 	if battle.Title == "" {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -692,7 +721,8 @@ func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(query, battleID, user.ID)
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer rows.Close()
@@ -708,7 +738,8 @@ func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		err = rows.Scan(&curFeedback.From, &curFeedback.Feedback)
 		if err != nil {
-			http.Redirect(w, r, "/502", 302)
+			SetToast(w, r, "502")
+			http.Redirect(w, r, "", 302)
 			return
 		}
 
@@ -734,20 +765,17 @@ func ViewFeedback(w http.ResponseWriter, r *http.Request) {
 // UserAccount - Retrieves all of user's battles and displays to user.
 func UserAccount(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	userID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer r.Body.Close()
 
 	user := GetUser(w, r, false)
-	if userID == user.ID {
-		http.Redirect(w, r, "/me", 302)
-		return
-	}
 
 	userGroups := []Group{}
 	if user.Authenticated {
@@ -757,7 +785,8 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 	nickname := ""
 	err = db.QueryRow("SELECT nickname FROM users WHERE id = ?", userID).Scan(&nickname)
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -785,20 +814,17 @@ func UserAccount(w http.ResponseWriter, r *http.Request) {
 // UserSubmissions - Retrieves all of user's battles and displays to user.
 func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	userID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer r.Body.Close()
 
 	user := GetUser(w, r, false)
-	if userID == user.ID {
-		http.Redirect(w, r, "/me", 302)
-		return
-	}
 
 	userGroups := []Group{}
 	if user.Authenticated {
@@ -808,7 +834,8 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 	nickname := ""
 	err = db.QueryRow("SELECT nickname FROM users WHERE id = ?", userID).Scan(&nickname)
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -826,7 +853,8 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(query, userID)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer rows.Close()
@@ -840,7 +868,8 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 		submission = Beat{}
 		err = rows.Scan(&submission.URL, &submission.Votes, &voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
 		if err != nil {
-			http.Redirect(w, r, "/502", 302)
+			SetToast(w, r, "502")
+			http.Redirect(w, r, "", 302)
 			return
 		}
 
@@ -869,7 +898,8 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 
 	submissionsJSON, err := json.Marshal(entries)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -893,20 +923,17 @@ func UserSubmissions(w http.ResponseWriter, r *http.Request) {
 // UserGroups - Retrieves all of user's groups and displays to user.
 func UserGroups(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	userID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer r.Body.Close()
 
 	user := GetUser(w, r, false)
-	if userID == user.ID {
-		http.Redirect(w, r, "/me", 302)
-		return
-	}
 
 	userGroups := []Group{}
 	if user.Authenticated {
@@ -916,7 +943,8 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 	nickname := ""
 	err = db.QueryRow("SELECT nickname FROM users WHERE id = ?", userID).Scan(&nickname)
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
+		SetToast(w, r, "404")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -943,7 +971,7 @@ func UserGroups(w http.ResponseWriter, r *http.Request) {
 // MyAccount - Retrieves all of user's battles and displays to user.
 func MyAccount(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	user := GetUser(w, r, false)
 
@@ -968,11 +996,12 @@ func MyAccount(w http.ResponseWriter, r *http.Request) {
 // MySubmissions - Retrieves all of user's battles and displays to user.
 func MySubmissions(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	user := GetUser(w, r, false)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
+		SetToast(w, r, "relog")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 
@@ -990,7 +1019,8 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(query, user.ID)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 	defer rows.Close()
@@ -1004,7 +1034,8 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 		submission = Beat{}
 		err = rows.Scan(&submission.URL, &submission.Votes, &voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
 		if err != nil {
-			http.Redirect(w, r, "/502", 302)
+			SetToast(w, r, "502")
+			http.Redirect(w, r, "", 302)
 			return
 		}
 
@@ -1033,7 +1064,8 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 
 	submissionsJSON, err := json.Marshal(entries)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
+		SetToast(w, r, "502")
+		http.Redirect(w, r, "", 302)
 		return
 	}
 
@@ -1052,11 +1084,12 @@ func MySubmissions(w http.ResponseWriter, r *http.Request) {
 // MyGroups - Retrieves all of user's groups and displays to user.
 func MyGroups(w http.ResponseWriter, r *http.Request) {
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 
 	user := GetUser(w, r, false)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
+		SetToast(w, r, "relog")
+		http.Redirect(w, r, "/login", 302)
 		return
 	}
 

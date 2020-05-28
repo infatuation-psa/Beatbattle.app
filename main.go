@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"encoding/gob"
+	"fmt"
 	"html/template"
 	"log"
 	"math/rand"
@@ -107,7 +108,7 @@ func StringWithCharset(length int, charset string) string {
 func FrequentQuestions(w http.ResponseWriter, r *http.Request) {
 	user := GetUser(w, r, false)
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
+	toast := GetToast(w, r)
 	defer r.Body.Close()
 
 	m := map[string]interface{}{
@@ -188,7 +189,6 @@ func main() {
 	router.Post("/feedback/{id}", AddFeedback)
 	router.Post("/like/{id}", AddLike)
 	router.Post("/vote/{id}", AddVote)
-	router.Get("/login/{toast}", Login)
 	router.Get("/login", Login)
 
 	// Me
@@ -201,7 +201,6 @@ func main() {
 	// Me
 	router.Get("/me/groups/request/{id}/{response}", GroupRequestResponse)
 	router.Get("/me/groups/invite/{id}/{response}", GroupInviteResponse)
-	router.Get("/me/groups/{toast}", MyGroups)
 	router.Get("/me/groups", MyGroups)
 	router.Get("/me/submissions", MySubmissions)
 	router.Get("/me", MyAccount)
@@ -209,13 +208,10 @@ func main() {
 	// Groups
 	router.Post("/group/submit", InsertGroup)
 	router.Get("/group/submit", SubmitGroup)
-	router.Get("/group/{id}/update/{toast}", UpdateGroup) // Toast
-	router.Post("/group/{id}/update", UpdateGroupDB)      // Update in db
-	router.Get("/group/{id}/update", UpdateGroup)         // Update page
+	router.Post("/group/{id}/update", UpdateGroupDB) // Update in db
+	router.Get("/group/{id}/update", UpdateGroup)    // Update page
 	router.Get("/group/{id}/join", InsertGroupRequest)
-	router.Get("/group/{id}/{toast}", GroupHTTP)
 	router.Get("/group/{id}", GroupHTTP) // Update page
-	router.Get("/groups/{toast}", ViewGroups)
 	router.Get("/groups", ViewGroups)
 
 	router.Get("/faq", FrequentQuestions)
@@ -225,29 +221,23 @@ func main() {
 
 	// Battle
 	router.Get("/battle/{id}/update/timezone/{region}/{country}", UpdateBattle) // Timezone
-	router.Get("/battle/{id}/update/{toast}", UpdateBattle)                     // Toast
 	router.Post("/battle/{id}/update", UpdateBattleDB)                          // Update in db
 	router.Get("/battle/{id}/update", UpdateBattle)                             // Update page
 	router.Post("/battle/{id}/delete", DeleteBattle)
 	router.Get("/battle/{id}/feedback", ViewFeedback)
 
-	router.Get("/battle/submit/{toast}", SubmitBattle)
 	router.Post("/battle/submit", InsertBattle)
 	router.Get("/battle/submit", SubmitBattle)
-	router.Get("/battle/{id}/{toast}", BattleHTTP)
 	router.Get("/battle/{id}", BattleHTTP)
 
 	// Beat
-	router.Get("/beat/{id}/submit/{toast}", SubmitBeat)
 	router.Get("/beat/{id}/submit", SubmitBeat)
 	router.Post("/beat/{id}/submit", InsertBeat)
-	router.Get("/beat/{id}/update/{toast}", SubmitBeat)
 	router.Post("/beat/{id}/update", UpdateBeat)
 	router.Get("/beat/{id}/update", SubmitBeat)
 	router.Get("/beat/{id}/delete", DeleteBeat)
 
 	router.Get("/past", ViewBattles)
-	router.Get("/{toast}", ViewBattles)
 	router.Get("/", ViewBattles)
 
 	http.Handle("/", router)
@@ -265,10 +255,15 @@ func contains(arr []string, str string) bool {
 }
 
 // GetToast serves toast text.
-func GetToast(toast string) [2]string {
+func GetToast(w http.ResponseWriter, r *http.Request) [2]string {
 	html := ""
 	class := ""
-	switch message := toast; message {
+
+	session, _ := store.Get(r, "beatbattle")
+	errorCode := session.Values["error"]
+	fmt.Println(errorCode)
+
+	switch message := errorCode; message {
 	case "404":
 		html = "Requested resource not found."
 		class = "toast-error"
@@ -404,9 +399,19 @@ func GetToast(toast string) [2]string {
 		class = "toast-error"
 	}
 
+	session.Values["error"] = ""
+	session.Save(r, w)
+
 	if html != "" {
 		return [2]string{html, class}
 	}
 
 	return [2]string{}
+}
+
+// SetToast serves toast text.
+func SetToast(w http.ResponseWriter, r *http.Request, code string) {
+	session, _ := store.Get(r, "beatbattle")
+	session.Values["error"] = code
+	session.Save(r, w)
 }
