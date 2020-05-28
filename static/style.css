@@ -9,6 +9,10 @@ body {
           flex-direction: column;
 }
 
+.battle-host + .battle-title {
+  padding-top: 0 !important;
+}
+
 .submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within {
   border-bottom: 1px solid #ff5800 !important;
 }
@@ -590,6 +594,8 @@ button:focus {
   border: 0;
   background: transparent;
   cursor: pointer;
+  -webkit-appearance: none;
+  border-radius: 0;
 }
 
 .playButton circle {
