@@ -393,6 +393,35 @@ button:focus
 	border-bottom: 1px solid black
 	box-sizing: border-box 
 
+.playButton
+	color: rgb(204, 68, 0)
+	position:relative
+	display:inline-block
+	width: 20px
+	height: 20px
+	margin: 0
+	padding: 0
+	vertical-align: middle
+	border: 0
+	background: transparent
+	cursor: pointer
+
+.playButton circle
+	fill: $main-color
+
+.darkmode--activated .playButton circle
+	fill: none
+
+.playButton__play
+	display:block
+	
+.playButton .playButton__overlay
+	visibility:hidden
+
+.playButton:focus .playButton__overlay,
+.playButton:hover .playButton__overlay
+	visibility:visible !important
+
 .btn-link 
 	border: none 
 	outline: none 

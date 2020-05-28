@@ -51,7 +51,23 @@
           <zg-column cell-class="zing-left" header="Artist" index="artist">
             <a class="battle-url" href="/user/[[record.user_id]]">[[record.artist]]</a>
           </zg-column>
-          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>
+          <zg-column cell-class="zing-left" header="Track" index="url">
+            <div class="embedded-track">
+              <button data-embed='[[index.url]]' class="playButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
+                  <defs>
+                    <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+                      <stop offset="0%" stop-color="#ff5500" stop-opacity="1"></stop>
+                      <stop offset="100%" stop-color="#ff2200" stop-opacity="1"></stop>
+                    </linearGradient>
+                  </defs>
+                  <circle fill="url(#playButton__gradient12)" stroke="#cc4400" cx="21.5" cy="21.5" r="21"></circle>
+                  <circle class="playButton__overlay" fill="#000" fill-opacity="0.08" stroke="#cc4400" cx="21.5" cy="21.5" r="21"></circle>
+                  <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
+                </svg>
+              </button>
+            </div>
+          </zg-column>
           {{ else }}
           <zg-column width="85px" cell-class="zing-left" type="row-number" header="Entry #"></zg-column>
           {{if eq "voting" .Battle.Status}}
@@ -65,7 +81,23 @@
             </form>
           </zg-column>   
           {{ end }}
-          <zg-column cell-class="zing-left" header="Track" index="url"></zg-column>     
+          <zg-column cell-class="zing-left" header="Track" index="url">
+            <div class="embedded-track">
+              <button data-embed='[[index.url]]' class="playButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
+                  <defs>
+                    <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+                      <stop offset="0%" stop-color="#ff5500" stop-opacity="1"></stop>
+                      <stop offset="100%" stop-color="#ff2200" stop-opacity="1"></stop>
+                    </linearGradient>
+                  </defs>
+                  <circle fill="url(#playButton__gradient12)" stroke="#cc4400" cx="21.5" cy="21.5" r="21"></circle>
+                  <circle class="playButton__overlay" fill="#000" fill-opacity="0.08" stroke="#cc4400" cx="21.5" cy="21.5" r="21"></circle>
+                  <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
+                </svg>
+              </button>
+            </div>
+          </zg-column>     
           {{ end }}          
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="" header="Votes" index="votes"></zg-column>
@@ -130,6 +162,15 @@ window.addEventListener("load", () => {
 var _href = $("#edit-button").attr("href");
 
 function onChange() {
+  $(function () {
+    var embed = "";
+    $(".playButton").click(function () {
+      var button = $(this);
+      embed = button.data("embed");
+      var toembed = button.closest(".embedded-track");
+      toembed.html(embed);
+    });
+  });
   if ($("zing-grid").hasClass("zing-vote")) {
     $("body > div.container > zing-grid > zg-head > zg-row > zg-head-cell:nth-child(2)").addClass("zing-vote-header");
   }
