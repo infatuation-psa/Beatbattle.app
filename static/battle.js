@@ -31,6 +31,7 @@ function onChange() {
         }
     }).done(function(t) {
         const e = JSON.parse(t);
+        console.log(e);
         e.Redirect ? window.location.replace(e.Redirect) : (M.toast({
             html: e.ToastHTML,
             classes: e.ToastClass,

@@ -77,7 +77,8 @@
           <zg-column width="85px" cell-class="zing-left" type="row-number" header="Entry #"></zg-column>
           {{if eq "voting" .Battle.Status}}
           <zg-column width="85px" cell-class="zing-left" sorter="voteSort" header="Vote" index="vote_colour">
-            <form class="form-ajax" action="/vote/[[record.id]]" method="post">
+            <form class="form-ajax" action="/vote" method="post">
+              <input name="id" type="hidden" value="[[record.id]]" />
               <button type="submit" class="btn-link">
                 <span class="material-icons" row-class="dark" style="color: [[index.vote_colour]]">
                 done
@@ -123,7 +124,8 @@
           </zg-column>
           {{ end }}
           <zg-column cell-class="zing-right" sorter="loveSort" header="Bookmark" index="like_colour">
-            <form class="form-ajax" action="/like/[[record.id]]" method="post">
+            <form class="form-ajax" action="/like" method="post">
+              <input name="id" type="hidden" value="[[record.id]]" />
               <button type="submit" class="btn-link">
                 <span class="material-icons" row-class="dark" style="color: [[index.like_colour]]">
                 favorite_border

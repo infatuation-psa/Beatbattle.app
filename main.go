@@ -1,29 +1,30 @@
 package main
 
 import (
-	"crypto/tls"
 	"database/sql"
 	"encoding/gob"
-	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/Masterminds/sprig"
 	"github.com/cameronstanley/go-reddit"
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/microcosm-cc/bluemonday"
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/gorilla/pat"
-	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/discord"
 
-	"github.com/Masterminds/sprig"
 	"github.com/joho/godotenv"
 )
 
@@ -36,8 +37,6 @@ var store *sessions.FilesystemStore
 var discordProvider *discord.Provider
 var redditAuth *reddit.Authenticator
 
-// tmpl holds all parsed templates
-var tmpl *template.Template
 var policy *bluemonday.Policy
 
 var whitelist []string
@@ -69,15 +68,11 @@ func init() {
 	/*authKeyOne := securecookie.GenerateRandomKey(64)
 	encryptionKeyOne := securecookie.GenerateRandomKey(32)*/
 
+	// Session
 	authKeyOne := []byte(os.Getenv("SECURE_KEY64"))
 	encryptionKeyOne := []byte(os.Getenv("SECURE_KEY32"))
 
-	store = sessions.NewFilesystemStore(
-		"sessions/",
-		authKeyOne,
-		encryptionKeyOne,
-	)
-
+	store = sessions.NewFilesystemStore("sessions/", authKeyOne, encryptionKeyOne)
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   60 * 10080,
@@ -85,15 +80,21 @@ func init() {
 	}
 
 	gob.Register(User{})
-
-	tmpl = template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*"))
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+// Template struct
+type Template struct {
+	templates *template.Template
+}
 
-var seededRand *rand.Rand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
+// Render func
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // StringWithCharset ...
 func StringWithCharset(length int, charset string) string {
@@ -105,11 +106,9 @@ func StringWithCharset(length int, charset string) string {
 }
 
 // FrequentQuestions ...
-func FrequentQuestions(w http.ResponseWriter, r *http.Request) {
-	user := GetUser(w, r, false)
-
-	toast := GetToast(w, r)
-	defer r.Body.Close()
+func FrequentQuestions(c echo.Context) error {
+	user := GetUser(c, false)
+	toast := GetToast(c)
 
 	m := map[string]interface{}{
 		"Title": "Frequently Asked Questions",
@@ -117,7 +116,7 @@ func FrequentQuestions(w http.ResponseWriter, r *http.Request) {
 		"Toast": toast,
 	}
 
-	tmpl.ExecuteTemplate(w, "FAQ", m)
+	return c.Render(http.StatusOK, "FAQ", m)
 }
 
 // RandString ...
@@ -129,43 +128,22 @@ func main() {
 	db = dbInit()
 	defer db.Close()
 
-	tlsConfig := &tls.Config{
-		// Causes servers to use Go's default ciphersuite preferences,
-		// which are tuned to avoid attacks. Does nothing on clients.
-		PreferServerCipherSuites: true,
-		// Only use curves which have assembly implementations
-		CurvePreferences: []tls.CurveID{
-			tls.CurveP256,
-			tls.X25519, // Go 1.8 only
-		},
-		MinVersion: tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, // Go 1.8 only
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,   // Go 1.8 only
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	e := echo.New()
 
-			// Best disabled, as they don't provide Forward Secrecy,
-			// but might be necessary for some clients
-			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-		},
+	e.Server.WriteTimeout = 10 * time.Second
+	e.Server.ReadTimeout = 5 * time.Second
+	e.Server.IdleTimeout = 60 * time.Second
+
+	e.Use(session.Middleware(store))
+	e.Use(middleware.Secure())
+	e.Pre(middleware.HTTPSNonWWWRedirect())
+	e.Pre(middleware.RemoveTrailingSlash())
+
+	tmpl := &Template{
+		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),
 	}
 
-	router := pat.New()
-
-	srv := &http.Server{
-		ReadTimeout:       1 * time.Second,
-		WriteTimeout:      1 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		ReadHeaderTimeout: 2 * time.Second,
-		TLSConfig:         tlsConfig,
-		Handler:           router,
-	}
-
-	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	e.Renderer = tmpl
 
 	// TODO - IS IT SAFE TO STORE STATE?
 	state = os.Getenv("REDDIT_STATE")
@@ -179,70 +157,68 @@ func main() {
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
 	goth.UseProviders(discordProvider)
 
-	router.PathPrefix("/static/").Handler(static)
+	e.Static("/static", "static")
 
 	// Handlers for users & auth
-	router.Get("/auth/{provider}/callback", Callback)
-	router.Get("/auth/{provider}", Auth)
-	router.Get("/logout/{provider}", Logout)
-	router.Get("/logout", GenericLogout)
-	router.Post("/feedback/{id}", AddFeedback)
-	router.Post("/like/{id}", AddLike)
-	router.Post("/vote/{id}", AddVote)
-	router.Get("/login", Login)
+	e.GET("/auth/callback", Callback)
+	e.GET("/auth", Auth)
+	e.GET("/logout/:provider", Logout)
+	e.GET("/logout", Logout)
+	e.POST("/feedback/:id", AddFeedback)
+	e.POST("/like", AddLike)
+	e.POST("/vote", AddVote)
+	e.GET("/login", Login)
 
 	// Me
-	router.Post("/user/{id}/invite", InsertGroupInvite)
-	router.Get("/user/{id}/groups", UserGroups)
-	router.Get("/user/{id}/submissions", UserSubmissions)
-	router.Get("/user/{id}", UserAccount)
-	router.Get("/recalculate", CalculateVotes)
+	e.POST("/user/:id/invite", InsertGroupInvite)
+	e.GET("/user/:id/groups", UserGroups)
+	e.GET("/user/:id/submissions", UserSubmissions)
+	e.GET("/user/:id", UserAccount)
+	e.GET("/recalculate", CalculateVotes)
 
 	// Me
-	router.Get("/me/groups/request/{id}/{response}", GroupRequestResponse)
-	router.Get("/me/groups/invite/{id}/{response}", GroupInviteResponse)
-	router.Get("/me/groups", MyGroups)
-	router.Get("/me/submissions", MySubmissions)
-	router.Get("/me", MyAccount)
+	e.GET("/me/groups/request/:id/:response", GroupRequestResponse)
+	e.GET("/me/groups/invite/:id/:response", GroupInviteResponse)
+	e.GET("/me/groups", MyGroups)
+	e.GET("/me/submissions", MySubmissions)
+	e.GET("/me", MyAccount)
 
 	// Groups
-	router.Post("/group/submit", InsertGroup)
-	router.Get("/group/submit", SubmitGroup)
-	router.Post("/group/{id}/update", UpdateGroupDB) // Update in db
-	router.Get("/group/{id}/update", UpdateGroup)    // Update page
-	router.Get("/group/{id}/join", InsertGroupRequest)
-	router.Get("/group/{id}", GroupHTTP) // Update page
-	router.Get("/groups", ViewGroups)
+	e.POST("/group/submit", InsertGroup)
+	e.GET("/group/submit", SubmitGroup)
+	e.POST("/group/:id/update", UpdateGroupDB) // Update in db
+	e.GET("/group/:id/update", UpdateGroup)    // Update page
+	e.GET("/group/:id/join", InsertGroupRequest)
+	e.GET("/group/:id", GroupHTTP) // Update page
+	e.GET("/groups", ViewGroups)
 
-	router.Get("/faq", FrequentQuestions)
+	e.GET("/faq", FrequentQuestions)
 
 	// Battles
-	router.Get("/battles/{tag}", ViewTaggedBattles)
+	e.GET("/battles/{tag}", ViewTaggedBattles)
 
 	// Battle
-	router.Get("/battle/{id}/update/timezone/{region}/{country}", UpdateBattle) // Timezone
-	router.Post("/battle/{id}/update", UpdateBattleDB)                          // Update in db
-	router.Get("/battle/{id}/update", UpdateBattle)                             // Update page
-	router.Post("/battle/{id}/delete", DeleteBattle)
-	router.Get("/battle/{id}/feedback", ViewFeedback)
+	e.GET("/battle/:id/update/timezone/:region/:country", UpdateBattle) // Timezone
+	e.POST("/battle/:id/update", UpdateBattleDB)                        // Update in db
+	e.GET("/battle/:id/update", UpdateBattle)                           // Update page
+	e.POST("/battle/:id/delete", DeleteBattle)
+	e.GET("/battle/:id/feedback", ViewFeedback)
 
-	router.Post("/battle/submit", InsertBattle)
-	router.Get("/battle/submit", SubmitBattle)
-	router.Get("/battle/{id}", BattleHTTP)
+	e.POST("/battle/submit", InsertBattle)
+	e.GET("/battle/submit", SubmitBattle)
+	e.GET("/battle/:id", BattleHTTP)
 
 	// Beat
-	router.Get("/beat/{id}/submit", SubmitBeat)
-	router.Post("/beat/{id}/submit", InsertBeat)
-	router.Post("/beat/{id}/update", UpdateBeat)
-	router.Get("/beat/{id}/update", SubmitBeat)
-	router.Get("/beat/{id}/delete", DeleteBeat)
+	e.GET("/beat/:id/submit", SubmitBeat)
+	e.POST("/beat/:id/submit", InsertBeat)
+	e.POST("/beat/:id/update", UpdateBeat)
+	e.GET("/beat/:id/update", SubmitBeat)
+	e.GET("/beat/:id/delete", DeleteBeat)
 
-	router.Get("/past", ViewBattles)
-	router.Get("/", ViewBattles)
+	e.GET("/past", ViewBattles)
+	e.GET("/", ViewBattles)
 
-	http.Handle("/", router)
-
-	log.Fatal(srv.ListenAndServeTLS("server.crt", "server.key"))
+	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
 }
 
 func contains(arr []string, str string) bool {
@@ -252,166 +228,4 @@ func contains(arr []string, str string) bool {
 		}
 	}
 	return false
-}
-
-// GetToast serves toast text.
-func GetToast(w http.ResponseWriter, r *http.Request) [2]string {
-	html := ""
-	class := ""
-
-	session, _ := store.Get(r, "beatbattle")
-	errorCode := session.Values["error"]
-	fmt.Println(errorCode)
-
-	switch message := errorCode; message {
-	case "404":
-		html = "Requested resource not found."
-		class = "toast-error"
-	case "502":
-		html = "Server error."
-		class = "toast-error"
-	case "password":
-		html = "Incorrect password."
-		class = "toast-error"
-	case "unapprovedurl":
-		html = "URL not on approved list."
-		class = "toast-error"
-	case "notopen":
-		html = "That battle is not currently open."
-		class = "toast-error"
-	case "nobeat":
-		html = "You haven't submitted a beat to this battle."
-		class = "toast-error"
-	case "noauth":
-		html = "You need to be logged in to do that."
-		class = "toast-error"
-	case "notuser":
-		html = "You're not allowed to do that."
-		class = "toast-error"
-	case "notvoting":
-		html = "This battle isn't currently accepting votes."
-		class = "toast-error"
-	case "owntrack":
-		html = "You can't vote for your own track."
-		class = "toast-error"
-	case "maxvotes":
-		html = "You're at your max votes for this battle."
-		class = "toast-error"
-	case "deadb4":
-		html = "The deadline cannot be before right now."
-		class = "toast-error"
-	case "voteb4":
-		html = "The voting deadline cannot be before the deadline."
-		class = "toast-error"
-	case "maxvotesinvalid":
-		html = "Max votes must be between 1 and 10."
-		class = "toast-error"
-	case "nodata":
-		html = "No data received.."
-		class = "toast-error"
-	case "validationerror":
-		html = "Validation error, please try again."
-		class = "toast-error"
-	case "maxbattles":
-		html = "You can only have 3 active battles at once."
-		class = "toast-error"
-	case "titleexists":
-		html = "You already have a battle with this title."
-		class = "toast-error"
-	case "sconly":
-		html = "You must submit a SoundCloud link."
-		class = "toast-error"
-	case "cache":
-	case "cachesave":
-		html = "If this happens again, try clearing your cache."
-		class = "toast-error"
-	case "feedbackself":
-		html = "You can't give yourself feedback."
-		class = "toast-error"
-	case "invalidtype":
-		html = "That is not a valid battle type."
-		class = "toast-error"
-	case "liked":
-		html = "Submission loved."
-		class = "toast-success"
-	case "unliked":
-		html = "Submission unloved."
-		class = "toast-success"
-	case "successvote":
-		html = "Vote successful."
-		class = "toast-success"
-	case "successdelvote":
-		html = "Vote successfully removed."
-		class = "toast-success"
-	case "successdel":
-		html = "Successfully deleted."
-		class = "toast-success"
-	case "successadd":
-		html = "Successfully added."
-		class = "toast-success"
-	case "successupdate":
-		html = "Successfully updated."
-		class = "toast-success"
-	case "successaddfeedback":
-		html = "Successfully added feedback."
-		class = "toast-success"
-	case "acceptreq":
-		html = "User has been added to the group."
-		class = "toast-success"
-	case "accept":
-		html = "Successfully joined group."
-		class = "toast-success"
-	case "successreq":
-		html = "Requested to join group."
-		class = "toast-success"
-	case "declinereq":
-		html = "User has not been added to the group."
-		class = "toast-success"
-	case "decline":
-		html = "Successfully declined invite."
-		class = "toast-success"
-	case "successinv":
-		html = "Successfully invited user."
-		class = "toast-success"
-	case "ingroupreq":
-		html = "User already in group."
-		class = "toast-error"
-	case "ingroup":
-		html = "You're already in the group."
-		class = "toast-error"
-	case "notingroup":
-		html = "Not in group."
-		class = "toast-error"
-	case "invalid":
-		html = "Your SoundCloud url format is invalid."
-		class = "toast-error"
-	case "reqexists":
-		html = "You've already requested to join this group."
-		class = "toast-error"
-	case "invexists":
-		html = "User has already been invited to the group."
-		class = "toast-error"
-	case "notopengrp":
-		html = "This group is not open."
-		class = "toast-error"
-	case "relog":
-		html = "Login session expired."
-		class = "toast-error"
-	}
-
-	session.Values["error"] = ""
-	session.Save(r, w)
-
-	if html != "" {
-		return [2]string{html, class}
-	}
-
-	return [2]string{}
-}
-
-// SetToast serves toast text.
-func SetToast(w http.ResponseWriter, r *http.Request, code string) {
-	session, _ := store.Get(r, "beatbattle")
-	session.Values["error"] = code
-	session.Save(r, w)
 }
