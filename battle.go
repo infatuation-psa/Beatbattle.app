@@ -211,7 +211,6 @@ func GetBattles(field string, value string) []Battle {
 	query := querySELECT + " " + queryWHERE + " " + queryGROUP + " " + queryORDER
 
 	rows, err := db.Query(query, value)
-
 	if err != nil {
 		return nil
 	}
@@ -517,12 +516,13 @@ func GetBattle(battleID int) Battle {
 func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, false)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	toast := GetToast(w, r)
 
@@ -545,12 +545,13 @@ func SubmitBattle(w http.ResponseWriter, r *http.Request) {
 func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, false)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	toast := GetToast(w, r)
 	region := r.URL.Query().Get(":region")
@@ -611,12 +612,13 @@ func UpdateBattle(w http.ResponseWriter, r *http.Request) {
 func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
@@ -782,12 +784,13 @@ func UpdateBattleDB(w http.ResponseWriter, r *http.Request) {
 func InsertBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	entries := 0
 	err := db.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", user.ID).Scan(&entries)
@@ -1035,12 +1038,13 @@ func GetTags(battleID int) []Tag {
 func DeleteBattle(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {

@@ -26,12 +26,13 @@ type Beat struct {
 func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, false)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
@@ -82,12 +83,13 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
 	if err != nil {
@@ -181,12 +183,13 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
 	if err != nil {
@@ -247,6 +250,8 @@ func UpdateBeat(w http.ResponseWriter, r *http.Request) {
 func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
@@ -259,7 +264,6 @@ func DeleteBeat(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 

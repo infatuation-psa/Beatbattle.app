@@ -78,12 +78,13 @@ func ViewGroups(w http.ResponseWriter, r *http.Request) {
 func InsertGroup(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	title := policy.Sanitize(r.FormValue("title"))
 	description := policy.Sanitize(r.FormValue("description"))
@@ -140,12 +141,13 @@ func InsertGroup(w http.ResponseWriter, r *http.Request) {
 func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	userID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
@@ -198,12 +200,13 @@ func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
 func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil {
@@ -257,12 +260,13 @@ func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
 func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
@@ -328,12 +332,13 @@ func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	requestID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
@@ -747,12 +752,13 @@ func UpdateGroup(w http.ResponseWriter, r *http.Request) {
 func UpdateGroupDB(w http.ResponseWriter, r *http.Request) {
 
 	user := GetUser(w, r, true)
+	defer r.Body.Close()
+
 	if !user.Authenticated {
 		SetToast(w, r, "relog")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
-	defer r.Body.Close()
 
 	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
 	if err != nil && err != sql.ErrNoRows {
