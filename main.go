@@ -134,10 +134,11 @@ func main() {
 	e.Server.ReadTimeout = 5 * time.Second
 	e.Server.IdleTimeout = 60 * time.Second
 
-	e.Use(session.Middleware(store))
-	e.Use(middleware.Secure())
 	e.Pre(middleware.HTTPSNonWWWRedirect())
 	e.Pre(middleware.RemoveTrailingSlash())
+
+	e.Use(session.Middleware(store))
+	e.Use(middleware.Secure())
 
 	tmpl := &Template{
 		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),

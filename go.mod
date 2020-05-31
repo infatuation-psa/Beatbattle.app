@@ -1,4 +1,4 @@
-module gitlab.com/AlecMacDonald/beatbattle.app.git
+module gitlab.com/AlecMacDonald/beatbattle.app
 
 go 1.14
 
