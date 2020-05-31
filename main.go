@@ -196,7 +196,7 @@ func main() {
 	e.GET("/faq", FrequentQuestions)
 
 	// Battles
-	e.GET("/battles/{tag}", ViewTaggedBattles)
+	e.GET("/battles/:tag", ViewTaggedBattles)
 
 	// Battle
 	e.GET("/battle/:id/update/timezone/:region/:country", UpdateBattle) // Timezone

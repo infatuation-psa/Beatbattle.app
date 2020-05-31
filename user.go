@@ -87,8 +87,8 @@ func Callback(c echo.Context) error {
 	}
 
 	if handler == "reddit" {
-		state := c.Param("state")
-		code := c.Param("code")
+		state := c.QueryParam("state")
+		code := c.QueryParam("code")
 		token, err := redditAuth.GetToken(state, code)
 		if err != nil {
 			sess.Options.MaxAge = -1
