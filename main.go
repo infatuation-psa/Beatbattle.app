@@ -17,14 +17,12 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/microcosm-cc/bluemonday"
-
-	_ "github.com/go-sql-driver/mysql"
-
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/discord"
+	"github.com/microcosm-cc/bluemonday"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
@@ -42,6 +40,7 @@ var policy *bluemonday.Policy
 var whitelist []string
 var state string
 var db *sql.DB
+var e *echo.Echo
 
 /*-------
 Help Actions
@@ -80,6 +79,27 @@ func init() {
 	}
 
 	gob.Register(User{})
+
+	db = dbInit()
+
+	e = echo.New()
+
+	e.Server.WriteTimeout = 10 * time.Second
+	e.Server.ReadTimeout = 5 * time.Second
+	e.Server.IdleTimeout = 60 * time.Second
+
+	e.Pre(middleware.HTTPSNonWWWRedirect())
+	e.Pre(middleware.RemoveTrailingSlash())
+
+	e.Use(session.Middleware(store))
+	e.Use(middleware.Secure())
+
+	tmpl := &Template{
+		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),
+	}
+
+	e.Renderer = tmpl
+	e.Static("/static", "static")
 }
 
 // Template struct
@@ -125,40 +145,16 @@ func RandString(length int) string {
 }
 
 func main() {
-	db = dbInit()
 	defer db.Close()
-
-	e := echo.New()
-
-	e.Server.WriteTimeout = 10 * time.Second
-	e.Server.ReadTimeout = 5 * time.Second
-	e.Server.IdleTimeout = 60 * time.Second
-
-	e.Pre(middleware.HTTPSNonWWWRedirect())
-	e.Pre(middleware.RemoveTrailingSlash())
-
-	e.Use(session.Middleware(store))
-	e.Use(middleware.Secure())
-
-	tmpl := &Template{
-		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),
-	}
-
-	e.Renderer = tmpl
-
 	// TODO - IS IT SAFE TO STORE STATE?
 	state = os.Getenv("REDDIT_STATE")
-
-	discordProvider = discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify)
 
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
 		"linux:beatbattle:v1.1 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
 	redditAuth.RequestPermanentToken = true
 
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
-	goth.UseProviders(discordProvider)
-
-	e.Static("/static", "static")
+	goth.UseProviders(discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify))
 
 	// Handlers for users & auth
 	e.GET("/auth/callback", Callback)

@@ -16,8 +16,10 @@ require (
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/joho/godotenv v1.3.0
+	github.com/labstack/echo v3.3.10+incompatible // indirect
 	github.com/labstack/echo-contrib v0.9.0
 	github.com/labstack/echo/v4 v4.1.6
+	github.com/laicosly/goth v0.0.0-20151213014619-c3dc119e39f2
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/markbates/goth v1.64.1
 	github.com/microcosm-cc/bluemonday v1.0.2
