@@ -26,15 +26,12 @@ function onChange() {
         url: e,
         type: o,
         data: n,
-        beforeSend: function(t) {
-            t.setRequestHeader("X-Requested-With", "xmlhttprequest")
+        success: function(t) {
+            t.Redirect ? window.location.replace(t.RedirectPath) : (M.toast({
+                html: t.ToastHTML,
+                classes: t.ToastClass,
+            }), "liked" == t.ToastQuery && i.attr("style", "color: #ff5800"), "unliked" == t.ToastQuery && i.attr("style", ""), "successvote" == t.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) - 1), r.attr("style", "color: #ff5800")), "successdelvote" == t.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) + 1), r.attr("style", "")))
         }
-    }).done(function(t) {
-        const e = JSON.parse(t);
-        e.Redirect ? window.location.replace(e.Redirect) : (M.toast({
-            html: e.ToastHTML,
-            classes: e.ToastClass,
-        }), "liked" == e.ToastQuery && i.attr("style", "color: #ff5800"), "unliked" == e.ToastQuery && i.attr("style", ""), "successvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) - 1), r.attr("style", "color: #ff5800")), "successdelvote" == e.ToastQuery && ($(".votes-remaining").html(parseInt($(".votes-remaining").html(), 10) + 1), r.attr("style", "")))
     })
   })
   $(".tooltipped").tooltip()
