@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"html"
 	"html/template"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gomarkdown/markdown"
+	"github.com/labstack/echo/v4"
 )
 
 // Group ...
@@ -34,35 +34,25 @@ type GroupUser struct {
 }
 
 // SubmitGroup ...
-func SubmitGroup(w http.ResponseWriter, r *http.Request) {
+func SubmitGroup(c echo.Context) error {
+	toast := GetToast(c)
+	var user = GetUser(c, false)
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
-	defer r.Body.Close()
-
-	var user = GetUser(w, r, false)
 	m := map[string]interface{}{
 		"Title": "Submit Group",
 		"User":  user,
 		"Toast": toast,
 	}
 
-	tmpl.ExecuteTemplate(w, "SubmitGroup", m)
+	return c.Render(http.StatusOK, "SubmitGroup", m)
 }
 
 // ViewGroups - Retrieves all groups and displays to user.
-func ViewGroups(w http.ResponseWriter, r *http.Request) {
-
-	toast := GetToast(r.URL.Query().Get(":toast"))
-
-	user := GetUser(w, r, false)
-
+func ViewGroups(c echo.Context) error {
+	toast := GetToast(c)
+	user := GetUser(c, false)
 	groups := GetGroups(db, 0)
-
-	groupsJSON, err := json.Marshal(groups)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	groupsJSON, _ := json.Marshal(groups)
 
 	m := map[string]interface{}{
 		"Title":  "Groups",
@@ -71,22 +61,21 @@ func ViewGroups(w http.ResponseWriter, r *http.Request) {
 		"Toast":  toast,
 	}
 
-	tmpl.ExecuteTemplate(w, "ViewGroups", m)
+	return c.Render(http.StatusOK, "ViewGroups", m)
 }
 
 // InsertGroup ...
-func InsertGroup(w http.ResponseWriter, r *http.Request) {
+func InsertGroup(c echo.Context) error {
+	user := GetUser(c, true)
 
-	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	title := policy.Sanitize(r.FormValue("title"))
-	description := policy.Sanitize(r.FormValue("description"))
-	inviteonly := policy.Sanitize(r.FormValue("inviteonly"))
+	title := policy.Sanitize(c.FormValue("title"))
+	description := policy.Sanitize(c.FormValue("description"))
+	inviteonly := policy.Sanitize(c.FormValue("inviteonly"))
 	status := "open"
 
 	println(inviteonly)
@@ -98,168 +87,166 @@ func InsertGroup(w http.ResponseWriter, r *http.Request) {
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 	defer ins.Close()
 
 	insert, err := ins.Exec(title, description, status, user.ID)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 
 	groupID, err := insert.LastInsertId()
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 
 	stmt = "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,?)"
 
 	ins, err = db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 	defer ins.Close()
 
 	ins.Exec(user.ID, groupID, "owner")
 
-	http.Redirect(w, r, "/group/"+strconv.Itoa(int(groupID))+"/successadd", 302)
-	return
+	SetToast(c, "successadd")
+	return c.Redirect(302, "/group/"+strconv.Itoa(int(groupID)))
 }
 
 // InsertGroupInvite ...
-func InsertGroupInvite(w http.ResponseWriter, r *http.Request) {
+func InsertGroupInvite(c echo.Context) error {
+	user := GetUser(c, true)
 
-	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
-	}
-	defer r.Body.Close()
-
-	userID, err := strconv.Atoi(r.URL.Query().Get(":id"))
-	if err != nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "login")
 	}
 
-	groupID, err := strconv.Atoi(policy.Sanitize(r.FormValue("group")))
+	userID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
+	}
+
+	groupID, err := strconv.Atoi(policy.Sanitize(c.FormValue("group")))
+	if err != nil {
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	inviteExists := RowExists("SELECT id FROM groups_invites WHERE user_id = ? AND group_id = ?", userID, groupID)
 
 	if inviteExists {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/invexists", 302)
-		return
+		SetToast(c, "invexists")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ? AND role = ?", user.ID, groupID, "owner")
 
 	if !hasPermissions {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/notuser", 302)
-		return
+		SetToast(c, "notuser")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	stmt := "INSERT INTO groups_invites(user_id, group_id) VALUES(?,?)"
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 	defer ins.Close()
 
 	ins.Exec(userID, groupID)
 
-	http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/successinv", 302)
-	return
+	SetToast(c, "successinv")
+	return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 }
 
 // InsertGroupRequest ...
-func InsertGroupRequest(w http.ResponseWriter, r *http.Request) {
+func InsertGroupRequest(c echo.Context) error {
+	user := GetUser(c, true)
 
-	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	userInGroup := RowExists("SELECT id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 
 	if userInGroup {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/ingroup", 302)
-		return
+		SetToast(c, "ingroup")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	requestExists := RowExists("SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 
 	if requestExists {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/reqexists", 302)
-		return
+		SetToast(c, "reqexists")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	hasPermissions := RowExists("SELECT id FROM beatbattle.groups WHERE id = ? and status=?", groupID, "open")
 
 	if !hasPermissions {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/notopengrp", 302)
-		return
+		SetToast(c, "notopengrp")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	stmt := "INSERT INTO groups_requests(user_id, group_id) VALUES(?,?)"
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 	defer ins.Close()
 
 	ins.Exec(user.ID, groupID)
 
-	http.Redirect(w, r, "/group/"+strconv.Itoa(groupID)+"/successreq", 302)
-	return
+	SetToast(c, "successreq")
+	return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 }
 
 // GroupInviteResponse ...
-func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
+func GroupInviteResponse(c echo.Context) error {
 
-	user := GetUser(w, r, true)
+	user := GetUser(c, true)
+
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/me/groups/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/me/groups")
 	}
 
 	inviteExists := RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
 	if !inviteExists {
-		http.Redirect(w, r, "/me/groups/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/me/groups")
 	}
 
-	response := r.URL.Query().Get(":response")
+	response := c.Param("response")
 
 	if response != "accept" && response != "decline" {
-		http.Redirect(w, r, "/me/groups/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/me/groups")
 	}
 
 	if response == "accept" {
@@ -273,8 +260,8 @@ func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 
 			ins, err := db.Prepare(stmt)
 			if err != nil {
-				http.Redirect(w, r, "/me/groups/502", 302)
-				return
+				SetToast(c, "502")
+				return c.Redirect(302, "/me/groups")
 			}
 			defer ins.Close()
 
@@ -286,46 +273,46 @@ func GroupInviteResponse(w http.ResponseWriter, r *http.Request) {
 
 	del, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/me/groups/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/me/groups")
 	}
 	defer del.Close()
 
 	del.Exec(user.ID, groupID)
 
-	http.Redirect(w, r, "/me/groups/"+response, 302)
-	return
+	SetToast(c, response)
+	return c.Redirect(302, "/me/groups")
 }
 
 // GroupRequestResponse ...
-func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
+func GroupRequestResponse(c echo.Context) error {
 
-	user := GetUser(w, r, true)
+	user := GetUser(c, true)
+
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	requestID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	requestID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/me/groups/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/me/groups")
 	}
 
 	userID := 0
 	groupID := 0
 	err = db.QueryRow("SELECT user_id, group_id FROM groups_requests WHERE id = ?", requestID).Scan(&userID, &groupID)
 	if err != nil {
-		http.Redirect(w, r, "/me/groups/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/me/groups")
 	}
 
-	response := r.URL.Query().Get(":response")
+	response := c.Param("response")
 
 	if response != "accept" && response != "decline" {
-		http.Redirect(w, r, "/me/groups/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/me/groups")
 	}
 
 	if response == "accept" {
@@ -339,8 +326,8 @@ func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
 
 			ins, err := db.Prepare(stmt)
 			if err != nil {
-				http.Redirect(w, r, "/me/groups/502", 302)
-				return
+				SetToast(c, "502")
+				return c.Redirect(302, "/me/groups")
 			}
 			defer ins.Close()
 
@@ -352,15 +339,14 @@ func GroupRequestResponse(w http.ResponseWriter, r *http.Request) {
 
 	del, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/me/groups/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/me/groups")
 	}
 	defer del.Close()
-
 	del.Exec(requestID)
 
-	http.Redirect(w, r, "/me/groups/"+response+"req", 302)
-	return
+	SetToast(c, response+"req")
+	return c.Redirect(302, "/me/groups")
 }
 
 // GetUserGroups ...
@@ -599,35 +585,34 @@ func GetGroup(db *sql.DB, groupID int) Group {
 }
 
 // GroupHTTP - Retrieves group and displays to user.
-func GroupHTTP(w http.ResponseWriter, r *http.Request) {
-	toast := GetToast(r.URL.Query().Get(":toast"))
-	defer r.Body.Close()
+func GroupHTTP(c echo.Context) error {
+	toast := GetToast(c)
 
 	isOwner := false
 	inGroup := false
 	invited := false
 	requested := false
 
-	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
-	user := GetUser(w, r, false)
+	user := GetUser(c, false)
 
 	// Retrieve group, return to front page if group doesn't exist.
 	group := GetGroup(db, groupID)
 
 	if group.Users == nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	e, err := json.Marshal(group.Users)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 
 	if user.Authenticated {
@@ -651,39 +636,38 @@ func GroupHTTP(w http.ResponseWriter, r *http.Request) {
 		"Toast":     toast,
 	}
 
-	tmpl.ExecuteTemplate(w, "Group", m)
+	return c.Render(http.StatusOK, "Group", m)
 }
 
 // UpdateGroup ...
-func UpdateGroup(w http.ResponseWriter, r *http.Request) {
-	toast := GetToast(r.URL.Query().Get(":toast"))
-	defer r.Body.Close()
+func UpdateGroup(c echo.Context) error {
+	toast := GetToast(c)
 
-	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
-	user := GetUser(w, r, false)
+	user := GetUser(c, false)
 
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
 
 	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
 	if !isOwner {
-		http.Redirect(w, r, "/notuser", 302)
-		return
+		SetToast(c, "notuser")
+		return c.Redirect(302, "/")
 	}
 
 	// Retrieve group, return to front page if group doesn't exist.
 	group := GetGroup(db, groupID)
 
 	if group.Users == nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	inviteOnly := false
@@ -699,34 +683,34 @@ func UpdateGroup(w http.ResponseWriter, r *http.Request) {
 		"InviteOnly": inviteOnly,
 	}
 
-	tmpl.ExecuteTemplate(w, "UpdateGroup", m)
+	return c.Render(http.StatusOK, "UpdateGroup", m)
 }
 
 // UpdateGroupDB ...
-func UpdateGroupDB(w http.ResponseWriter, r *http.Request) {
+func UpdateGroupDB(c echo.Context) error {
 
-	user := GetUser(w, r, true)
+	user := GetUser(c, true)
+
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	groupID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
 	if !isOwner {
-		http.Redirect(w, r, "/notuser", 302)
-		return
+		SetToast(c, "notuser")
+		return c.Redirect(302, "/")
 	}
 
-	title := policy.Sanitize(r.FormValue("title"))
-	description := policy.Sanitize(r.FormValue("description"))
-	inviteonly := policy.Sanitize(r.FormValue("inviteonly"))
+	title := policy.Sanitize(c.FormValue("title"))
+	description := policy.Sanitize(c.FormValue("description"))
+	inviteonly := policy.Sanitize(c.FormValue("inviteonly"))
 	status := "open"
 
 	if inviteonly == "on" {
@@ -737,13 +721,13 @@ func UpdateGroupDB(w http.ResponseWriter, r *http.Request) {
 
 	upd, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 	defer upd.Close()
 
 	upd.Exec(title, description, status, groupID)
 
-	http.Redirect(w, r, "/group/"+strconv.Itoa(int(groupID))+"/successupdate", 302)
-	return
+	SetToast(c, "successupdate")
+	return c.Redirect(302, "/group/"+strconv.Itoa(int(groupID)))
 }

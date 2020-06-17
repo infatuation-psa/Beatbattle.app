@@ -11,6 +11,9 @@ body
 	display: flex
 	flex-direction: column
 
+.battle-host + .battle-title
+	padding-top: 0 !important
+
 .submit-border:active, .submit-border:focus, .submit-border:focus-within, .chips.submit-border:focus, .chips.submit-border:active, .chips.submit-border:focus-within
 	border-bottom: 1px solid $main-color !important
 
@@ -65,6 +68,9 @@ body
 		display: inline-block 
 		padding: 0.75rem 1rem 
 		text-decoration: none 
+
+input[type="submit"]
+	border: 0
 
 .darkmode--activated .nav-secondary, 
 .darkmode--activated .nav-secondary input[type="submit"]
@@ -393,6 +399,37 @@ button:focus
 	border-bottom: 1px solid black
 	box-sizing: border-box 
 
+.playButton
+	color: rgb(204, 68, 0)
+	position:relative
+	display:inline-block
+	width: 20px
+	height: 20px
+	margin: 0
+	padding: 0
+	vertical-align: middle
+	border: 0
+	background: transparent
+	cursor: pointer
+	-webkit-appearance: none
+	border-radius: 0
+
+.playButton circle
+	fill: $main-color
+
+.darkmode--activated .playButton circle
+	fill: none
+
+.playButton__play
+	display:block
+	
+.playButton .playButton__overlay
+	visibility:hidden
+
+.playButton:focus .playButton__overlay,
+.playButton:hover .playButton__overlay
+	visibility:visible !important
+
 .btn-link 
 	border: none 
 	outline: none 
@@ -403,6 +440,7 @@ button:focus
 	text-decoration: underline 
 	font-family: inherit 
 	font-size: inherit 
+
 .link, footer a 
 	color: #ff5800 !important 
 .link 

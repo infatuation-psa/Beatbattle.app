@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/labstack/echo/v4"
 )
 
 // Beat struct.
@@ -23,37 +25,37 @@ type Beat struct {
 }
 
 // SubmitBeat ...
-func SubmitBeat(w http.ResponseWriter, r *http.Request) {
+func SubmitBeat(c echo.Context) error {
+	user := GetUser(c, false)
 
-	user := GetUser(w, r, false)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	battleID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
-	toast := GetToast(r.URL.Query().Get(":toast"))
-	URL := r.URL.RequestURI()
+	toast := GetToast(c)
+
+	URL := c.Request().URL.RequestURI()
 
 	// TODO - Reduce strain her (not *).
 	battle := GetBattle(battleID)
 	if battle.Title == "" {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/404")
 	}
 
 	if battle.GroupID != 0 {
 		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
 
 		if !hasPermissions {
-			http.Redirect(w, r, "/notingroup", 302)
-			return
+			SetToast(c, "notingroup")
+			return c.Redirect(302, "/")
 		}
 	}
 
@@ -71,23 +73,22 @@ func SubmitBeat(w http.ResponseWriter, r *http.Request) {
 		"Toast":  toast,
 	}
 
-	tmpl.ExecuteTemplate(w, tpl, m)
+	return c.Render(http.StatusOK, tpl, m)
 }
 
 // InsertBeat ...
-func InsertBeat(w http.ResponseWriter, r *http.Request) {
+func InsertBeat(c echo.Context) error {
+	user := GetUser(c, true)
 
-	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
+	battleID, err := strconv.Atoi(policy.Sanitize(c.Param("id")))
 	if err != nil {
-		http.Redirect(w, r, "/", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	battle := GetBattle(battleID)
@@ -95,8 +96,8 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
 
 		if !hasPermissions {
-			http.Redirect(w, r, "/notingroup", 302)
-			return
+			SetToast(c, "notingroup")
+			return c.Redirect(302, "/")
 		}
 	}
 
@@ -107,37 +108,37 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 	password := ""
 	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
 	if err != nil {
-		http.Redirect(w, r, redirectURL+"/notopen", 302)
-		return
+		SetToast(c, "notopen")
+		return c.Redirect(302, redirectURL)
 	}
-	if password != r.FormValue("password") {
-		http.Redirect(w, r, redirectURL+"/password", 302)
-		return
+	if password != c.FormValue("password") {
+		SetToast(c, "password")
+		return c.Redirect(302, redirectURL)
 	}
 
-	track := policy.Sanitize(r.FormValue("track"))
+	track := policy.Sanitize(c.FormValue("track"))
 
 	trackURL, err := url.Parse(track)
 	if err != nil {
-		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 302)
-		return
+		SetToast(c, "sconly")
+		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 	}
 
 	// PERF - MIGHT IMPACT A LOT
 	if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
-		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/sconly", 302)
-		return
+		SetToast(c, "sconly")
+		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 	}
 
 	// PERF - MIGHT BE PERFORMANCE DEGRADING
 	resp, err := http.Get(track)
 	if err != nil {
-		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/invalid", 302)
-		return
+		SetToast(c, "invalid")
+		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 	}
 	if resp.Status == "404 Not Found" {
-		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/invalid", 302)
-		return
+		SetToast(c, "invalid")
+		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 	}
 
 	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
@@ -151,102 +152,103 @@ func InsertBeat(w http.ResponseWriter, r *http.Request) {
 
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, "/502", 302)
-		return
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
 	}
 	defer ins.Close()
 
 	ins.Exec(track, battleID, user.ID)
-	http.Redirect(w, r, "/battle/"+strconv.Itoa(battleID)+response, 302)
-	return
+
+	SetToast(c, response)
+	return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
 }
 
 // UpdateBeat updates the beat in the DB
-func UpdateBeat(w http.ResponseWriter, r *http.Request) {
+func UpdateBeat(c echo.Context) error {
+	user := GetUser(c, true)
 
-	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
-	defer r.Body.Close()
 
-	battleID, err := strconv.Atoi(policy.Sanitize(r.URL.Query().Get(":id")))
+	battleID, err := strconv.Atoi(policy.Sanitize(c.Param("id")))
 	if err != nil {
-		http.Redirect(w, r, "/", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
 
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
 	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
 	if err != nil {
-		http.Redirect(w, r, "/battle/"+strconv.Itoa(battleID)+"/notopen", 302)
-		return
+		SetToast(c, "notopen")
+		return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
 	}
 
 	redirectURL := "/beat/" + strconv.Itoa(battleID) + "/update"
 
-	track := policy.Sanitize(r.FormValue("track"))
+	track := policy.Sanitize(c.FormValue("track"))
 
 	trackURL, err := url.Parse(track)
 	if err != nil {
-		http.Redirect(w, r, redirectURL+"/sconly", 302)
-		return
+		SetToast(c, "sconly")
+		return c.Redirect(302, redirectURL)
 	}
 
 	// PERF - MIGHT IMPACT A LOT
 	if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
-		http.Redirect(w, r, redirectURL+"/sconly", 302)
-		return
+		SetToast(c, "sconly")
+		return c.Redirect(302, redirectURL)
 	}
 
 	/* PERF - Check if track URL is valid (doesn't 404)
 	resp, err := http.Get(track)
 	if err != nil || resp.Status == "404 Not Found" {
-		http.Redirect(w, r, redirectURL+"/invalid", 302)
+		return c.Redirect(302, redirectURL+"/invalid")
 		return
 	}
 	*/
 
 	ins, err := db.Prepare("UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?")
 	if err != nil {
-		http.Redirect(w, r, "/beat/"+strconv.Itoa(battleID)+"/submit/nobeat", 302)
+		SetToast(c, "nobeat")
+		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 	}
 	defer ins.Close()
 
 	ins.Exec(track, battleID, user.ID)
-	http.Redirect(w, r, "/battle/"+strconv.Itoa(battleID)+"/successupdate", 302)
-	return
+	SetToast(c, "successupdate")
+	return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
 }
 
 // DeleteBeat ...
-func DeleteBeat(w http.ResponseWriter, r *http.Request) {
+func DeleteBeat(c echo.Context) error {
+	user := GetUser(c, true)
 
-	user := GetUser(w, r, true)
 	if !user.Authenticated {
-		http.Redirect(w, r, "/login/relog", 302)
-		return
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
 	}
 
-	battleID, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	battleID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		http.Redirect(w, r, "/404", 302)
-		return
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
 	}
-	defer r.Body.Close()
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
 	stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
 	ins, err := db.Prepare(stmt)
 	if err != nil {
-		http.Redirect(w, r, redirectURL+"/validationerror", 302)
+		SetToast(c, "validationerror")
+		return c.Redirect(302, redirectURL)
 	}
 	defer ins.Close()
 
 	ins.Exec(user.ID, battleID)
 
-	http.Redirect(w, r, redirectURL+"/successdel", 302)
-	return
+	SetToast(c, "successdel")
+	return c.Redirect(302, redirectURL)
 }

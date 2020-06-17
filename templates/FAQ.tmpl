@@ -23,8 +23,8 @@
                 <div class="collapsible-header"><i class="material-icons">audiotrack</i>How does a battle work?</div>
                 <div class="collapsible-body"><span>When the battle starts, battlers are tasked with creating content that adheres to the rules of the specific battle.<br /><br />
                                                     Battlers then race against the clock to submit their work.<br /><br />
-                                                    Once the battle’s submission period ends, all battlers that submitted entries as well as the public may begin voting on all submitted entries.<br /><br />
-                                                    If a battler does not vote before the voting phase of the battle is complete, they are marked and put at the bottom of the standings.<br /><br />
+                                                    Once the battle’s submission period ends, all battlers that submitted entries (as well as the public) may begin voting on all submitted entries.<br /><br />
+                                                    If a battler does not vote in a battle they've entered, they are marked as non-voting and put at the bottom of the standings.<br /><br />
                                                     Once voting is complete, a battler emerges victorious.</span>
                 </div>
             </li>
@@ -45,6 +45,18 @@
         </ul>
     </div>
     <script>$(document).ready(function(){$('.collapsible').collapsible();});</script>
-    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
+    <script type="text/javascript">
+    $(function(){
+        var embed = ""
+        $('.playButton').click(function(){ 
+            var button = $(this)
+            embed = button.data('embed')
+            console.log(embed)
+            var toembed = button.closest('.embedded-track')
+            console.log(toembed)
+            toembed.html(embed);
+        });   
+    });
+    </script>
   {{ template "Footer" .Toast }}
 {{ end }}
