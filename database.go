@@ -14,15 +14,16 @@ func dbInit() (db *sql.DB) {
 	dbPass := os.Getenv("MYSQL_PASS")
 	dbName := os.Getenv("MYSQL_DB")
 
-	db.SetMaxOpenConns(100)
-	db.SetMaxIdleConns(100)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
 	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName+"?parseTime=true")
 	if err != nil {
 		// Real error
 		log.Print(err)
 	}
+
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(100)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
 	return db
 }
 
