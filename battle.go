@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -232,6 +233,13 @@ func GetBattles(field string, value string) []Battle {
 
 		battles = append(battles, battle)
 	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
 
 	return battles
 }
@@ -392,6 +400,13 @@ func BattleHTTP(c echo.Context) error {
 			hasEntered = true
 			entryPosition = len(entries)
 		}
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	if hasEntered && battle.Status == "voting" {
@@ -966,6 +981,13 @@ func GetTags(battleID int) []Tag {
 
 		tag.Value = html.UnescapeString(tag.Value)
 		Tags = append(Tags, tag)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	return Tags

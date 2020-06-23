@@ -351,6 +351,13 @@ func CalculateVotes(c echo.Context) error {
 
 		upd.Exec(votes, id)
 	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
 
 	return c.NoContent(302)
 }
@@ -605,6 +612,13 @@ func ViewFeedback(c echo.Context) error {
 
 		feedback = append(feedback, curFeedback)
 	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
 
 	feedbackJSON, err := json.Marshal(feedback)
 
@@ -737,6 +751,13 @@ func UserSubmissions(c echo.Context) error {
 		}
 
 		entries = append(entries, submission)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	submissionsJSON, err := json.Marshal(entries)
@@ -886,6 +907,13 @@ func MySubmissions(c echo.Context) error {
 		}
 
 		entries = append(entries, submission)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	submissionsJSON, err := json.Marshal(entries)

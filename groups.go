@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"html"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -381,6 +382,8 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 
 	rows, err := db.Query(queryRequests, value)
 
+	// TODO USE DIFFERENT VARIABLES FOR EACH ROW
+
 	if err != nil && err != sql.ErrNoRows {
 		return nil, nil, nil
 	}
@@ -396,6 +399,13 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 		group.StatusDisplay = "Requested"
 
 		requests = append(requests, group)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	rows, err = db.Query(queryInvites, value)
@@ -416,6 +426,13 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 
 		invites = append(invites, group)
 	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
 
 	rows, err = db.Query(queryGroups, value, value)
 
@@ -434,6 +451,13 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 		group.StatusDisplay = strings.Title(group.Status)
 
 		groups = append(groups, group)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	return requests, invites, groups
@@ -472,6 +496,13 @@ func GetGroupsByRole(db *sql.DB, value int, role string) []Group {
 		}
 
 		groups = append(groups, group)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	return groups
@@ -524,6 +555,13 @@ func GetGroups(db *sql.DB, value int) []Group {
 		}
 
 		groups = append(groups, group)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
 	}
 
 	return groups
