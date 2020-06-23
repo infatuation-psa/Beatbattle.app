@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 )
 
 // dbConn ...
@@ -23,9 +24,9 @@ func dbInit() (db *sql.DB) {
 	db.SetMaxOpenConns(50)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)*/
-	db.SetMaxOpenConns(700)
-	db.SetMaxIdleConns(300)
-	db.SetConnMaxLifetime(0)
+	db.SetMaxOpenConns(1024)
+	db.SetMaxIdleConns(256)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	return db
 }
