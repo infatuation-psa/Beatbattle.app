@@ -177,7 +177,6 @@ func Login(c echo.Context) error {
 // Auth ...
 func Auth(c echo.Context) error {
 	handler := c.QueryParam("provider")
-	println(handler)
 
 	if handler == "reddit" {
 		return c.Redirect(302, redditAuth.GetAuthenticationURL())

@@ -11,7 +11,7 @@
           </ul>
         </nav>
       </div>
-      <zing-grid nodata="{{.Nickname}} hasn't entered any battles yet." caption="Submissions" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid no-data="{{.Nickname}} hasn't entered any battles yet." caption="Submissions" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Battle" index="battle" type="url" cell-class="link">
             <a class="battle-url" href="/battle/[[record.challenge_id]]">[[index.battle]]</a>
@@ -41,7 +41,6 @@
           <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
           <zg-column cell-class="zing-both" header="Status" index="status"></zg-column>
         </zg-colgroup>
-        <zg-nodata>You haven't entered any battles yet.</zg-nodata>
       </zing-grid>
     </div>
 <script src="/static/battle.min.js"></script>

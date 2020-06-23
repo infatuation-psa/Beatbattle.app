@@ -12,7 +12,7 @@
         </nav>
       </div>          
       {{if .Requests }}
-      <zing-grid id="requests-grid" nodata="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid id="requests-grid" no-data="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
@@ -27,7 +27,7 @@
       </zing-grid>
       {{ end }}
       {{if .Invites }}
-      <zing-grid id="invites-grid" nodata="You don't have any active invites." caption="Invites" layout-controls="disabled"sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid id="invites-grid" no-data="You don't have any active invites." caption="Invites" layout-controls="disabled"sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
@@ -42,7 +42,7 @@
         </zg-colgroup>
       </zing-grid>
       {{ end }}
-      <zing-grid id="groups-grid" nodata="You haven't joined any groups yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid id="groups-grid" no-data="You haven't joined any groups yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>

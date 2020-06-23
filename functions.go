@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
@@ -14,7 +12,6 @@ func GetToast(c echo.Context) [2]string {
 
 	sess, _ := session.Get("beatbattle", c)
 	errorCode := sess.Values["error"]
-	fmt.Println(errorCode)
 
 	switch message := errorCode; message {
 	case "404":

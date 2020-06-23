@@ -19,12 +19,11 @@
         <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
         {{end}}
       </div>
-      <zing-grid caption="Feedback" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid no-data="You haven't received any feedback yet." caption="Feedback" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="From" index="from"></zg-column>
           <zg-column header="Feedback" index="feedback"></zg-column>
         </zg-colgroup>
-        <zg-nodata>You haven't received any feedback yet.</zg-nodata>
       </zing-grid>
     </div>
 <script>

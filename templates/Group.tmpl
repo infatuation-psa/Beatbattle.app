@@ -38,7 +38,7 @@
         <h3>Description</h3>
         <div class="battle-rules">{{.Group.DescriptionHTML}}</div>
       </div>
-      <zing-grid caption='Members' layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid no-data="No one has entered this battle yet." caption='Members' layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Artist" index="nickname">
             <a class="battle-url" href="/user/[[record.id]]">[[record.nickname]]</a>
@@ -46,7 +46,6 @@
           <zg-column cell-class="zing-left" header="Role" index="role"></zg-column>
         </zg-colgroup>
         <zg-param name="loadByScroll" value="true"></zg-param>
-        <zg-nodata>No one has entered this battle yet.</zg-nodata>
       </zing-grid>
     </div>
     <div id="respond" class="modal">
