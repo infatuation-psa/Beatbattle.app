@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 )
 
 // dbConn ...
@@ -12,6 +13,11 @@ func dbInit() (db *sql.DB) {
 	dbUser := os.Getenv("MYSQL_USER")
 	dbPass := os.Getenv("MYSQL_PASS")
 	dbName := os.Getenv("MYSQL_DB")
+
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(100)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
 	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName+"?parseTime=true")
 	if err != nil {
 		// Real error
