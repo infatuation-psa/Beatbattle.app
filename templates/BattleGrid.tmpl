@@ -1,5 +1,5 @@
 {{define "BattleGrid"}}
-<zing-grid caption="Battles" layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+<zing-grid no-data="No battles are currently active." caption="Battles" layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
     <zg-colgroup>
     <zg-column cell-class="zing-left" header="Battle" index="title" type="url" cell-class="link">
         <template>
@@ -14,6 +14,5 @@
     </zg-column>
     <zg-column cell-class="zing-both" index="entries"></zg-column>
     </zg-colgroup> 
-    <zg-nodata>No battles match the query.</zg-nodata>
 </zing-grid>    
 {{end}}

@@ -11,7 +11,7 @@
           </ul>
         </nav>
       </div>
-    <zing-grid caption="Battles" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+    <zing-grid no-data="No battles are currently active." caption="Battles" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
       <zg-colgroup>
         <zg-column cell-class="zing-left" header="Battle" index="title" type="url" cell-class="link">
           <template>
@@ -23,7 +23,6 @@
         <zg-column cell-class="zing-left"  index="host"></zg-column>
         <zg-column cell-class="zing-both"  header="Entries" index="entries"></zg-column>
       </zg-colgroup> 
-      <zg-nodata>No battles are currently active.</zg-nodata>
     </zing-grid>    
     </div>
     <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>

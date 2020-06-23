@@ -320,8 +320,6 @@ func BattleHTTP(c echo.Context) error {
 	ua := c.Request().Header.Get("User-Agent")
 	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry|iPhone/`)
 	isMobile := mobileUA.MatchString(ua)
-	fmt.Println(strconv.FormatBool(isMobile))
-	fmt.Println(ua)
 
 	// PERF
 	entryPosition := 0
