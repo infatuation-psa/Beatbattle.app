@@ -86,7 +86,7 @@ func init() {
 
 	e.Server.WriteTimeout = 10 * time.Second
 	e.Server.ReadTimeout = 5 * time.Second
-	e.Server.IdleTimeout = 60 * time.Second
+	e.Server.IdleTimeout = 10 * time.Second
 
 	e.Pre(middleware.HTTPSNonWWWRedirect())
 	e.Pre(middleware.RemoveTrailingSlash())
