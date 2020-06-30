@@ -231,6 +231,7 @@ func GetUser(c echo.Context, validate bool) User {
 					if err != nil {
 						sess.Values["user"] = User{}
 						sess.Save(c.Request(), c.Response())
+						SetToast(c, "relog")
 						return User{}
 					}
 				}
@@ -238,22 +239,12 @@ func GetUser(c echo.Context, validate bool) User {
 				if user.Provider == "reddit" {
 					// TODO - Refresh reddit token
 					return user
-					/*
-						newToken, err = redditAuth.GetToken(state, user.RefreshToken)
-						if err != nil {
-							session.Values["user"] = User{}
-							err = session.Save(req, res)
-							if err != nil {
-								http.Redirect(res, req, "/login/relog")
-							}
-							return User{}
-						}
-					*/
 				}
 
 				user.AccessToken = newToken.AccessToken
 				user.RefreshToken = newToken.RefreshToken
 				user.ExpiresAt = newToken.Expiry
+				user.Authenticated = true
 
 				sql := "UPDATE users SET access_token = ?, expiry = ? WHERE id = ?"
 
@@ -276,6 +267,9 @@ func GetUser(c echo.Context, validate bool) User {
 				return User{}
 			}
 		}
+
+		sess.Values["user"] = user
+		sess.Save(c.Request(), c.Response())
 	}
 
 	return user
