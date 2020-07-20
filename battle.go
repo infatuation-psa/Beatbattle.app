@@ -403,6 +403,7 @@ func BattleHTTP(c echo.Context) error {
 	}
 	if err = rows.Err(); err != nil {
 		// handle the error here
+		log.Println(err)
 	}
 	if err = rows.Close(); err != nil {
 		// but what should we do if there's an error?
@@ -673,22 +674,24 @@ func UpdateBattleDB(c echo.Context) error {
 		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
 	}
 
-	attachmentURL, err := url.Parse(policy.Sanitize(c.FormValue("attachment")))
-	if err != nil {
-		SetToast(c, "unapprovedurl")
-		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
-	}
-
-	attachment := ""
-	// PERF - MIGHT IMPACT A LOT
-	if attachmentURL.String() != "" {
-		if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+	/*
+		attachmentURL, err := url.Parse(policy.Sanitize(c.FormValue("attachment")))
+		if err != nil {
 			SetToast(c, "unapprovedurl")
 			return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
 		}
-	}
 
-	attachment = policy.Sanitize(c.FormValue("attachment"))
+		attachment := ""
+		// PERF - MIGHT IMPACT A LOT*
+			if attachmentURL.String() != "" {
+				if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+					SetToast(c, "unapprovedurl")
+					return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
+				}
+			}
+	*/
+
+	attachment := policy.Sanitize(c.FormValue("attachment"))
 
 	status := curStatus
 	if status == "draft" && c.FormValue("submit") == "PUBLISH" {
@@ -818,22 +821,24 @@ func InsertBattle(c echo.Context) error {
 		return c.Redirect(302, "/battle/submit")
 	}
 
-	attachmentURL, err := url.Parse(policy.Sanitize(c.FormValue("attachment")))
-	if err != nil {
-		SetToast(c, "unapprovedurl")
-		return c.Redirect(302, "/battle/submit")
-	}
-
-	attachment := ""
-	// PERF - MIGHT IMPACT A LOT
-	if attachmentURL.String() != "" {
-		if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+	/*
+		attachmentURL, err := url.Parse(policy.Sanitize(c.FormValue("attachment")))
+		if err != nil {
 			SetToast(c, "unapprovedurl")
 			return c.Redirect(302, "/battle/submit")
 		}
-	}
 
-	attachment = policy.Sanitize(c.FormValue("attachment"))
+		attachment := ""
+		// PERF - MIGHT IMPACT A LOT
+			if attachmentURL.String() != "" {
+				if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
+					SetToast(c, "unapprovedurl")
+					return c.Redirect(302, "/battle/submit")
+				}
+			}
+	*/
+
+	attachment := policy.Sanitize(c.FormValue("attachment"))
 
 	status := "entry"
 	if c.FormValue("submit") == "DRAFT" {

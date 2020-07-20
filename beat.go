@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -118,29 +117,18 @@ func InsertBeat(c echo.Context) error {
 
 	track := policy.Sanitize(c.FormValue("track"))
 
-	trackURL, err := url.Parse(track)
-	if err != nil {
-		SetToast(c, "sconly")
-		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
-	}
-
-	// PERF - MIGHT IMPACT A LOT
-	if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
-		SetToast(c, "sconly")
-		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
-	}
-
-	// PERF - MIGHT BE PERFORMANCE DEGRADING
 	/*
-		resp, err := http.Get(track)
+		trackURL, err := url.Parse(track)
 		if err != nil {
-			SetToast(c, "invalid")
+			SetToast(c, "sconly")
 			return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 		}
-		if resp.Status == "404 Not Found" {
-			SetToast(c, "invalid")
-			return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
-		}
+
+		// PERF - MIGHT IMPACT A LOT
+			if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
+				SetToast(c, "sconly")
+				return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
+			}
 	*/
 
 	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
@@ -188,28 +176,21 @@ func UpdateBeat(c echo.Context) error {
 		return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
 	}
 
-	redirectURL := "/beat/" + strconv.Itoa(battleID) + "/update"
-
 	track := policy.Sanitize(c.FormValue("track"))
 
-	trackURL, err := url.Parse(track)
-	if err != nil {
-		SetToast(c, "sconly")
-		return c.Redirect(302, redirectURL)
-	}
+	/*
+		redirectURL := "/beat/" + strconv.Itoa(battleID) + "/update"
+			trackURL, err := url.Parse(track)
+			if err != nil {
+				SetToast(c, "sconly")
+				return c.Redirect(302, redirectURL)
+			}
 
-	// PERF - MIGHT IMPACT A LOT
-	if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
-		SetToast(c, "sconly")
-		return c.Redirect(302, redirectURL)
-	}
-
-	/* PERF - Check if track URL is valid (doesn't 404)
-	resp, err := http.Get(track)
-	if err != nil || resp.Status == "404 Not Found" {
-		return c.Redirect(302, redirectURL+"/invalid")
-		return
-	}
+			// PERF - MIGHT IMPACT A LOT
+				if !contains(whitelist, strings.TrimPrefix(trackURL.Host, "www.")) {
+					SetToast(c, "sconly")
+					return c.Redirect(302, redirectURL)
+				}
 	*/
 
 	ins, err := db.Prepare("UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?")

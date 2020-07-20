@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"time"
 )
 
 // dbConn ...
@@ -23,10 +22,14 @@ func dbInit() (db *sql.DB) {
 	/* ACTUALLY MAKES THE CRASHING ISSUE WORSE LOL!!!
 	db.SetMaxOpenConns(50)
 	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)*/
+	db.SetConnMaxLifetime(5 * time.Minute)
 	db.SetMaxOpenConns(4096)
 	db.SetMaxIdleConns(256)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxLifetime(5 * time.Minute)*/
+
+	db.SetMaxOpenConns(2048)
+	db.SetMaxIdleConns(128)
+	db.SetConnMaxLifetime(0)
 
 	return db
 }
