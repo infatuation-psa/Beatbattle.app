@@ -131,15 +131,17 @@ func InsertBeat(c echo.Context) error {
 	}
 
 	// PERF - MIGHT BE PERFORMANCE DEGRADING
-	resp, err := http.Get(track)
-	if err != nil {
-		SetToast(c, "invalid")
-		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
-	}
-	if resp.Status == "404 Not Found" {
-		SetToast(c, "invalid")
-		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
-	}
+	/*
+		resp, err := http.Get(track)
+		if err != nil {
+			SetToast(c, "invalid")
+			return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
+		}
+		if resp.Status == "404 Not Found" {
+			SetToast(c, "invalid")
+			return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
+		}
+	*/
 
 	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
 	response := "/successadd"
