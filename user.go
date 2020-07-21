@@ -328,10 +328,6 @@ func CalculateVoted(c echo.Context) error {
 		beatID := 0
 		rows.Scan(&userID, &challengeID, &beatID)
 
-		println(userID)
-		println(challengeID)
-		println(beatID)
-
 		if err != nil {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
