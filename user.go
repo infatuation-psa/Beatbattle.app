@@ -317,7 +317,6 @@ func CalculateVoted(c echo.Context) error {
 	rows, err := db.Query(query)
 
 	if err != nil {
-		log.Fatal(err)
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
@@ -330,7 +329,6 @@ func CalculateVoted(c echo.Context) error {
 		rows.Scan(&userID, &challengeID, &beatID)
 
 		if err != nil {
-			log.Fatal(err)
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
@@ -339,24 +337,20 @@ func CalculateVoted(c echo.Context) error {
 
 		upd, err := db.Prepare(updateQuery)
 		if err != nil {
-			log.Fatal(err)
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
 		defer upd.Close()
 
-		upd.Exec(userID, challengeID, beatID)
+		upd.Exec(userID, beatID)
 	}
 	if err = rows.Err(); err != nil {
 		// handle the error here
 	}
 	if err = rows.Close(); err != nil {
 		// but what should we do if there's an error?
-		log.Fatal(err)
 		log.Println(err)
 	}
-
-	println("test")
 
 	return c.NoContent(302)
 }
