@@ -21,6 +21,7 @@ type Beat struct {
 	Feedback    string `json:"feedback"`
 	Status      string `json:"status"`
 	Battle      string `json:"battle"`
+	Voted       bool   `json:"voted"`
 }
 
 // SubmitBeat ...

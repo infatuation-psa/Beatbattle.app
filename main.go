@@ -172,6 +172,7 @@ func main() {
 	e.GET("/user/:id/submissions", UserSubmissions)
 	e.GET("/user/:id", UserAccount)
 	e.GET("/recalculate", CalculateVotes)
+	e.GET("/recalculate2", CalculateVoted)
 
 	// Me
 	e.GET("/me/groups/request/:id/:response", GroupRequestResponse)
@@ -221,6 +222,15 @@ func main() {
 func contains(arr []string, str string) bool {
 	for _, a := range arr {
 		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
+func containsint(arr []int, integer int) bool {
+	for _, a := range arr {
+		if a == integer {
 			return true
 		}
 	}

@@ -303,6 +303,64 @@ func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery
 	return c.JSON(http.StatusCreated, data)
 }
 
+// CalculateVoted - Manual function to force vote recalculation.
+func CalculateVoted(c echo.Context) error {
+	var user = GetUser(c, true)
+
+	if user.ID != 3 {
+		SetToast(c, "notauth")
+		return c.Redirect(302, "/")
+	}
+
+	query := `SELECT votes.user_id, votes.challenge_id, beats.id FROM votes 
+				LEFT JOIN beats on beats.challenge_id=votes.challenge_id AND votes.user_id=beats.user_id`
+	rows, err := db.Query(query)
+
+	if err != nil {
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		userID := 0
+		challengeID := 0
+		beatID := 0
+		rows.Scan(&userID, &challengeID, &beatID)
+
+		println(userID)
+		println(challengeID)
+		println(beatID)
+
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+
+		updateQuery := "UPDATE beats SET voted = 1 WHERE user_id = ? AND id = ?"
+
+		upd, err := db.Prepare(updateQuery)
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		defer upd.Close()
+
+		upd.Exec(userID, challengeID, beatID)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
+
+	println("test")
+
+	return c.NoContent(302)
+}
+
 // CalculateVotes - Manual function to force vote recalculation.
 func CalculateVotes(c echo.Context) error {
 	var user = GetUser(c, true)
@@ -365,12 +423,14 @@ func AddVote(c echo.Context) error {
 
 	beatID, err := strconv.Atoi(c.FormValue("id"))
 	if err != nil {
+		println("test")
 		return AjaxResponse(c, true, "/", "404")
 	}
 
 	var battleID int
 	var beatUserID int
 
+	// Get battle (challenge) ID and user ID from the beat ID.
 	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
@@ -378,7 +438,7 @@ func AddVote(c echo.Context) error {
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
-	// Get Battle status & max votes.
+	// Get battle status & max votes.
 	status := ""
 	maxVotes := 1
 	err = db.QueryRow("SELECT status, maxvotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
@@ -397,70 +457,118 @@ func AddVote(c echo.Context) error {
 	}
 
 	count := 0
-	err = db.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", user.ID, battleID).Scan(&count)
+	_ = db.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", user.ID, battleID).Scan(&count)
 
 	voteID := 0
-	err = db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", user.ID, beatID).Scan(&voteID)
+	voteErr := db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", user.ID, beatID).Scan(&voteID)
 
 	// TODO Change from transaction maybe
 
 	if count < maxVotes {
-		if err == sql.ErrNoRows {
+		// If a vote for this beat does not exist
+		if voteErr == sql.ErrNoRows {
 			tx, err := db.Begin()
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
+
+			// Add a vote to the vote table for the beat.
 			sql := "INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)"
 			ins, err := tx.Prepare(sql)
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
 			defer ins.Close()
-
 			ins.Exec(beatID, user.ID, battleID)
 
+			// Mark user as having voted if they've entered the battle themselves.
+			votedSQL := "UPDATE beats SET voted = 1 WHERE user_id = ? AND challenge_id = ?"
+			voted, _ := tx.Prepare(votedSQL)
+			defer voted.Close()
+			voted.Exec(user.ID, battleID)
+
+			// Update the hard written votes on the beat.
 			updSQL := "UPDATE beats SET votes = votes + 1 WHERE id = ?"
 			upd, err := tx.Prepare(updSQL)
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
 			defer upd.Close()
-
 			upd.Exec(beatID)
-			tx.Commit()
 
+			// Commit the changes.
+			tx.Commit()
 			return AjaxResponse(c, false, redirectURL, "successvote")
-		} else if err != nil {
-			return AjaxResponse(c, true, redirectURL, "404")
+		} else if voteErr == nil {
+			// Delete vote from the votes table.
+			tx, err := db.Begin()
+			sql := "DELETE FROM votes WHERE id = ?"
+			stmt, err := tx.Prepare(sql)
+			if err != nil {
+				return AjaxResponse(c, true, redirectURL, "404")
+			}
+			defer stmt.Close()
+			stmt.Exec(voteID)
+
+			// Remove vote from the beats table.
+			updSQL := "UPDATE beats SET votes = votes - 1 WHERE id = ?"
+			upd, err := tx.Prepare(updSQL)
+			if err != nil {
+				return AjaxResponse(c, true, redirectURL, "404")
+			}
+			defer upd.Close()
+			upd.Exec(beatID)
+
+			if count-1 == 0 {
+				// Mark user as having voted if they've entered the battle themselves.
+				votedSQL := "UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?"
+				voted, _ := tx.Prepare(votedSQL)
+				defer voted.Close()
+				voted.Exec(user.ID, battleID)
+			}
+
+			// Commit and return deleted vote.
+			tx.Commit()
+			return AjaxResponse(c, false, redirectURL, "successdelvote")
 		}
 	} else {
-		if err == sql.ErrNoRows {
+		// If a vote doesn't exist, return the user.
+		if voteErr == sql.ErrNoRows {
 			return AjaxResponse(c, false, redirectURL, "maxvotes")
 		}
+		// Delete vote from the votes table.
+		tx, err := db.Begin()
+		sql := "DELETE FROM votes WHERE id = ?"
+		stmt, err := tx.Prepare(sql)
+		if err != nil {
+			return AjaxResponse(c, true, redirectURL, "404")
+		}
+		defer stmt.Close()
+		stmt.Exec(voteID)
+
+		// Remove vote from the beats table.
+		updSQL := "UPDATE beats SET votes = votes - 1 WHERE id = ?"
+		upd, err := tx.Prepare(updSQL)
+		if err != nil {
+			return AjaxResponse(c, true, redirectURL, "404")
+		}
+		defer upd.Close()
+		upd.Exec(beatID)
+
+		if count-1 == 0 {
+			// Mark user as having voted if they've entered the battle themselves.
+			votedSQL := "UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?"
+			voted, _ := tx.Prepare(votedSQL)
+			defer voted.Close()
+			voted.Exec(user.ID, battleID)
+		}
+
+		// Commit and return deleted vote.
+		tx.Commit()
+		return AjaxResponse(c, false, redirectURL, "successdelvote")
 	}
 
-	tx, err := db.Begin()
-	sql := "DELETE FROM votes WHERE id = ?"
-
-	stmt, err := tx.Prepare(sql)
-	if err != nil {
-		return AjaxResponse(c, true, redirectURL, "404")
-	}
-	defer stmt.Close()
-
-	stmt.Exec(voteID)
-
-	updSQL := "UPDATE beats SET votes = votes - 1 WHERE id = ?"
-	upd, err := tx.Prepare(updSQL)
-	if err != nil {
-		return AjaxResponse(c, true, redirectURL, "404")
-	}
-	defer upd.Close()
-
-	upd.Exec(beatID)
-	tx.Commit()
-
-	return AjaxResponse(c, false, redirectURL, "successdelvote")
+	return AjaxResponse(c, false, redirectURL, "404")
 }
 
 // AddLike ...

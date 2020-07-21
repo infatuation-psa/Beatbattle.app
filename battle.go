@@ -262,25 +262,50 @@ func BattleHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	// Get beats user has voted for
 	var user = GetUser(c, false)
 	var lastVotes []int
+	var lastLikes []int
 
-	votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", user.ID, battleID)
-	if err != nil && err != sql.ErrNoRows {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
-	}
-	defer votes.Close()
+	// Get beats user has voted for if in voting stage.
+	// PERF - This grabs EVERY beat the uesr has liked. This must be changed. This is a temp fix.
+	/*
+		if user.Authenticated {
+			likes, err := db.Query("SELECT beat_id FROM likes WHERE user_id = ? ORDER BY beat_id", user.ID)
+			if err != nil && err != sql.ErrNoRows {
+				SetToast(c, "502")
+				return c.Redirect(302, "/")
+			}
+			defer likes.Close()
 
-	for votes.Next() {
-		var curBeatID int
-		err = votes.Scan(&curBeatID)
-		if err != nil {
+			for likes.Next() {
+				var curBeatID int
+				err = likes.Scan(&curBeatID)
+				if err != nil {
+					SetToast(c, "502")
+					return c.Redirect(302, "/")
+				}
+				lastLikes = append(lastVotes, curBeatID)
+			}
+		} */
+
+	// Get beats user has voted for if in voting stage.
+	if battle.Status == "voting" && user.Authenticated {
+		votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", user.ID, battleID)
+		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
-		lastVotes = append(lastVotes, curBeatID)
+		defer votes.Close()
+
+		for votes.Next() {
+			var curBeatID int
+			err = votes.Scan(&curBeatID)
+			if err != nil {
+				SetToast(c, "502")
+				return c.Redirect(302, "/")
+			}
+			lastVotes = append(lastVotes, curBeatID)
+		}
 	}
 
 	// Fetch beats in this battle.
@@ -290,32 +315,28 @@ func BattleHTTP(c echo.Context) error {
 	submission := Beat{}
 	entries := []Beat{}
 	didntVote := []Beat{}
-	voteID := 0
-	likeID := 0
 
-	args := []interface{}{user.ID, user.ID, user.ID, battleID}
-	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Artist, &voteID, &likeID, &submission.Feedback, &submission.UserID}
-	query := `SELECT beats.id, beats.url, users.nickname, votes.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, IFNULL(feedback.feedback, ''), beats.user_id
+	// DO THE SAME FOR LIKES - CALCULATE liKES ON THE FLY WITH AN ARRAY LIKE HOW I CHECK FOR VOTES THE USER HAS SUBMITTED
+
+	args := []interface{}{user.ID, battleID}
+	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Artist, &submission.Feedback, &submission.UserID}
+	query := `SELECT beats.id, beats.url, users.nickname, IFNULL(feedback.feedback, ''), beats.user_id
 			FROM beats 
 			LEFT JOIN users on beats.user_id=users.id
-			LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
-			LEFT JOIN likes on likes.user_id=? AND beats.id=likes.beat_id
 			LEFT JOIN feedback on feedback.user_id=? AND feedback.beat_id=beats.id
 			WHERE beats.challenge_id=?
 			GROUP BY 1
 			ORDER BY beats.id DESC`
 
 	if battle.Status == "complete" {
-		query = `SELECT beats.id, beats.url, users.nickname, beats.votes, voted.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, beats.user_id
+		query = `SELECT beats.id, beats.url, users.nickname, beats.votes, beats.user_id, beats.voted
 				FROM beats 
 				LEFT JOIN users on beats.user_id=users.id
-				LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id
-				LEFT JOIN likes on likes.user_id=? AND beats.id=likes.beat_id
 				WHERE beats.challenge_id=?
 				GROUP BY 1
 				ORDER BY votes DESC`
-		args = []interface{}{user.ID, battleID}
-		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Artist, &submission.Votes, &voteID, &likeID, &submission.UserID}
+		args = []interface{}{battleID}
+		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Artist, &submission.Votes, &submission.UserID, &submission.Voted}
 	}
 
 	rows, err := db.Query(query, args...)
@@ -335,33 +356,33 @@ func BattleHTTP(c echo.Context) error {
 	userVotes := 0
 	for rows.Next() {
 		// TODO - CAN PROBABLY RESET SUBMISSION OBJECT HERE
-		likeID = 0
-		voteID = 0
 		err = rows.Scan(scanArgs...)
 		if err != nil {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
 
-		if battle.Status == "complete" && voteID == 0 {
+		if battle.Status == "complete" && !submission.Voted {
 			submission.Artist = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Artist + ` <span style="color: #1E19FF;">(*)</span></span>`
 		}
 
 		count++
 
 		submission.VoteColour = ""
-		if voteID != 0 {
-			submission.VoteColour = "#ff5800"
-			if battle.Status == "complete" && submission.UserID == user.ID {
-				userVotes++
-			}
-			if battle.Status != "complete" {
-				userVotes++
+		if battle.Status == "voting" {
+			if containsint(lastVotes, submission.ID) {
+				submission.VoteColour = "#ff5800"
+				if battle.Status == "complete" && submission.UserID == user.ID {
+					userVotes++
+				}
+				if battle.Status != "complete" {
+					userVotes++
+				}
 			}
 		}
 
 		submission.LikeColour = ""
-		if likeID != 0 {
+		if containsint(lastLikes, submission.ID) {
 			submission.LikeColour = "#ff5800"
 		}
 
@@ -385,7 +406,7 @@ func BattleHTTP(c echo.Context) error {
 			submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
 		}
 
-		if battle.Status == "complete" && voteID == 0 {
+		if battle.Status == "complete" && !submission.Voted {
 			didntVote = append(didntVote, submission)
 			if submission.UserID == user.ID {
 				hasEntered = true
