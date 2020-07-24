@@ -1,6 +1,7 @@
 {{ define "ViewBattles" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
         <nav class="battle-title">
@@ -20,11 +21,22 @@
           </template>
         </zg-column>
         <zg-column cell-class="zing-left" header="Status" index="status"></zg-column>
-        <zg-column cell-class="zing-left"  index="host"></zg-column>
-        <zg-column cell-class="zing-both"  header="Entries" index="entries"></zg-column>
+        <zg-column cell-class="zing-left" index="host"></zg-column>
+        <zg-column cell-class="zing-both" header="Entries" index="entries"></zg-column>
       </zg-colgroup> 
     </zing-grid>    
     </div>
-    <script>window.addEventListener('load',()=>{const zgRef=document.querySelector('zing-grid');const data={{.Battles}};zgRef.setData(data);})</script>
+    <script>
+      window.addEventListener('load',()=>{
+        const zgRef = document.querySelector('zing-grid');
+        var data={{.Battles}};
+        zgRef.setData(data);
+        zgRef.executeOnLoad(function() {
+          console.log("test");
+          const observer = lozad();
+          observer.observe();
+        });
+      })
+    </script>
   {{ template "Footer" .Toast }}
 {{ end }}

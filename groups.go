@@ -38,20 +38,23 @@ type GroupUser struct {
 func SubmitGroup(c echo.Context) error {
 	toast := GetToast(c)
 	var user = GetUser(c, false)
+	ads := GetAdvertisements()
 
 	m := map[string]interface{}{
 		"Title": "Submit Group",
 		"User":  user,
 		"Toast": toast,
+		"Ads":   ads,
 	}
 
 	return c.Render(http.StatusOK, "SubmitGroup", m)
 }
 
-// ViewGroups - Retrieves all groups and displays to user.
-func ViewGroups(c echo.Context) error {
+// ViewPublicGroups - Retrieves all groups and displays to user.
+func ViewPublicGroups(c echo.Context) error {
 	toast := GetToast(c)
 	user := GetUser(c, false)
+	ads := GetAdvertisements()
 	groups := GetGroups(db, 0)
 	groupsJSON, _ := json.Marshal(groups)
 
@@ -60,9 +63,10 @@ func ViewGroups(c echo.Context) error {
 		"Groups": string(groupsJSON),
 		"User":   user,
 		"Toast":  toast,
+		"Ads":    ads,
 	}
 
-	return c.Render(http.StatusOK, "ViewGroups", m)
+	return c.Render(http.StatusOK, "ViewPublicGroups", m)
 }
 
 // InsertGroup ...
@@ -122,8 +126,8 @@ func InsertGroup(c echo.Context) error {
 
 // InsertGroupInvite ...
 func InsertGroupInvite(c echo.Context) error {
+	// Check if user is authenticated.
 	user := GetUser(c, true)
-
 	if !user.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "login")
@@ -630,6 +634,7 @@ func GroupHTTP(c echo.Context) error {
 	inGroup := false
 	invited := false
 	requested := false
+	ads := GetAdvertisements()
 
 	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
@@ -672,6 +677,7 @@ func GroupHTTP(c echo.Context) error {
 		"Invited":   invited,
 		"Requested": requested,
 		"Toast":     toast,
+		"Ads":       ads,
 	}
 
 	return c.Render(http.StatusOK, "Group", m)
@@ -680,6 +686,7 @@ func GroupHTTP(c echo.Context) error {
 // UpdateGroup ...
 func UpdateGroup(c echo.Context) error {
 	toast := GetToast(c)
+	ads := GetAdvertisements()
 
 	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
@@ -719,6 +726,7 @@ func UpdateGroup(c echo.Context) error {
 		"User":       user,
 		"Toast":      toast,
 		"InviteOnly": inviteOnly,
+		"Ads":        ads,
 	}
 
 	return c.Render(http.StatusOK, "UpdateGroup", m)

@@ -23,24 +23,30 @@ body
 	&:hover 
 		color: black 
 		background: none 
+
 .nav-secondary
 	border: 1px solid black 
+
 .nav-disabled 
 	color: black 
 	border: 1px solid black 
+
 .nav-cta, .nav-cta input
 	background-color: #ff5800 
 	color: white
 	&:hover 
 		color: #ff5800 
 		background: none 
+
 .nav-cta	
 	border: 1px solid #ff5800
+
 .nav-inner 
 	width: 80% 
 	display: flex 
 	justify-content: space-between 
 	align-items: center 
+
 .main-menu 
 	background-color: black 
 	color: white 
@@ -58,6 +64,7 @@ body
 			background-color: white 
 			a 
 				color: black 
+
 .nav-item, .nav-item input
 	box-sizing: border-box 
 	display: inline-flex 
@@ -87,19 +94,19 @@ input[type="submit"]
 	font-family: 'Inconsolata', monospace 
 
 @-webkit-keyframes autofill 
-    0%,100% 
-        color: black
-        background: transparent
+	0%,100% 
+		color: black
+		background: transparent
 
 @-webkit-keyframes autofill-darkmode
-    0%,100% 
-        color: white
-        background: transparent
+	0%,100% 
+		color: white
+		background: transparent
 
 input:-webkit-autofill
-    -webkit-animation-delay: 1s /* Safari support - any positive time runs instantly */
-    -webkit-animation-name: autofill
-    -webkit-animation-fill-mode: both
+	-webkit-animation-delay: 1s /* Safari support - any positive time runs instantly */
+	-webkit-animation-name: autofill
+	-webkit-animation-fill-mode: both
 
 zing-grid + zing-grid
 	margin-top: 1.5rem
@@ -153,10 +160,10 @@ zing-grid + zing-grid
 		-webkit-animation-name: autofill-darkmode
 
 .darkmode--activated
-  background-color: black
+	background-color: black
 
-  h1, h3, p
-	  color: white
+	h1, h3, p
+		color: white
 
 .darkmode--activated .modal,
 .darkmode--activated .modal .modal-content,
@@ -356,7 +363,7 @@ button:focus
 
 // Submit Form
 .container-form 
-    display: flex
+	display: flex
 
 .submit-nobox, .submit-header 
 	padding: 0 !important 
@@ -379,13 +386,13 @@ button:focus
 		flex: 1 
 
 .submit-split1, .submit-split2
-    display: flex
+	display: flex
 
 .submit-split1
-    flex-grow: 1
+	flex-grow: 1
 
 .submit-split2
-    flex-grow: 1
+	flex-grow: 1
 
 .submit-text, .submit-label input, .submit-label .select-wrapper
 	place-self: center 
@@ -401,8 +408,8 @@ button:focus
 
 .playButton
 	color: rgb(204, 68, 0)
-	position:relative
-	display:inline-block
+	position: relative
+	display: inline-block
 	width: 20px
 	height: 20px
 	margin: 0
@@ -421,14 +428,14 @@ button:focus
 	fill: none
 
 .playButton__play
-	display:block
+	display: block
 	
 .playButton .playButton__overlay
-	visibility:hidden
+	visibility: hidden
 
 .playButton:focus .playButton__overlay,
 .playButton:hover .playButton__overlay
-	visibility:visible !important
+	visibility: visible !important
 
 .btn-link 
 	border: none 
@@ -551,6 +558,8 @@ zing-grid
 .battle-url, .footer-url
 	color: $main-color !important
 	font-weight: bold
+	display: inline-flex
+	align-items: center
 	&:hover
 		border-bottom: 1px solid $main-color
 
@@ -563,13 +572,18 @@ zg-cell
 	box-sizing: border-box
 
 .break
-  flex-basis: 100%
-  height: 0
+	flex-basis: 100%
+	height: 0
+
+.nav-left.profile
+	flex-flow: row
 
 .nav-left 
-	display: inline-block 
+	display: flex
+	flex-flow: column
 	img 
 		height: 2rem 
+
 a, a:visited, a:hover, a:active 
 	color: inherit 
 	text-decoration: none 
@@ -602,17 +616,17 @@ p
 	margin: 0
 
 .chip:empty 
-   display: none !important
+	display: none !important
 
 .battle-host 
-	display: block
+	display: flex
 	padding-top: 1rem
 	padding-bottom: .5rem
 	font-size: 1rem
 	color: #999
 
 .battle-deadline 
-	display: block
+	align-self: flex-start
 	padding-top: .5rem
 	font-size: 1rem
 	color: #999
@@ -623,13 +637,13 @@ p
 
 .toast-success 
 	background-color: #ff5800 !important
-	margin-left:auto
-	margin-right:auto
+	margin-left: auto
+	margin-right: auto
 	
 .toast-error 
 	background-color: $error-color !important
-	margin-left:auto
-	margin-right:auto
+	margin-left: auto
+	margin-right: auto
 
 .nav-info 
 	padding: 0 1rem
@@ -648,7 +662,7 @@ p
 
 @media only screen and (max-width: 520px)
 	.battle-title
-		flex-wrap:wrap !important
+		flex-wrap: wrap !important
 		.heading-1
 			padding-bottom: 1rem !important
 		.nav-left
@@ -661,12 +675,26 @@ p
 	.battle-host, .battle-deadline
 		font-size: 0.8rem
 	.container
-        max-width: 90%
+		max-width: 90%
 	.nav-inner
-        width: 90%
+		width: 90%
 	#zg-caption-user-text
-        font-size: 1rem
+		font-size: 1rem
 	.nav-links
-	    font-size: 0.85rem 
+		font-size: 0.85rem 
 	.container-inner
-        padding: 3rem 
+		padding: 3rem
+
+.image-banner
+	width: 80%
+	max-height: 10vh
+	min-height: 10vh
+	margin: 0 auto
+	padding-top: 1rem
+	img
+		object-fit: cover
+		width: 100%
+		height: 100%
+
+.darkmode--activated .image-banner
+	padding-top: 0

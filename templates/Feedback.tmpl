@@ -1,9 +1,10 @@
 {{ define "Feedback" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host"><a href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a> | {{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF">Voting</span>{{else}}Finished{{end}}</span>
+        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
         <nav class="battle-title">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
@@ -27,11 +28,16 @@
       </zing-grid>
     </div>
 <script>
-window.addEventListener('load', () => {
-    const zgRef = document.querySelector('zing-grid');
-    const data = {{.Feedback}};
-    zgRef.setData(data);
-});
+  window.addEventListener('load', () => {
+      const zgRef = document.querySelector('zing-grid');
+      var data = {{.Feedback}};
+      zgRef.setData(data);
+
+      zgRef.executeOnLoad(function() {
+          const observer = lozad();
+          observer.observe();
+      });
+  });
 </script>
   {{ template "Footer" .Toast }}
 {{ end }}

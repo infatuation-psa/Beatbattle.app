@@ -1,0 +1,50 @@
+{{ define "ViewPublicGroups" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h1 class="nav-left">Groups</h1>
+          <ul class="nav-links">
+              <li class="nav-item nav-secondary"><a href="/me/groups">MY GROUPS</a></li>
+              <li class="nav-item nav-cta"><a href="/group/submit">NEW GROUP</a></li>
+          </ul>
+        </nav>
+      </div>
+      <zing-grid no-data="No groups have been created yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+        <zg-colgroup>
+          <zg-column cell-class="zing-left" header="Group" index="title">
+            <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
+          </zg-column>
+          <zg-column cell-class="zing-left" header="Status" index="status"></zg-column>
+          <zg-column cell-class="zing-both" header="Owner" index="owner_nickname">
+            <a class="battle-url" href="/user/[[record.owner_id]]">[[index.owner_nickname]]</a>
+          </zg-column>
+        </zg-colgroup>
+      </zing-grid>
+    </div>
+    <script>
+      var onChange = function (event) { 
+        setTimeout(function(){$(".tooltipped").tooltip()},1);
+      };
+
+      window.addEventListener('load', () => {
+          var data = {{ .Groups }};
+          const zgRef = document.querySelector('zing-grid');
+          zgRef.setData(data);
+
+          zgRef.executeOnLoad(function() {
+            const observer = lozad();
+            observer.observe();
+            onChange();
+          });
+
+          zgRef.addEventListener('grid:ready', onChange);
+          zgRef.addEventListener('grid:refresh', onChange);
+          zgRef.addEventListener('grid:pagesizechange', onChange);
+          zgRef.addEventListener('grid:pagechange', onChange);
+      });      
+    </script>
+  {{ template "Footer" .Toast }}
+{{ end }}

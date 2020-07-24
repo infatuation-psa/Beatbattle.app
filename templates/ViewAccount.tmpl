@@ -1,0 +1,67 @@
+{{ define "ViewAccount" }}
+  {{ template "Header" .Title }}
+    {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
+    <div class="container">
+      <div class="battle-information">
+        <nav class="battle-title">
+          <h1 class="nav-left profile">{{ if .IsPatron }}<span class="material-icons tooltipped tooltip-patron" data-tooltip="Patron">local_fire_department</span>&nbsp;{{ end }}{{.Title}}</h1>
+          <ul class="nav-links">
+              <li class="nav-item nav-secondary"><a href="{{ if eq .UserID .User.ID }}/me{{ else }}/user/{{.UserID}}{{ end }}/groups">GROUPS</a></li>
+              <li class="nav-item nav-secondary"><a href="{{ if eq .UserID .User.ID }}/me{{ else }}/user/{{.UserID}}{{ end }}/submissions">SUBMISSIONS</a></li>
+              {{ if eq .UserID .User.ID }}
+              {{ else }}
+                {{ if .UserGroups }}
+                  <li class="nav-item nav-cta"><a class="modal-trigger" href="#invite">INVITE</a></li>
+                {{ end }}
+              {{ end }}
+          </ul>
+        </nav>
+      </div>
+    {{ template "BattleGrid" }}
+    </div>
+    <div id="invite" class="modal">
+      <form id="invite-user" method="POST" action="/user/{{.UserID}}/invite">
+      <div class="modal-content">
+        <h4 id="modal-header">Invite</h4>
+        <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.Nickname}} to?</p>
+        <div class="container-form submit-border">   
+        <select name="group">
+          <option value="" disabled selected>Group</option>
+          {{ range .UserGroups }}
+          <option value="{{.ID}}">{{.Title}}</option>
+          {{ end }}
+        </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+            <input type="submit" name="submit" class="nav-item nav-cta" value="INVITE" />
+      </div>
+        </form>
+    </div>
+    <script>
+      var onChange = function (event) { 
+        setTimeout(function(){$(".tooltipped").tooltip()},1);
+      };
+
+      window.addEventListener('load', () => {
+        const zgRef = document.querySelector('zing-grid');
+        var data = '{{ .Battles }}';
+        zgRef.setData(data);
+        zgRef.executeOnLoad(function() {
+          const observer = lozad();
+          observer.observe();
+          onChange();
+        });
+
+        $('.modal').modal();
+        $('select').formSelect();
+
+        zgRef.addEventListener('grid:ready', onChange);
+        zgRef.addEventListener('grid:refresh', onChange);
+        zgRef.addEventListener('grid:pagesizechange', onChange);
+        zgRef.addEventListener('grid:pagechange', onChange);
+      })
+    </script>
+  {{ template "Footer" .Toast }}
+{{ end }}

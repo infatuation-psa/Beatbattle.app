@@ -1,6 +1,7 @@
 {{ define "UpdateBattle" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
         <form id="submit-battle" method="POST" action="/battle/{{.Battle.ID}}/update">
@@ -61,18 +62,29 @@
         </div>
         </form>
       </div>
-      </div>
-      <script>$(document).ready(function(){$('.modal').modal();$('select').formSelect();});</script>
-      <script>function chipUpdate() {$('#tags').val(JSON.stringify(this.chipsData))};
-      autosize($('textarea'));
-      $(document).ready(function(){
-          $('.chips').chips({
-            data: [{{range .Battle.Tags}}{ tag: '{{.Value}}',},{{end}}],
-            limit: 3,
-            placeholder: 'Enter Up To 3 Tags (Optional)',
-            secondaryPlaceholder: '+Tag',
-            onChipAdd: (chipUpdate),
-            onChipDelete: (chipUpdate),
-            });$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)});</script>
+    </div>
+  <script>
+    function chipUpdate() {
+        $('#tags').val(JSON.stringify(this.chipsData))
+    };
+    autosize($('textarea'));
+    $(document).ready(function() {
+      const observer = lozad();
+      observer.observe();
+      
+      $('.modal').modal();
+      $('select').formSelect();
+
+      $('.chips').chips({
+          data: [{{range .Battle.Tags}}{ tag: '{{.Value}}',},{{end}}],
+          limit: 3,
+          placeholder: 'Enter Up To 3 Tags (Optional)',
+          secondaryPlaceholder: '+Tag',
+          onChipAdd: (chipUpdate),
+          onChipDelete: (chipUpdate),
+      });
+      $(".datepicker").datepicker(), $(".timepicker").timepicker(), $("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    });
+  </script>
   {{ template "Footer" .Toast }}
 {{ end }}

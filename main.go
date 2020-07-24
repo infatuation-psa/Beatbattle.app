@@ -107,6 +107,13 @@ type Template struct {
 	templates *template.Template
 }
 
+// Advertisement struct
+type Advertisement struct {
+	ID    int    `gorm:"column:id" json:"id"`
+	URL   string `gorm:"column:url" json:"url"`
+	Image string `gorm:"column:image" json:"image"`
+}
+
 // Render func
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
@@ -129,11 +136,13 @@ func StringWithCharset(length int, charset string) string {
 func FrequentQuestions(c echo.Context) error {
 	user := GetUser(c, false)
 	toast := GetToast(c)
+	ads := GetAdvertisements()
 
 	m := map[string]interface{}{
 		"Title": "Frequently Asked Questions",
 		"User":  user,
 		"Toast": toast,
+		"Ads":   ads,
 	}
 
 	return c.Render(http.StatusOK, "FAQ", m)
@@ -150,11 +159,13 @@ func main() {
 	state = os.Getenv("REDDIT_STATE")
 
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
-		"linux:beatbattle:v1.1 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
+		"linux:beatbattle:v1.2 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
 	redditAuth.RequestPermanentToken = true
 
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
-	goth.UseProviders(discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify))
+
+	discordProvider = discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify, discord.ScopeGuilds)
+	goth.UseProviders(discordProvider)
 
 	// Handlers for users & auth
 	e.GET("/auth/callback", Callback)
@@ -168,18 +179,18 @@ func main() {
 
 	// Me
 	e.POST("/user/:id/invite", InsertGroupInvite)
-	e.GET("/user/:id/groups", UserGroups)
-	e.GET("/user/:id/submissions", UserSubmissions)
-	e.GET("/user/:id", UserAccount)
+	e.GET("/user/:id/groups", ViewGroups)
+	e.GET("/user/:id/submissions", ViewSubmissions)
+	e.GET("/user/:id", ViewAccount)
 	e.GET("/recalculate", CalculateVotes)
 	e.GET("/recalculate2", CalculateVoted)
 
 	// Me
 	e.GET("/me/groups/request/:id/:response", GroupRequestResponse)
 	e.GET("/me/groups/invite/:id/:response", GroupInviteResponse)
-	e.GET("/me/groups", MyGroups)
-	e.GET("/me/submissions", MySubmissions)
-	e.GET("/me", MyAccount)
+	e.GET("/me/groups", ViewGroups)
+	e.GET("/me/submissions", ViewSubmissions)
+	e.GET("/me", ViewAccount)
 
 	// Groups
 	e.POST("/group/submit", InsertGroup)
@@ -188,7 +199,7 @@ func main() {
 	e.GET("/group/:id/update", UpdateGroup)    // Update page
 	e.GET("/group/:id/join", InsertGroupRequest)
 	e.GET("/group/:id", GroupHTTP) // Update page
-	e.GET("/groups", ViewGroups)
+	e.GET("/groups", ViewPublicGroups)
 
 	e.GET("/faq", FrequentQuestions)
 
@@ -219,7 +230,8 @@ func main() {
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
 }
 
-func contains(arr []string, str string) bool {
+// ContainsString just checks if the str is whthin the array.
+func ContainsString(arr []string, str string) bool {
 	for _, a := range arr {
 		if a == str {
 			return true
@@ -228,7 +240,8 @@ func contains(arr []string, str string) bool {
 	return false
 }
 
-func containsint(arr []int, integer int) bool {
+// ContainsInt just checks if the int is whthin the array.
+func ContainsInt(arr []int, integer int) bool {
 	for _, a := range arr {
 		if a == integer {
 			return true

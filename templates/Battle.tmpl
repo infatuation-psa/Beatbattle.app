@@ -1,9 +1,10 @@
 {{ define "Battle" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a> - {{.Battle.Type}} Battle | {{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF">Voting</span>{{else}}Finished{{end}}</span>
+        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
         <nav class="battle-title">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>
@@ -152,32 +153,44 @@
         </form>
       </div>
     </div>
-    <script>$(document).ready(function(){$('.modal').modal();});</script>
     {{end}}
 <script src="/static/battle.min.js"></script>
-<script>{{if eq "complete" .Battle.Status}}function expandWaveform(){}{{else}}
-function expandWaveform(){$("iframe").css("width","20px");var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}{{end}}</script>
 <script>
-window.addEventListener("load", () => {
-    var beats = '{{.Beats}}'; 
+  {{if eq "complete" .Battle.Status}}
+    function expandWaveform(){}
+  {{else}}
+    function expandWaveform(){$("iframe").css("width","20px");var t=-1;$("iframe").hover(function(){t=$(this)},function(){t=-1}),$(window).blur(function(){-1!=t&&($("iframe").css("width","20px"),t.css("width","100%")),setTimeout(function(){t.blur()},1)})}
+  {{end}}
+  window.addEventListener("load", () => {
+    $('.modal').modal();
+    var data = '{{ .Beats }}'; 
     const darkmodeActivated = window.localStorage.getItem('darkmode') === 'true';
     if(darkmodeActivated) {
-        beats = beats.replace(/inverse=false/g, "inverse=true");
-        console.log("true");
+        data = data.replace(/inverse=false/g, "inverse=true");
     }
-    const t = document.querySelector("zing-grid");
-    t.setData(beats), t.executeOnLoad(function() {
-        setTimeout(function(){onChange()},1)
-    }), t.addEventListener("grid:pagechange", t => {
-        setTimeout(function(){onChange()},1)
-    }), t.addEventListener("grid:refresh", t => {
-        setTimeout(function(){onChange()},1)
-    }), t.addEventListener("grid:pagesizechange", t => {
-        setTimeout(function(){onChange()},1)
-    }), t.addEventListener("grid:ready", t => {
-        setTimeout(function(){onChange()},1)
+    
+    const zgRef = document.querySelector('zing-grid');
+    zgRef.setData(data);
+
+    zgRef.executeOnLoad(function() {
+        setTimeout(function(){onChange()},1);
+        const observer = lozad();
+        observer.observe();
+    });
+
+    zgRef.addEventListener("grid:pagechange", zgRef => {
+        setTimeout(function(){onChange()},1);
+    });
+    zgRef.addEventListener("grid:refresh", zgRef => {
+        setTimeout(function(){onChange()},1);
+    });
+    zgRef.addEventListener("grid:pagesizechange", zgRef => {
+        setTimeout(function(){onChange()},1);
+    });
+    zgRef.addEventListener("grid:ready", zgRef => {
+        setTimeout(function(){onChange()},1);
     })
-});
+  });
 </script>
 {{ template "Footer" .Toast }}
 {{ end }}

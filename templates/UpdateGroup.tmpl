@@ -1,6 +1,7 @@
 {{ define "UpdateGroup" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
         <form id="update-group" method="POST" action="/group/{{.Group.ID}}/update">
@@ -18,6 +19,12 @@
         </form>
       </div>
       </div>
-      <script>autosize($('textarea'));</script>
+      <script>
+        window.addEventListener('load',()=>{
+          const observer = lozad();
+          observer.observe();
+        })
+        autosize($('textarea'));
+      </script>
   {{ template "Footer" .Toast }}
 {{ end }}

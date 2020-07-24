@@ -1,0 +1,24 @@
+args := []interface{}{user.ID, user.ID, user.ID, battleID}
+scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Artist, &voteID, &likeID, &submission.Feedback, &submission.UserID}
+query := `SELECT beats.id, beats.url, users.nickname, votes.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, IFNULL(feedback.feedback, ''), beats.user_id
+		FROM beats 
+		LEFT JOIN users on beats.user_id=users.id
+		LEFT JOIN votes on votes.user_id=? AND beats.id=votes.beat_id
+		LEFT JOIN likes on likes.user_id=? AND beats.id=likes.beat_id
+		LEFT JOIN feedback on feedback.user_id=? AND feedback.beat_id=beats.id
+		WHERE beats.challenge_id=?
+		GROUP BY 1
+		ORDER BY beats.id DESC`
+
+if battle.Status == "complete" {
+	query = `SELECT beats.id, beats.url, users.nickname, beats.votes, voted.id IS NOT NULL AS voted, likes.user_id IS NOT NULL AS liked, beats.user_id
+			FROM beats 
+			LEFT JOIN users on beats.user_id=users.id
+			LEFT JOIN votes AS voted on voted.user_id=beats.user_id AND voted.challenge_id=beats.challenge_id
+			LEFT JOIN likes on likes.user_id=? AND beats.id=likes.beat_id
+			WHERE beats.challenge_id=?
+			GROUP BY 1
+			ORDER BY votes DESC`
+	args = []interface{}{user.ID, battleID}
+	scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Artist, &submission.Votes, &voteID, &likeID, &submission.UserID}
+}

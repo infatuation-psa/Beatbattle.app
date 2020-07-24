@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"math/rand"
+
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
@@ -159,9 +162,150 @@ func GetToast(c echo.Context) [2]string {
 	return [2]string{}
 }
 
+// GetAdvertisements returns an array of the current active ads.
+func GetAdvertisements() Advertisement {
+	query := `SELECT id, url, image FROM ads WHERE active = 1`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return Advertisement{}
+	}
+	defer rows.Close()
+
+	advertisement := Advertisement{}
+	advertisements := []Advertisement{}
+	for rows.Next() {
+		err = rows.Scan(&advertisement.ID, &advertisement.URL, &advertisement.Image)
+		if err != nil {
+			return Advertisement{}
+		}
+
+		advertisements = append(advertisements, advertisement)
+	}
+
+	// Reference: http://go-database-sql.org/errors.html - I'm not really sure if this does anything positive lmao.
+	if err = rows.Err(); err != nil {
+		log.Println(err)
+	}
+	if err = rows.Close(); err != nil {
+		log.Println(err)
+	}
+
+	if len(advertisements) > 0 {
+		randomIndex := rand.Intn(len(advertisements))
+		return advertisements[randomIndex]
+	}
+
+	return Advertisement{}
+}
+
 // SetToast serves toast text.
 func SetToast(c echo.Context, code string) {
 	sess, _ := session.Get("beatbattle", c)
 	sess.Values["error"] = code
 	sess.Save(c.Request(), c.Response())
+}
+
+// CalculateVoted - Manual function to force vote recalculation.
+func CalculateVoted(c echo.Context) error {
+	var user = GetUser(c, true)
+	if user.ID != 3 {
+		SetToast(c, "notauth")
+		return c.Redirect(302, "/")
+	}
+
+	query := `SELECT votes.user_id, votes.challenge_id, beats.id FROM votes 
+				LEFT JOIN beats on beats.challenge_id=votes.challenge_id AND votes.user_id=beats.user_id`
+	rows, err := db.Query(query)
+
+	if err != nil {
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		userID := 0
+		challengeID := 0
+		beatID := 0
+		rows.Scan(&userID, &challengeID, &beatID)
+
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+
+		updateQuery := "UPDATE beats SET voted = 1 WHERE user_id = ? AND id = ?"
+
+		upd, err := db.Prepare(updateQuery)
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		defer upd.Close()
+
+		upd.Exec(userID, beatID)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
+
+	return c.NoContent(302)
+}
+
+// CalculateVotes - Manual function to force vote recalculation.
+func CalculateVotes(c echo.Context) error {
+	var user = GetUser(c, true)
+
+	if user.ID != 3 {
+		SetToast(c, "notauth")
+		return c.Redirect(302, "/")
+	}
+
+	query := `SELECT id, votes FROM beats`
+
+	rows, err := db.Query(query)
+
+	if err != nil {
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		id := 0
+		votes := 1
+		rows.Scan(&id, &votes)
+
+		err := db.QueryRow("SELECT COUNT(votecount.id) FROM votes AS votecount WHERE votecount.beat_id=?", id).Scan(&votes)
+
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+
+		updateQuery := "UPDATE beats SET votes = ? WHERE id = ?"
+
+		upd, err := db.Prepare(updateQuery)
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		defer upd.Close()
+
+		upd.Exec(votes, id)
+	}
+	if err = rows.Err(); err != nil {
+		// handle the error here
+	}
+	if err = rows.Close(); err != nil {
+		// but what should we do if there's an error?
+		log.Println(err)
+	}
+
+	return c.NoContent(302)
 }

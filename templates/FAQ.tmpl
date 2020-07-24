@@ -1,12 +1,13 @@
 {{ define "FAQ" }}
     {{ template "Header" .Title }}
         {{ template "Menu" .User }}
+        {{ template "Advertisement" .Ads }}
         <div class="container">
             <div class="battle-information">
             <nav class="battle-title">
                 <h1 class="nav-left">Frequently Asked Questions</h1>
                 <ul class="nav-links">
-                    <li class="nav-item nav-secondary"><a href="mailto:alec@f1eight.co?subject=Beatbattle.app -">CONTACT</a></li>
+                    <li class="nav-item nav-secondary"><a href="mailto:infatuation@psarecords.com?subject=Beatbattle.app -">CONTACT</a></li>
                 </ul>
             </nav>
         </div>
@@ -42,21 +43,22 @@
                 <div class="collapsible-header"><i class="material-icons">notes</i>I found a bug/have a suggestion!</div>
                 <div class="collapsible-body"><span>Please join our <a href="https://discord.gg/GTYqBfV" class="battle-url">Discord</a> to submit feedback or bug reports. Alternatively send us an email with the contact button above.</span></div>
             </li>
+            <li>
+                <div class="collapsible-header"><i class="material-icons">attach_money</i>How can I support Beatbattle.app?</div>
+                <div class="collapsible-body"><span>The best way to support development is by subscribing to our <a href="https://www.patreon.com/beatbattle" class="battle-url">Patreon!</a></span></div>
+            </li>
+            <li>
+                <div class="collapsible-header"><i class="material-icons">visibility</i>I'd like to purchase an ad space/sponsor spot!</div>
+                <div class="collapsible-body"><span>To purchase an ad spot, you can join our <a href="https://www.patreon.com/beatbattle" class="battle-url">Patreon</a> for $10 per month. If you want more information regarding the sponsor spots or just a way to purchase an ad spot without subscribing to our Patreon, feel free to email us using the contact button above.</span></div>
+            </li>
         </ul>
     </div>
-    <script>$(document).ready(function(){$('.collapsible').collapsible();});</script>
-    <script type="text/javascript">
-    $(function(){
-        var embed = ""
-        $('.playButton').click(function(){ 
-            var button = $(this)
-            embed = button.data('embed')
-            console.log(embed)
-            var toembed = button.closest('.embedded-track')
-            console.log(toembed)
-            toembed.html(embed);
-        });   
-    });
+    <script>
+      window.addEventListener('load',()=>{
+        $('.collapsible').collapsible();
+        const observer = lozad();
+        observer.observe();
+      })
     </script>
   {{ template "Footer" .Toast }}
 {{ end }}

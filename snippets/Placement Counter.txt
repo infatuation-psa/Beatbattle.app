@@ -1,0 +1,1 @@
+{{ if .EntryPosition }}<span style="color: #ff5800">{{.EntryPosition}}</span>/{{end}}

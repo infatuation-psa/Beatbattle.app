@@ -1,6 +1,7 @@
 {{ define "SubmitGroup" }}
   {{ template "Header" .Title }}
     {{ template "Menu" .User }}
+    {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
         <form id="submit-group" method="POST" action="/group/submit">
@@ -19,6 +20,13 @@
         </form>
       </div>
     </div>
+    <script>
+      window.addEventListener('load',()=>{
+        $('.collapsible').collapsible();
+        const observer = lozad();
+        observer.observe();
+      })
+    </script>
     <script>function chipUpdate(){$("#tags").val(JSON.stringify(this.chipsData))}autosize($("textarea")),$(document).ready(function(){$(".chips").chips({limit:3,placeholder:"Enter Up To 3 Tags (Optional)",secondaryPlaceholder:"+Tag",onChipAdd:chipUpdate,onChipDelete:chipUpdate}),$(".datepicker").datepicker(),$(".timepicker").timepicker(),$("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)});</script>
   {{ template "Footer" .Toast }}
 {{ end }}

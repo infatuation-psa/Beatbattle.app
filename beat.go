@@ -24,26 +24,28 @@ type Beat struct {
 	Voted       bool   `json:"voted"`
 }
 
-// SubmitBeat ...
+// SubmitBeat returns a page that allows a user to submit or update their entry.
 func SubmitBeat(c echo.Context) error {
+	// Check if user is authenticated.
 	user := GetUser(c, false)
-
 	if !user.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
 
+	// GET battle ID.
 	battleID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
 	}
 
+	ads := GetAdvertisements()
 	toast := GetToast(c)
-
 	URL := c.Request().URL.RequestURI()
 
-	// TODO - Reduce strain her (not *).
+	// TODO - Reduce strain here (not *).
+	// Get battle and check if it's valid. The title thing can probably go to be honest.
 	battle := GetBattle(battleID)
 	if battle.Title == "" {
 		SetToast(c, "404")
@@ -71,20 +73,22 @@ func SubmitBeat(c echo.Context) error {
 		"Battle": battle,
 		"User":   user,
 		"Toast":  toast,
+		"Ads":    ads,
 	}
 
 	return c.Render(http.StatusOK, tpl, m)
 }
 
-// InsertBeat ...
+// InsertBeat is the post request from SubmitBeat that enter's a user's beat into the database.
 func InsertBeat(c echo.Context) error {
+	// Check if user is authenticated.
 	user := GetUser(c, true)
-
 	if !user.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
 
+	// POST battle ID.
 	battleID, err := strconv.Atoi(policy.Sanitize(c.Param("id")))
 	if err != nil {
 		SetToast(c, "404")
@@ -154,10 +158,9 @@ func InsertBeat(c echo.Context) error {
 	return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
 }
 
-// UpdateBeat updates the beat in the DB
+// UpdateBeat is the POST request from SubmitBeat when a user is updating their track.
 func UpdateBeat(c echo.Context) error {
 	user := GetUser(c, true)
-
 	if !user.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
