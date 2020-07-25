@@ -81,8 +81,8 @@ func SubmitBeat(c echo.Context) error {
 // InsertBeat is the post request from SubmitBeat that enter's a user's beat into the database.
 func InsertBeat(c echo.Context) error {
 	// Check if user is authenticated.
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -96,7 +96,7 @@ func InsertBeat(c echo.Context) error {
 
 	battle := GetBattle(battleID)
 	if battle.GroupID != 0 {
-		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
 
 		if !hasPermissions {
 			SetToast(c, "notingroup")
@@ -139,7 +139,7 @@ func InsertBeat(c echo.Context) error {
 	response := "/successadd"
 
 	// IF EXISTS UPDATE
-	if RowExists("SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", user.ID, battleID) {
+	if RowExists("SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", me.ID, battleID) {
 		stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
 		response = "/successupdate"
 	}
@@ -151,7 +151,7 @@ func InsertBeat(c echo.Context) error {
 	}
 	defer ins.Close()
 
-	ins.Exec(track, battleID, user.ID)
+	ins.Exec(track, battleID, me.ID)
 
 	SetToast(c, response)
 	return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
@@ -159,8 +159,8 @@ func InsertBeat(c echo.Context) error {
 
 // UpdateBeat is the POST request from SubmitBeat when a user is updating their track.
 func UpdateBeat(c echo.Context) error {
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -202,17 +202,16 @@ func UpdateBeat(c echo.Context) error {
 		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
 	}
 	defer ins.Close()
+	ins.Exec(track, battleID, me.ID)
 
-	ins.Exec(track, battleID, user.ID)
 	SetToast(c, "successupdate")
 	return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
 }
 
 // DeleteBeat ...
 func DeleteBeat(c echo.Context) error {
-	user := GetUser(c, true)
-
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -232,8 +231,7 @@ func DeleteBeat(c echo.Context) error {
 		return c.Redirect(302, redirectURL)
 	}
 	defer ins.Close()
-
-	ins.Exec(user.ID, battleID)
+	ins.Exec(me.ID, battleID)
 
 	SetToast(c, "successdel")
 	return c.Redirect(302, redirectURL)

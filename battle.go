@@ -22,6 +22,7 @@ import (
 
 // Battle ...
 type Battle struct {
+	ID             int           `gorm:"column:id" json:"id"`
 	Title          string        `gorm:"column:title" json:"title" validate:"required"`
 	Rules          string        `gorm:"column:rules" validate:"required"`
 	RulesHTML      template.HTML `json:"rules"`
@@ -33,7 +34,6 @@ type Battle struct {
 	Password       string        `gorm:"column:password" json:"password"`
 	Host           User          `json:"host"`
 	Entries        int           `json:"entries"`
-	ID             int           `gorm:"column:id" json:"id"`
 	MaxVotes       int           `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
 	GroupID        int           `gorm:"column:group_id" json:"group_id"`
 	Type           string        `gorm:"column:type" json:"type"`
@@ -116,6 +116,7 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 
 // ViewBattles - Retrieves all battles and displays to user. Homepage.
 func ViewBattles(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	URL := c.Request().URL.String()
@@ -131,13 +132,12 @@ func ViewBattles(c echo.Context) error {
 
 	battles := GetBattles("challenges.status", status)
 	battlesJSON, _ := json.Marshal(battles)
-
-	var user = GetUser(c, false)
+	me := GetUser(c, false)
 
 	m := map[string]interface{}{
 		"Title":   title,
 		"Battles": string(battlesJSON),
-		"User":    user,
+		"Me":      me,
 		"Toast":   toast,
 		"Ads":     ads,
 	}
@@ -147,6 +147,8 @@ func ViewBattles(c echo.Context) error {
 
 // ViewTaggedBattles - Retrieves all tagged battles and displays to user.
 func ViewTaggedBattles(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, false)
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	title := "Battles Tagged With " + policy.Sanitize(c.Param("tag"))
@@ -154,12 +156,10 @@ func ViewTaggedBattles(c echo.Context) error {
 	activeTag := policy.Sanitize(c.Param("tag"))
 	battlesJSON, _ := json.Marshal(battles)
 
-	var user = GetUser(c, false)
-
 	m := map[string]interface{}{
 		"Title":   title,
 		"Battles": string(battlesJSON),
-		"User":    user,
+		"Me":      me,
 		"Toast":   toast,
 		"Tag":     activeTag,
 		"Ads":     ads,
@@ -213,8 +213,6 @@ func GetBattles(field string, value string) []Battle {
 			return nil
 		}
 
-		battle.Host = GetUserDB(battle.Host.ID)
-
 		switch battle.Status {
 		case "entry":
 			battle.StatusDisplay = ParseDeadline(battle.Deadline, battle.ID, "entry", true)
@@ -227,9 +225,9 @@ func GetBattles(field string, value string) []Battle {
 			battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
 		}
 
+		battle.Host = GetUserDB(battle.Host.ID)
 		battle.Tags = GetTags(battle.ID)
 		battle.Type = strings.Title(battle.Type)
-
 		battles = append(battles, battle)
 	}
 
@@ -246,6 +244,7 @@ func GetBattles(field string, value string) []Battle {
 
 // BattleHTTP - Retrieves battle and displays to user.
 func BattleHTTP(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
@@ -263,13 +262,13 @@ func BattleHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	var user = GetUser(c, false)
+	me := GetUser(c, false)
 	var lastVotes []int
 	var lastLikes []int
 
 	// Get beats user has liked.
-	if user.Authenticated {
-		likes, err := db.Query("SELECT beat_id FROM likes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", user.ID, battleID)
+	if me.Authenticated {
+		likes, err := db.Query("SELECT beat_id FROM likes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
 		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
@@ -288,8 +287,8 @@ func BattleHTTP(c echo.Context) error {
 	}
 
 	// Get beats user has voted for if in voting stage.
-	if battle.Status == "voting" && user.Authenticated {
-		votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", user.ID, battleID)
+	if battle.Status == "voting" && me.Authenticated {
+		votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
 		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
@@ -312,7 +311,7 @@ func BattleHTTP(c echo.Context) error {
 	didntVote := []Beat{}
 	submission := Beat{}
 
-	args := []interface{}{user.ID, battleID}
+	args := []interface{}{me.ID, battleID}
 	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Feedback, &submission.Artist.ID}
 	query := `SELECT beats.id, beats.url, IFNULL(feedback.feedback, ''), beats.user_id
 			FROM beats 
@@ -367,7 +366,7 @@ func BattleHTTP(c echo.Context) error {
 		if battle.Status == "voting" {
 			if ContainsInt(lastVotes, submission.ID) {
 				submission.VoteColour = "#ff5800"
-				if battle.Status == "complete" && submission.Artist.ID == user.ID {
+				if battle.Status == "complete" && submission.Artist.ID == me.ID {
 					userVotes++
 				}
 				if battle.Status != "complete" {
@@ -403,7 +402,7 @@ func BattleHTTP(c echo.Context) error {
 
 		if battle.Status == "complete" && !submission.Voted {
 			didntVote = append(didntVote, submission)
-			if submission.Artist.ID == user.ID {
+			if submission.Artist.ID == me.ID {
 				hasEntered = true
 				entryPosition = len(didntVote)
 			}
@@ -411,7 +410,7 @@ func BattleHTTP(c echo.Context) error {
 		}
 
 		entries = append(entries, submission)
-		if submission.Artist.ID == user.ID {
+		if submission.Artist.ID == me.ID {
 			hasEntered = true
 			entryPosition = len(entries)
 		}
@@ -429,7 +428,7 @@ func BattleHTTP(c echo.Context) error {
 					FROM beats
 					WHERE challenge_id=? AND votes > (SELECT votes FROM beats WHERE user_id=? AND challenge_id=?)`
 
-		db.QueryRow(query, battleID, user.ID, battleID).Scan(&entryPosition)
+		db.QueryRow(query, battleID, me.ID, battleID).Scan(&entryPosition)
 	}
 
 	if hasEntered && battle.Status == "complete" && userVotes == 0 {
@@ -442,7 +441,7 @@ func BattleHTTP(c echo.Context) error {
 
 	// PERF - Shuffle entries per fcuser.
 	if battle.Status != "complete" {
-		rand.Seed(int64(user.ID * battle.ID))
+		rand.Seed(int64(me.ID * battle.ID))
 		rand.Shuffle(len(entries), func(i, j int) {
 			entries[i], entries[j] = entries[j], entries[i]
 		})
@@ -454,19 +453,19 @@ func BattleHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	isOwner := RowExists("SELECT id FROM challenges WHERE user_id = ? AND id = ?", user.ID, battleID)
+	isOwner := RowExists("SELECT id FROM challenges WHERE user_id = ? AND id = ?", me.ID, battleID)
 
 	canEnter := true
 
 	if battle.GroupID != 0 {
-		canEnter = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+		canEnter = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
 	}
 
 	m := map[string]interface{}{
 		"Title":          battle.Title,
 		"Battle":         battle,
 		"Beats":          string(e),
-		"User":           user,
+		"Me":             me,
 		"CanEnter":       canEnter,
 		"EnteredBattle":  hasEntered,
 		"EntryPosition":  entryPosition,
@@ -525,9 +524,9 @@ func GetBattle(battleID int) Battle {
 
 // SubmitBattle ...
 func SubmitBattle(c echo.Context) error {
-	user := GetUser(c, false)
-
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, false)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -536,13 +535,13 @@ func SubmitBattle(c echo.Context) error {
 	ads := GetAdvertisements()
 
 	userGroups := []Group{}
-	if user.Authenticated {
-		userGroups = GetGroupsByRole(db, user.ID, "member")
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(db, me.ID, "member")
 	}
 
 	m := map[string]interface{}{
 		"Title":      "Submit Battle",
-		"User":       user,
+		"Me":         me,
 		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Ads":        ads,
@@ -553,9 +552,10 @@ func SubmitBattle(c echo.Context) error {
 
 // UpdateBattle ...
 func UpdateBattle(c echo.Context) error {
-	user := GetUser(c, false)
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, false)
 
-	if !user.Authenticated {
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -582,14 +582,14 @@ func UpdateBattle(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	if battle.Host.ID != user.ID {
+	if battle.Host.ID != me.ID {
 		SetToast(c, "notuser")
 		return c.Redirect(302, "/")
 	}
 
 	userGroups := []Group{}
-	if user.Authenticated {
-		userGroups = GetGroupsByRole(db, user.ID, "member")
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(db, me.ID, "member")
 	}
 
 	// For time.Parse
@@ -601,7 +601,7 @@ func UpdateBattle(c echo.Context) error {
 	m := map[string]interface{}{
 		"Title":              "Update Battle",
 		"Battle":             battle,
-		"User":               user,
+		"Me":                 me,
 		"UserGroups":         userGroups,
 		"DeadlineDate":       deadline[0],
 		"DeadlineTime":       deadline[1],
@@ -616,9 +616,10 @@ func UpdateBattle(c echo.Context) error {
 
 // UpdateBattleDB ...
 func UpdateBattleDB(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated, if not kick them out.
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -636,7 +637,7 @@ func UpdateBattleDB(c echo.Context) error {
 
 	// Check if user has permissions to modify battle. This check seems to be redundant?
 	if groupID != 0 {
-		if !RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID) {
+		if !RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID) {
 			SetToast(c, "notuser")
 			return c.Redirect(302, "/battle/submit")
 		}
@@ -653,7 +654,7 @@ func UpdateBattleDB(c echo.Context) error {
 	curStatus := "entry"
 	userID := -1
 	err = db.QueryRow("SELECT status, user_id FROM challenges WHERE id = ?", battleID).Scan(&curStatus, &userID)
-	if err != nil || userID != user.ID {
+	if err != nil || userID != me.ID {
 		SetToast(c, "notuser")
 		return c.Redirect(302, "/")
 	}
@@ -728,7 +729,7 @@ func UpdateBattleDB(c echo.Context) error {
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
 		Attachment:     attachment,
-		Host:           user,
+		Host:           me,
 		Password:       policy.Sanitize(c.FormValue("password")),
 		MaxVotes:       maxVotes,
 		Status:         status,
@@ -760,7 +761,7 @@ func UpdateBattleDB(c echo.Context) error {
 	}
 	defer ins.Close()
 
-	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battle.GroupID, battle.Type, battleID, user.ID)
+	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battle.GroupID, battle.Type, battleID, me.ID)
 	if err != nil {
 		SetToast(c, "failadd")
 		return c.Redirect(302, "/")
@@ -773,15 +774,16 @@ func UpdateBattleDB(c echo.Context) error {
 
 // InsertBattle ...
 func InsertBattle(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated.
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
 
 	entries := 0
-	err := db.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", user.ID).Scan(&entries)
+	err := db.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", me.ID).Scan(&entries)
 	if err != nil && err != sql.ErrNoRows {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -793,7 +795,7 @@ func InsertBattle(c echo.Context) error {
 	}
 
 	if groupID != 0 {
-		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID)
 
 		if !hasPermissions {
 			SetToast(c, "notuser")
@@ -870,7 +872,7 @@ func InsertBattle(c echo.Context) error {
 		Deadline:       deadline,
 		VotingDeadline: votingDeadline,
 		Attachment:     attachment,
-		Host:           user,
+		Host:           me,
 		Status:         status,
 		Password:       policy.Sanitize(c.FormValue("password")),
 		Entries:        0,
@@ -891,7 +893,7 @@ func InsertBattle(c echo.Context) error {
 		return c.Redirect(302, "/battle/submit")
 	}
 
-	if RowExists("SELECT id FROM challenges WHERE user_id = ? AND title = ?", user.ID, battle.Title) {
+	if RowExists("SELECT id FROM challenges WHERE user_id = ? AND title = ?", me.ID, battle.Title) {
 		SetToast(c, "titleexists")
 		return c.Redirect(302, "/battle/submit")
 	}
@@ -906,8 +908,8 @@ func InsertBattle(c echo.Context) error {
 	defer ins.Close()
 
 	var battleInsertedID int64 = 0
-	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment,
-		battle.Status, battle.Password, battle.Host.ID, battle.VotingDeadline, battle.MaxVotes, battle.GroupID, battle.Type)
+	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Status, battle.Password,
+		battle.Host.ID, battle.VotingDeadline, battle.MaxVotes, battle.GroupID, battle.Type)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -917,7 +919,7 @@ func InsertBattle(c echo.Context) error {
 	TagsDB(false, c.FormValue("tags"), battleInsertedID)
 
 	SetToast(c, "successadd")
-	return c.Redirect(302, "/")
+	return c.Redirect(302, "/battle/"+strconv.FormatInt(battleInsertedID, 10))
 }
 
 // TagsDB adds / updates tags in the DB.
@@ -925,7 +927,6 @@ func TagsDB(update bool, tagsJSON string, battleID int64) {
 	var tagIDs []int64
 
 	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
-
 	var tags []Tag
 	err := json.Unmarshal([]byte(tagsJSON), &tags)
 	if err != nil {
@@ -1018,9 +1019,10 @@ func GetTags(battleID int) []Tag {
 
 // DeleteBattle ...
 func DeleteBattle(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated.
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -1042,7 +1044,7 @@ func DeleteBattle(c echo.Context) error {
 			return c.Redirect(302, "/")
 		}
 		defer del.Close()
-		del.Exec(user.ID, battleID)
+		del.Exec(me.ID, battleID)
 
 		SetToast(c, "successdel")
 		return c.Redirect(302, "/")

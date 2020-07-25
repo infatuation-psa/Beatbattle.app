@@ -101,6 +101,7 @@ func GetUserDB(UserID int) User {
 // Callback does the main heavy lifting of the 2FA authentication.
 // This code is kind of messy and should be refactored.
 func Callback(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	sess, _ := session.Get("beatbattle", c)
 	Account := User{}
 	handler := c.QueryParam("provider")
@@ -205,6 +206,7 @@ func Callback(c echo.Context) error {
 
 // Login returns the login page.
 func Login(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	toast := GetToast(c)
 
 	m := map[string]interface{}{
@@ -217,6 +219,7 @@ func Login(c echo.Context) error {
 
 // Auth routes the login request to the proper handler.
 func Auth(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Retrieve the handler from the GET request.
 	handler := c.QueryParam("provider")
 	if handler == "reddit" {
@@ -228,6 +231,7 @@ func Auth(c echo.Context) error {
 
 // Logout deletes the local session.
 func Logout(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	gothic.Logout(c.Response(), c.Request())
 
 	sess, _ := session.Get("beatbattle", c)
@@ -240,6 +244,7 @@ func Logout(c echo.Context) error {
 // GetUser retrieves user details from local storage.
 // If validation is required, it checks if the access token is expired.
 func GetUser(c echo.Context, validate bool) User {
+	c.Request().Header.Set("Connection", "close")
 	var user User
 	user.ID = 0
 
@@ -320,6 +325,7 @@ func GetUser(c echo.Context, validate bool) User {
 
 // AjaxResponse ...
 func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery string) error {
+	c.Request().Header.Set("Connection", "close")
 	type AjaxData struct {
 		Redirect     bool   `json:"Redirect"`
 		RedirectPath string `json:"RedirectPath"`
@@ -346,10 +352,11 @@ func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery
 	return c.JSON(http.StatusCreated, data)
 }
 
-// AddVote ...
+// AddVote is a user function that grabs the logged in user object and adds a vote to the DB.
 func AddVote(c echo.Context) error {
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
@@ -383,15 +390,15 @@ func AddVote(c echo.Context) error {
 	}
 
 	// Reject if user ID matches the track.
-	if beatUserID == user.ID {
+	if beatUserID == me.ID {
 		return AjaxResponse(c, false, redirectURL, "owntrack")
 	}
 
 	count := 0
-	_ = db.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", user.ID, battleID).Scan(&count)
+	_ = db.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", me.ID, battleID).Scan(&count)
 
 	voteID := 0
-	voteErr := db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", user.ID, beatID).Scan(&voteID)
+	voteErr := db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", me.ID, beatID).Scan(&voteID)
 
 	// TODO Change from transaction maybe
 
@@ -410,13 +417,13 @@ func AddVote(c echo.Context) error {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
 			defer ins.Close()
-			ins.Exec(beatID, user.ID, battleID)
+			ins.Exec(beatID, me.ID, battleID)
 
 			// Mark user as having voted if they've entered the battle themselves.
 			votedSQL := "UPDATE beats SET voted = 1 WHERE user_id = ? AND challenge_id = ?"
 			voted, _ := tx.Prepare(votedSQL)
 			defer voted.Close()
-			voted.Exec(user.ID, battleID)
+			voted.Exec(me.ID, battleID)
 
 			// Update the hard written votes on the beat.
 			updSQL := "UPDATE beats SET votes = votes + 1 WHERE id = ?"
@@ -455,7 +462,7 @@ func AddVote(c echo.Context) error {
 				votedSQL := "UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?"
 				voted, _ := tx.Prepare(votedSQL)
 				defer voted.Close()
-				voted.Exec(user.ID, battleID)
+				voted.Exec(me.ID, battleID)
 			}
 
 			// Commit and return deleted vote.
@@ -491,7 +498,7 @@ func AddVote(c echo.Context) error {
 			votedSQL := "UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?"
 			voted, _ := tx.Prepare(votedSQL)
 			defer voted.Close()
-			voted.Exec(user.ID, battleID)
+			voted.Exec(me.ID, battleID)
 		}
 
 		// Commit and return deleted vote.
@@ -504,8 +511,9 @@ func AddVote(c echo.Context) error {
 
 // AddLike ...
 func AddLike(c echo.Context) error {
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
@@ -515,22 +523,22 @@ func AddLike(c echo.Context) error {
 	}
 
 	var battleID int
-	var beatUserID int
+	var userID int
 
-	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
+	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
-	if !RowExists("SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
+	if !RowExists("SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
 		ins, err := db.Prepare("INSERT INTO likes(user_id, beat_id, challenge_id) VALUES (?, ?, ?)")
 		if err != nil {
 			return AjaxResponse(c, true, "/", "502")
 		}
 		defer ins.Close()
-		ins.Exec(user.ID, beatID, battleID)
+		ins.Exec(me.ID, beatID, battleID)
 		return AjaxResponse(c, false, redirectURL, "liked")
 	}
 
@@ -539,15 +547,16 @@ func AddLike(c echo.Context) error {
 		return AjaxResponse(c, true, "/", "502")
 	}
 	defer del.Close()
-	del.Exec(user.ID, beatID, battleID)
+	del.Exec(me.ID, beatID, battleID)
 
 	return AjaxResponse(c, false, redirectURL, "unliked")
 }
 
 // AddFeedback ...
 func AddFeedback(c echo.Context) error {
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
@@ -557,27 +566,27 @@ func AddFeedback(c echo.Context) error {
 	}
 
 	var battleID int
-	var beatUserID int
+	var userID int
 	feedback := policy.Sanitize(c.FormValue("feedback"))
 
-	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
+	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
-	if beatUserID == user.ID {
+	if userID == me.ID {
 		return AjaxResponse(c, false, "/", "feedbackself")
 	}
 
-	if !RowExists("SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", user.ID, beatID) {
+	if !RowExists("SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
 		ins, err := db.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
 		if err != nil {
 			return AjaxResponse(c, true, "/", "502")
 		}
 		defer ins.Close()
-		ins.Exec(feedback, user.ID, beatID)
+		ins.Exec(feedback, me.ID, beatID)
 		return AjaxResponse(c, false, redirectURL, "successaddfeedback")
 	}
 
@@ -586,16 +595,17 @@ func AddFeedback(c echo.Context) error {
 		return AjaxResponse(c, true, "/", "502")
 	}
 	defer update.Close()
-	update.Exec(feedback, user.ID, beatID)
+	update.Exec(feedback, me.ID, beatID)
 
 	return AjaxResponse(c, false, redirectURL, "successupdate")
 }
 
 // ViewFeedback - Retrieves user's feedback and returns a page containing them.
 func ViewFeedback(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if the user is properly authenticated.
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -622,7 +632,7 @@ func ViewFeedback(c echo.Context) error {
 				LEFT JOIN users on feedback.user_id = users.id
 				WHERE beats.challenge_id = ? AND beats.user_id = ? AND feedback.feedback IS NOT NULL`
 
-	rows, err := db.Query(query, battleID, user.ID)
+	rows, err := db.Query(query, battleID, me.ID)
 	if err != nil {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
@@ -660,7 +670,7 @@ func ViewFeedback(c echo.Context) error {
 		"Title":    battle.Title,
 		"Battle":   battle,
 		"Feedback": string(feedbackJSON),
-		"User":     user,
+		"Me":       me,
 		"Toast":    toast,
 		"Ads":      ads,
 	}
@@ -670,6 +680,7 @@ func ViewFeedback(c echo.Context) error {
 
 // UserBattles - Retrieves user's battles and returns a page containing them.
 func UserBattles(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	userID := 0
@@ -714,6 +725,7 @@ func UserBattles(c echo.Context) error {
 
 // UserSubmissions - Retrieves user's submissions and returns a page containing them.
 func UserSubmissions(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	userID := 0
@@ -821,6 +833,7 @@ func UserSubmissions(c echo.Context) error {
 
 // UserGroups - Retrieves user's groups and returns a page containing them.
 func UserGroups(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	user := User{}

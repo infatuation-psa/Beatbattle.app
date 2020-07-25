@@ -1,64 +1,64 @@
 {{ define "FAQ" }}
     {{ template "Header" .Title }}
-        {{ template "Menu" .User }}
-        {{ template "Advertisement" .Ads }}
-        <div class="container">
-            <div class="battle-information">
-            <nav class="battle-title">
-                <h1 class="nav-left">Frequently Asked Questions</h1>
-                <ul class="nav-links">
-                    <li class="nav-item nav-secondary"><a href="mailto:infatuation@psarecords.com?subject=Beatbattle.app -">CONTACT</a></li>
-                </ul>
-            </nav>
-        </div>
-        <ul class="collapsible">
-            <li>
-                <div class="collapsible-header"><i class="material-icons">question_answer</i>What is beatbattle.app?</div>
-                <div class="collapsible-body"><span>beatbattle.app is a platform where users create and participate in community driven art-making competitions.</span></div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">sports_mma</i>What is a beat battle?</div>
-                <div class="collapsible-body"><span>On beatbattle.app, a battle is a community event where artists are challenged to create their finest work that follows the battle's rules.</span></div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">audiotrack</i>How does a battle work?</div>
-                <div class="collapsible-body"><span>When the battle starts, battlers are tasked with creating content that adheres to the rules of the specific battle.<br /><br />
-                                                    Battlers then race against the clock to submit their work.<br /><br />
-                                                    Once the battle’s submission period ends, all battlers that submitted entries (as well as the public) may begin voting on all submitted entries.<br /><br />
-                                                    If a battler does not vote in a battle they've entered, they are marked as non-voting and put at the bottom of the standings.<br /><br />
-                                                    Once voting is complete, a battler emerges victorious.</span>
-                </div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">checkmark</i>How do I vote for an entry?</div>
-                <div class="collapsible-body"><span>Once a battle is in voting phase, you can vote for the entries you like the best by pressing the checkmark next to the track.<br/><br/>
-                                                    As a user cannot voting during the entry phase, we recommend bookmarking the entries you enjoy beforehand in the event of a short voting period.<br/><br/>
-                                                    Note: beatbattle.app prevents users from voting for their own entries.</span></div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">code</i>I'm a dev/designer and would like to help out!</div>
-                <div class="collapsible-body"><span>Any experienced golang developers can contact our team using the button above.</span></div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">notes</i>I found a bug/have a suggestion!</div>
-                <div class="collapsible-body"><span>Please join our <a href="https://discord.gg/GTYqBfV" class="battle-url">Discord</a> to submit feedback or bug reports. Alternatively send us an email with the contact button above.</span></div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">attach_money</i>How can I support Beatbattle.app?</div>
-                <div class="collapsible-body"><span>The best way to support development is by subscribing to our <a href="https://www.patreon.com/beatbattle" class="battle-url">Patreon!</a></span></div>
-            </li>
-            <li>
-                <div class="collapsible-header"><i class="material-icons">visibility</i>I'd like to purchase an ad space/sponsor spot!</div>
-                <div class="collapsible-body"><span>To purchase an ad spot, you can join our <a href="https://www.patreon.com/beatbattle" class="battle-url">Patreon</a> for $10 per month. If you want more information regarding the sponsor spots or just a way to purchase an ad spot without subscribing to our Patreon, feel free to email us using the contact button above.</span></div>
-            </li>
-        </ul>
+    {{ template "Menu" .Menu }}
+    {{ template "Advertisement" .Ads }}
+    <div class="container">
+        <div class="battle-information">
+        <nav class="battle-title">
+            <h1 class="nav-left">Frequently Asked Questions</h1>
+            <ul class="nav-links">
+                <li class="nav-item nav-secondary"><a href="mailto:infatuation@psarecords.com?subject=Beatbattle.app -">CONTACT</a></li>
+            </ul>
+        </nav>
+    </div>
+    <ul class="collapsible">
+        <li>
+            <div class="collapsible-header"><i class="material-icons">question_answer</i>What is beatbattle.app?</div>
+            <div class="collapsible-body"><span>beatbattle.app is a platform where users create and participate in community driven art-making competitions.</span></div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">sports_mma</i>What is a beat battle?</div>
+            <div class="collapsible-body"><span>On beatbattle.app, a battle is a community event where artists are challenged to create their finest work that follows the battle's rules.</span></div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">audiotrack</i>How does a battle work?</div>
+            <div class="collapsible-body"><span>When the battle starts, battlers are tasked with creating content that adheres to the rules of the specific battle.<br /><br />
+                                                Battlers then race against the clock to submit their work.<br /><br />
+                                                Once the battle’s submission period ends, all battlers that submitted entries (as well as the public) may begin voting on all submitted entries.<br /><br />
+                                                If a battler does not vote in a battle they've entered, they are marked as non-voting and put at the bottom of the standings.<br /><br />
+                                                Once voting is complete, a battler emerges victorious.</span>
+            </div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">checkmark</i>How do I vote for an entry?</div>
+            <div class="collapsible-body"><span>Once a battle is in voting phase, you can vote for the entries you like the best by pressing the checkmark next to the track.<br/><br/>
+                                                As a user cannot voting during the entry phase, we recommend bookmarking the entries you enjoy beforehand in the event of a short voting period.<br/><br/>
+                                                Note: beatbattle.app prevents users from voting for their own entries.</span></div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">code</i>I'm a dev/designer and would like to help out!</div>
+            <div class="collapsible-body"><span>Any experienced golang developers can contact our team using the button above.</span></div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">notes</i>I found a bug/have a suggestion!</div>
+            <div class="collapsible-body"><span>Please join our <a href="https://discord.gg/GTYqBfV" class="battle-url">Discord</a> to submit feedback or bug reports. Alternatively send us an email with the contact button above.</span></div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">attach_money</i>How can I support Beatbattle.app?</div>
+            <div class="collapsible-body"><span>The best way to support development is by subscribing to our <a href="https://www.patreon.com/beatbattle" class="battle-url">Patreon!</a></span></div>
+        </li>
+        <li>
+            <div class="collapsible-header"><i class="material-icons">visibility</i>I'd like to purchase an ad space/sponsor spot!</div>
+            <div class="collapsible-body"><span>To purchase an ad spot, you can join our <a href="https://www.patreon.com/beatbattle" class="battle-url">Patreon</a> for $10 per month. If you want more information regarding the sponsor spots or just a way to purchase an ad spot without subscribing to our Patreon, feel free to email us using the contact button above.</span></div>
+        </li>
+    </ul>
     </div>
     <script>
-      window.addEventListener('load',()=>{
+        window.addEventListener('load',()=>{
         $('.collapsible').collapsible();
         const observer = lozad();
         observer.observe();
-      })
+        })
     </script>
-  {{ template "Footer" .Toast }}
+    {{ template "Footer" .Toast }}
 {{ end }}

@@ -1,30 +1,32 @@
 {{ define "ViewBattles" }}
   {{ template "Header" .Title }}
-    {{ template "Menu" .User }}
-    {{ template "Advertisement" .Ads }}
-    <div class="container">
-      <div class="battle-information">
-        <nav class="battle-title">
-          <h1 class="nav-left">Battles tagged with: {{if .Tag}}{{.Tag}}{{end}}</h1>
-          <ul class="nav-links">
-              <li class="nav-item nav-secondary"><a href="/">CURRENT</a></li>
-              <li class="nav-item nav-cta"><a href="/battle/submit">NEW BATTLE</a></li>
-          </ul>
-        </nav>
-      </div>
-    {{ template "BattleGrid" }}
+  {{ template "Menu" .Me }}
+  {{ template "Advertisement" .Ads }}
+  <div class="container">
+    <div class="battle-information">
+      <nav class="battle-title">
+        <h1 class="nav-left">Battles tagged with: {{if .Tag}}{{.Tag}}{{end}}</h1>
+        <ul class="nav-links">
+            <li class="nav-item nav-secondary"><a href="/">CURRENT</a></li>
+            <li class="nav-item nav-cta"><a href="/battle/submit">NEW BATTLE</a></li>
+        </ul>
+      </nav>
     </div>
-    <script>
-      window.addEventListener('load',()=>{
-        const zgRef = document.querySelector('zing-grid');
-        var data={{.Battles}};
-        zgRef.setData(data);
-        zgRef.executeOnLoad(function() {
-          console.log("test");
-          const observer = lozad();
-          observer.observe();
-        });
-      })
-    </script>
+    {{ template "BattleGrid" }}
+  </div>
+  <script>
+    window.addEventListener('load',()=>{
+      // Initialize Zing Grid.
+      var data='{{.Battles}}';
+      const zgRef = document.querySelector('zing-grid');
+      zgRef.setData(data);
+
+      // Load images.
+      zgRef.executeOnLoad(function() {
+        const observer = lozad();
+        observer.observe();
+      });
+    })
+  </script>
   {{ template "Footer" .Toast }}
 {{ end }}

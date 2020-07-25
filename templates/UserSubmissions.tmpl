@@ -51,25 +51,25 @@
   </div>
   {{ if ne .Me.ID .User.ID }}
     {{ if .UserGroups }}
-    <div id="invite" class="modal">
-      <form id="invite-user" method="POST" action="/user/{{.User.ID}}/invite">
-        <div class="modal-content">
-          <h4 id="modal-header">Invite</h4>
-          <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.User.Name}} to?</p>
-          <div class="container-form submit-border">   
-          <select name="group">
-            <option value="" disabled selected>Group</option>
-            {{ range .UserGroups }}
-              <option value="{{.ID}}">{{.Title}}</option>
-            {{ end }}
-          </select>
+      <div id="invite" class="modal">
+        <form id="invite-user" method="POST" action="/user/{{.User.ID}}/invite">
+          <div class="modal-content">
+            <h4 id="modal-header">Invite</h4>
+            <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.User.Name}} to?</p>
+            <div class="container-form submit-border">   
+            <select name="group">
+              <option value="" disabled selected>Group</option>
+              {{ range .UserGroups }}
+                <option value="{{.ID}}">{{.Title}}</option>
+              {{ end }}
+            </select>
+            </div>
           </div>
-        </div>
-        <div class="modal-footer">
-              <input type="submit" name="submit" class="nav-item nav-cta" value="INVITE" />
-        </div>
-      </form>
-    </div>
+          <div class="modal-footer">
+                <input type="submit" name="submit" class="nav-item nav-cta" value="INVITE" />
+          </div>
+        </form>
+      </div>
     {{ end }}
   {{ end }}
   <script src="/static/battle.min.js"></script>

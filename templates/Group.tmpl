@@ -1,77 +1,77 @@
 {{ define "Group" }}
   {{ template "Header" .Title }}
-    {{ template "Menu" .User }}
-    {{ template "Advertisement" .Ads }}
-    <div class="container">
-      <div class="battle-information">
-        <span class="battle-host"><a class="battle-url" href="/user/{{.Group.OwnerID}}">{{.Group.OwnerNickname}}</a></span>
-        <nav class="battle-title">
-          <div class="nav-left">
-          <h1>{{.Group.Title}}</h1>
-          <span class="battle-deadline">{{.Group.StatusDisplay}} Group</span>
-          </div>
-          <ul class="nav-links">
-            {{if .IsOwner}}
-              <li class="nav-item nav-cta"><a id="edit-button" href="/group/{{.Group.ID}}/update/">EDIT</a></li>
-            {{else}}
-              {{if eq "inviteonly" .Group.Status}}
-                {{ if .InGroup }}
-                    <li class="nav-item nav-secondary"><a href="/group/{{.Group.ID}}/leave">LEAVE</a></li>
-                {{ else }}
-                  {{ if .Invited }}
-                    <li class="nav-item nav-cta"><a class="modal-trigger modal-invite" data-target="respond" href="#respond">Respond</a></li>
-                  {{ else }}
-                    <li class="nav-item nav-disabled"><a>INVITE ONLY</a></li>
-                  {{ end }}
-                {{ end }}
-              {{else}}     
+  {{ template "Menu" .Me }}
+  {{ template "Advertisement" .Ads }}
+  <div class="container">
+    <div class="battle-information">
+      <span class="battle-host"><a class="battle-url" href="/user/{{.Group.Owner.ID}}">{{ .Group.Owner.Name }}{{ if .Group.Owner.Patron }}&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>{{ end }}</a></span>
+      <nav class="battle-title">
+        <div class="nav-left">
+        <h1>{{.Group.Title}}</h1>
+        <span class="battle-deadline">{{.Group.StatusDisplay}} Group</span>
+        </div>
+        <ul class="nav-links">
+          {{if .IsOwner}}
+            <li class="nav-item nav-cta"><a id="edit-button" href="/group/{{.Group.ID}}/update/">EDIT</a></li>
+          {{else}}
+            {{if eq "inviteonly" .Group.Status}}
+              {{ if .InGroup }}
+                  <li class="nav-item nav-secondary"><a href="/group/{{.Group.ID}}/leave">LEAVE</a></li>
+              {{ else }}
                 {{ if .Invited }}
-                    <li class="nav-item nav-cta"><a class="modal-trigger modal-invite" data-target="respond" href="#respond">Respond</a></li>
-                {{ else if .Requested }}
-                    <li class="nav-item nav-disabled"><a>Requested</a></li>
+                  <li class="nav-item nav-cta"><a class="modal-trigger modal-invite" data-target="respond" href="#respond">Respond</a></li>
                 {{ else }}
-                    <li class="nav-item nav-cta"><a href="/group/{{.Group.ID}}/join">JOIN</a></li>
-                {{ end }}         
-              {{end}}
+                  <li class="nav-item nav-disabled"><a>INVITE ONLY</a></li>
+                {{ end }}
+              {{ end }}
+            {{else}}     
+              {{ if .Invited }}
+                  <li class="nav-item nav-cta"><a class="modal-trigger modal-invite" data-target="respond" href="#respond">Respond</a></li>
+              {{ else if .Requested }}
+                  <li class="nav-item nav-disabled"><a>Requested</a></li>
+              {{ else }}
+                  <li class="nav-item nav-cta"><a href="/group/{{.Group.ID}}/join">JOIN</a></li>
+              {{ end }}         
             {{end}}
-          </ul>
-        </nav>
-        <h3>Description</h3>
-        <div class="battle-rules">{{.Group.DescriptionHTML}}</div>
-      </div>
-      <zing-grid no-data="No one has entered this battle yet." caption='Members' layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
-        <zg-colgroup>
-          <zg-column cell-class="zing-left" header="Artist" index="nickname">
-            <a class="battle-url" href="/user/[[record.id]]">[[record.nickname]]</a>
-          </zg-column>
-          <zg-column cell-class="zing-left" header="Role" index="role"></zg-column>
-        </zg-colgroup>
-        <zg-param name="loadByScroll" value="true"></zg-param>
-      </zing-grid>
+          {{end}}
+        </ul>
+      </nav>
+      <h3>Description</h3>
+      <div class="battle-rules">{{.Group.DescriptionHTML}}</div>
     </div>
-    <div id="respond" class="modal">
-      <div class="modal-content">
-        <h4 id="modal-header">Invite to {{.Group.Title}}</h4>
-        <p id="modal-description">Do you accept or decline the invite?</p>
-      </div>
-      <div class="modal-footer">
-          <ul class="nav-links">
-              <li class="nav-item nav-cta"><a id="modal-accept" href="/me/groups/invite/{{.Group.ID}}/accept">ACCEPT</a></li>
-              <li class="nav-item nav-secondary"><a id="modal-decline" href="/me/groups/invite/{{.Group.ID}}/decline">DECLINE</a></li>
-          </ul>
-      </div>
+    <zing-grid no-data="No one has entered this battle yet." caption='Members' layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zg-colgroup>
+        <zg-column cell-class="zing-left" header="Artist" index="nickname">
+          <a class="battle-url" href="/user/[[record.id]]">[[record.nickname]]</a>
+        </zg-column>
+        <zg-column cell-class="zing-left" header="Role" index="role"></zg-column>
+      </zg-colgroup>
+      <zg-param name="loadByScroll" value="true"></zg-param>
+    </zing-grid>
+  </div>
+  <div id="respond" class="modal">
+    <div class="modal-content">
+      <h4 id="modal-header">Invite to {{.Group.Title}}</h4>
+      <p id="modal-description">Do you accept or decline the invite?</p>
     </div>
+    <div class="modal-footer">
+        <ul class="nav-links">
+            <li class="nav-item nav-cta"><a id="modal-accept" href="/me/groups/invite/{{.Group.ID}}/accept">ACCEPT</a></li>
+            <li class="nav-item nav-secondary"><a id="modal-decline" href="/me/groups/invite/{{.Group.ID}}/decline">DECLINE</a></li>
+        </ul>
+    </div>
+  </div>
 <script>
-  window.addEventListener('load', () => {
-      const zgRef = document.querySelector('zing-grid');
-      var data = {{.Users}};
-      zgRef.setData(data);
+window.addEventListener('load', () => {
+    const zgRef = document.querySelector('zing-grid');
+    var data = {{.Users}};
+    zgRef.setData(data);
 
-      zgRef.executeOnLoad(function() {
-          const observer = lozad();
-          observer.observe();
-      });
-  });
+    zgRef.executeOnLoad(function() {
+        const observer = lozad();
+        observer.observe();
+    });
+});
 </script>
   {{ template "Footer" .Toast }}
 {{ end }}

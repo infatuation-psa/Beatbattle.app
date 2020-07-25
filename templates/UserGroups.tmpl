@@ -1,7 +1,7 @@
 {{ define "UserGroups" }}
   {{ template "Header" .Title }}
-    {{ template "Menu" .Me }}
-    {{ template "Advertisement" .Ads }}
+  {{ template "Menu" .Me }}
+  {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
         <nav class="battle-title">
@@ -19,28 +19,29 @@
       </div>
       {{ if eq .Me.ID .User.ID }}
         {{ if .Requests }}
-        <zing-grid id="requests-grid" no-data="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
-          <zg-colgroup>
-            <zg-column cell-class="zing-left" header="Group" index="title">
-              <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
-            </zg-column>
-            <zg-column cell-class="zing-left" header="Owner" index="owner_nickname"></zg-column>
-            <zg-column cell-class="zing-both" header="Accept" index="id">
-            <li class="nav-item nav-cta">
-              <a class="modal-trigger modal-request" data-title="[[record.title]]" data-id="[[record.owner_id]]" data-name="[[record.owner_nickname]]" data-target="respond" href="#respond">Respond</a>
-            </li>
-            </zg-column>
-          </zg-colgroup>
-        </zing-grid>
+          <zing-grid id="requests-grid" no-data="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+            <zg-colgroup>
+              <zg-column cell-class="zing-left" header="Group" index="title">
+                <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
+              </zg-column>
+              <zg-column cell-class="zing-left" header="Owner" index="Owner.Name"></zg-column>
+              <zg-column cell-class="zing-both" header="Accept" index="id">
+              <li class="nav-item nav-cta">
+                <a class="modal-trigger modal-request" data-title="[[record.title]]" data-id="[[record.Owner.ID]]" data-name="[[record.Owner.Name]]" data-target="respond" href="#respond">Respond</a>
+              </li>
+              </zg-column>
+            </zg-colgroup>
+          </zing-grid>
+          <script>window.addEventListener('load',()=>{const requestsGrid=document.querySelector('#requests-grid');const data={{.Requests}};requestsGrid.setData(data);})</script>
         {{ end }}
         {{ if .Invites }}
-        <zing-grid id="invites-grid" no-data="You don't have any active invites." caption="Invites" layout-controls="disabled"sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+        <zing-grid id="invites-grid" no-data="You don't have any active invites." caption="Invites" layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
           <zg-colgroup>
             <zg-column cell-class="zing-left" header="Group" index="title">
               <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
             </zg-column>
             <zg-column cell-class="zing-left" header="Role" index="status"></zg-column>
-            <zg-column cell-class="zing-left" header="User" index="owner_nickname"></zg-column>
+            <zg-column cell-class="zing-left" header="User" index="Owner.Name"></zg-column>
             <zg-column cell-class="zing-both" header="Join" index="id">
             <li class="nav-item nav-cta">
               <a class="modal-trigger modal-invite" data-title="[[record.title]]" data-id="[[record.id]]" data-target="respond" href="#respond">Respond</a>
@@ -48,6 +49,7 @@
             </zg-column>
           </zg-colgroup>
         </zing-grid>
+        <script>window.addEventListener('load',()=>{const invitesGrid=document.querySelector('#invites-grid');const data={{.Invites}};invitesGrid.setData(data);})</script>
         {{ end }}
         <zing-grid id="groups-grid" no-data="You haven't joined any groups yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
           <zg-colgroup>
@@ -55,31 +57,25 @@
               <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
             </zg-column>
             <zg-column cell-class="zing-left" header="Role" index="status"></zg-column>
-            <zg-column cell-class="zing-both" header="Owner" index="owner_nickname"></zg-column>
+            <zg-column cell-class="zing-both" header="Owner" index="Owner.Name"></zg-column>
           </zg-colgroup>
         </zing-grid>
+        <script>window.addEventListener('load',()=>{const groupsGrid=document.querySelector('#groups-grid');const data={{.Groups}};groupsGrid.setData(data);})</script>
+      </div>
+      <div id="respond" class="modal">
+        <div class="modal-content">
+          <h4 id="modal-header">Modal Header</h4>
+          <p id="modal-description">Do you accept or decline the invite?</p>
         </div>
-        <div id="respond" class="modal">
-          <div class="modal-content">
-            <h4 id="modal-header">Modal Header</h4>
-            <p id="modal-description">Do you accept or decline the invite?</p>
-          </div>
-          <div class="modal-footer">
-              <ul class="nav-links">
-                  <li class="nav-item nav-cta"><a id="modal-accept" href="/me/groups/">ACCEPT</a></li>
-                  <li class="nav-item nav-secondary"><a id="modal-decline" href="/me/groups">DECLINE</a></li>
-              </ul>
-          </div>
+        <div class="modal-footer">
+            <ul class="nav-links">
+                <li class="nav-item nav-cta"><a id="modal-accept" href="/me/groups/">ACCEPT</a></li>
+                <li class="nav-item nav-secondary"><a id="modal-decline" href="/me/groups">DECLINE</a></li>
+            </ul>
         </div>
-        {{ if .Invites }}
-        <script>window.addEventListener('load',()=>{const t=document.querySelector('#invites-grid');const data={{.Invites}};t.setData(data);})</script>
-        {{ end }}
-        <script>window.addEventListener('load',()=>{const t=document.querySelector('#groups-grid');const data={{.Groups}};t.setData(data);})</script>
-        {{ if .Requests }}
-        <script>window.addEventListener('load',()=>{const t=document.querySelector('#requests-grid');const data={{.Requests}};t.setData(data);})</script>
-        {{ end }}
+      </div>
       {{ else }}
-      <zing-grid no-data="{{.User.Name}} hasn't joined a group yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid  id="groups-grid" no-data="{{.User.Name}} hasn't joined a group yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
@@ -88,6 +84,7 @@
           <zg-column cell-class="zing-both" header="Owner" index="owner_nickname"></zg-column>
         </zg-colgroup>
       </zing-grid>
+      <script>window.addEventListener('load',()=>{const groupsGrid=document.querySelector('#groups-grid');const data={{.Groups}};groupsGrid.setData(data);})</script>
       {{ end }}
     </div>
     {{ if ne .Me.ID .User.ID }}
@@ -138,9 +135,7 @@
     {{ end }}
 
     window.addEventListener('load', () => {
-        var data = {{ .Groups }};
         const zgRef = document.querySelector('zing-grid');
-        zgRef.setData(data);
 
         zgRef.executeOnLoad(function() {
           const observer = lozad();

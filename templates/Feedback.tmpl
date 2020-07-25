@@ -1,43 +1,43 @@
 {{ define "Feedback" }}
   {{ template "Header" .Title }}
-    {{ template "Menu" .User }}
-    {{ template "Advertisement" .Ads }}
-    <div class="container">
-      <div class="battle-information">
-        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
-        <nav class="battle-title">
-          <div class="nav-left">
-          <h1>{{.Battle.Title}}</h1>
-          <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
-          </div>
-          <ul class="nav-links">          
-            <li class="nav-item nav-secondary"><a href="javascript:history.back()">BACK</a></li>
-          </ul>
-        </nav>
-        <h3>Rules</h3>
-        <div class="battle-rules">{{.Battle.RulesHTML}}</div>
-        {{if .Battle.Tags }}
-        <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
-        {{end}}
-      </div>
-      <zing-grid no-data="You haven't received any feedback yet." caption="Feedback" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
-        <zg-colgroup>
-          <zg-column cell-class="zing-left" header="From" index="from"></zg-column>
-          <zg-column header="Feedback" index="feedback"></zg-column>
-        </zg-colgroup>
-      </zing-grid>
+  {{ template "Menu" .Me }}
+  {{ template "Advertisement" .Ads }}
+  <div class="container">
+    <div class="battle-information">
+      <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
+      <nav class="battle-title">
+        <div class="nav-left">
+        <h1>{{.Battle.Title}}</h1>
+        <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
+        </div>
+        <ul class="nav-links">          
+          <li class="nav-item nav-secondary"><a href="javascript:history.back()">BACK</a></li>
+        </ul>
+      </nav>
+      <h3>Rules</h3>
+      <div class="battle-rules">{{.Battle.RulesHTML}}</div>
+      {{if .Battle.Tags }}
+      <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
+      {{end}}
     </div>
-<script>
-  window.addEventListener('load', () => {
-      const zgRef = document.querySelector('zing-grid');
-      var data = {{.Feedback}};
-      zgRef.setData(data);
+    <zing-grid no-data="You haven't received any feedback yet." caption="Feedback" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zg-colgroup>
+        <zg-column cell-class="zing-left" header="From" index="from"></zg-column>
+        <zg-column header="Feedback" index="feedback"></zg-column>
+      </zg-colgroup>
+    </zing-grid>
+  </div>
+  <script>
+    window.addEventListener('load', () => {
+        const zgRef = document.querySelector('zing-grid');
+        var data = {{.Feedback}};
+        zgRef.setData(data);
 
-      zgRef.executeOnLoad(function() {
-          const observer = lozad();
-          observer.observe();
-      });
-  });
-</script>
+        zgRef.executeOnLoad(function() {
+            const observer = lozad();
+            observer.observe();
+        });
+    });
+  </script>
   {{ template "Footer" .Toast }}
 {{ end }}

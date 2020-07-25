@@ -134,13 +134,13 @@ func StringWithCharset(length int, charset string) string {
 
 // FrequentQuestions ...
 func FrequentQuestions(c echo.Context) error {
-	user := GetUser(c, false)
+	me := GetUser(c, false)
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
 	m := map[string]interface{}{
 		"Title": "Frequently Asked Questions",
-		"User":  user,
+		"Me":    me,
 		"Toast": toast,
 		"Ads":   ads,
 	}
@@ -176,14 +176,13 @@ func main() {
 	e.POST("/like", AddLike)
 	e.POST("/vote", AddVote)
 	e.GET("/login", Login)
+	e.GET("/faq", FrequentQuestions)
 
 	// Me
 	e.POST("/user/:id/invite", InsertGroupInvite)
 	e.GET("/user/:id/groups", UserGroups)
 	e.GET("/user/:id/submissions", UserSubmissions)
 	e.GET("/user/:id", UserBattles)
-	e.GET("/recalculate", CalculateVotes)
-	e.GET("/recalculate2", CalculateVoted)
 
 	// Me
 	e.GET("/me/groups/request/:id/:response", GroupRequestResponse)
@@ -200,8 +199,6 @@ func main() {
 	e.GET("/group/:id/join", InsertGroupRequest)
 	e.GET("/group/:id", GroupHTTP) // Update page
 	e.GET("/groups", ViewPublicGroups)
-
-	e.GET("/faq", FrequentQuestions)
 
 	// Battles
 	e.GET("/battles/:tag", ViewTaggedBattles)

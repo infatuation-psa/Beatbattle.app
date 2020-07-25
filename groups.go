@@ -16,33 +16,33 @@ import (
 
 // Group ...
 type Group struct {
+	ID              int           `gorm:"column:id" json:"id"`
 	Title           string        `gorm:"column:title" json:"title" validate:"required"`
 	Description     string        `gorm:"column:description" validate:"required"`
 	DescriptionHTML template.HTML `json:"description"`
 	Status          string        `gorm:"column:status"`
 	StatusDisplay   string        `json:"status"`
-	ID              int           `gorm:"column:id" json:"id"`
-	OwnerID         int           `gorm:"column:owner_id" json:"owner_id"`
-	OwnerNickname   string        `gorm:"column:owner_nickname" json:"owner_nickname"`
+	Owner           User
 	Users           []GroupUser
 }
 
 // GroupUser ...
 type GroupUser struct {
+	ID       int    `gorm:"column:id" json:"id"`
 	Nickname string `gorm:"column:nickname" json:"nickname" validate:"required"`
 	Role     string `gorm:"column:role" json:"role"`
-	ID       int    `gorm:"column:id" json:"id"`
 }
 
 // SubmitGroup ...
 func SubmitGroup(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	toast := GetToast(c)
-	var user = GetUser(c, false)
+	me := GetUser(c, false)
 	ads := GetAdvertisements()
 
 	m := map[string]interface{}{
 		"Title": "Submit Group",
-		"User":  user,
+		"Me":    me,
 		"Toast": toast,
 		"Ads":   ads,
 	}
@@ -52,16 +52,18 @@ func SubmitGroup(c echo.Context) error {
 
 // ViewPublicGroups - Retrieves all groups and displays to user.
 func ViewPublicGroups(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, false)
 	toast := GetToast(c)
-	user := GetUser(c, false)
 	ads := GetAdvertisements()
+
 	groups := GetGroups(db, 0)
 	groupsJSON, _ := json.Marshal(groups)
 
 	m := map[string]interface{}{
 		"Title":  "Groups",
 		"Groups": string(groupsJSON),
-		"User":   user,
+		"Me":     me,
 		"Toast":  toast,
 		"Ads":    ads,
 	}
@@ -71,9 +73,10 @@ func ViewPublicGroups(c echo.Context) error {
 
 // InsertGroup ...
 func InsertGroup(c echo.Context) error {
-	user := GetUser(c, true)
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
 
-	if !user.Authenticated {
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -97,7 +100,7 @@ func InsertGroup(c echo.Context) error {
 	}
 	defer ins.Close()
 
-	insert, err := ins.Exec(title, description, status, user.ID)
+	insert, err := ins.Exec(title, description, status, me.ID)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -118,7 +121,7 @@ func InsertGroup(c echo.Context) error {
 	}
 	defer ins.Close()
 
-	ins.Exec(user.ID, groupID, "owner")
+	ins.Exec(me.ID, groupID, "owner")
 
 	SetToast(c, "successadd")
 	return c.Redirect(302, "/group/"+strconv.Itoa(int(groupID)))
@@ -126,9 +129,10 @@ func InsertGroup(c echo.Context) error {
 
 // InsertGroupInvite ...
 func InsertGroupInvite(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	// Check if user is authenticated.
-	user := GetUser(c, true)
-	if !user.Authenticated {
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "login")
 	}
@@ -146,21 +150,18 @@ func InsertGroupInvite(c echo.Context) error {
 	}
 
 	inviteExists := RowExists("SELECT id FROM groups_invites WHERE user_id = ? AND group_id = ?", userID, groupID)
-
 	if inviteExists {
 		SetToast(c, "invexists")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
-	hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ? AND role = ?", user.ID, groupID, "owner")
-
+	hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ? AND role = ?", me.ID, groupID, "owner")
 	if !hasPermissions {
 		SetToast(c, "notuser")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	stmt := "INSERT INTO groups_invites(user_id, group_id) VALUES(?,?)"
-
 	ins, err := db.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
@@ -176,9 +177,9 @@ func InsertGroupInvite(c echo.Context) error {
 
 // InsertGroupRequest ...
 func InsertGroupRequest(c echo.Context) error {
-	user := GetUser(c, true)
-
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -189,22 +190,19 @@ func InsertGroupRequest(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	userInGroup := RowExists("SELECT id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
-
+	userInGroup := RowExists("SELECT id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID)
 	if userInGroup {
 		SetToast(c, "ingroup")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
-	requestExists := RowExists("SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
-
+	requestExists := RowExists("SELECT id FROM groups_requests WHERE user_id = ? AND group_id = ?", me.ID, groupID)
 	if requestExists {
 		SetToast(c, "reqexists")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
 	}
 
 	hasPermissions := RowExists("SELECT id FROM beatbattle.groups WHERE id = ? and status=?", groupID, "open")
-
 	if !hasPermissions {
 		SetToast(c, "notopengrp")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
@@ -219,7 +217,7 @@ func InsertGroupRequest(c echo.Context) error {
 	}
 	defer ins.Close()
 
-	ins.Exec(user.ID, groupID)
+	ins.Exec(me.ID, groupID)
 
 	SetToast(c, "successreq")
 	return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
@@ -227,42 +225,41 @@ func InsertGroupRequest(c echo.Context) error {
 
 // GroupInviteResponse ...
 func GroupInviteResponse(c echo.Context) error {
-
-	user := GetUser(c, true)
-
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	// Check if user is properly authenticated before modifying DB.
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
 
+	// Get the group invite from context.
 	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
 		SetToast(c, "404")
 		return c.Redirect(302, "/me/groups")
 	}
 
-	inviteExists := RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+	inviteExists := RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", me.ID, groupID)
 	if !inviteExists {
 		SetToast(c, "404")
 		return c.Redirect(302, "/me/groups")
 	}
 
 	response := c.Param("response")
-
 	if response != "accept" && response != "decline" {
 		SetToast(c, "502")
 		return c.Redirect(302, "/me/groups")
 	}
 
 	if response == "accept" {
-		inGroup := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+		inGroup := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID)
 		if inGroup {
 			response = "ingroup"
 		}
 
 		if !inGroup {
 			stmt := "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,'member')"
-
 			ins, err := db.Prepare(stmt)
 			if err != nil {
 				SetToast(c, "502")
@@ -270,20 +267,18 @@ func GroupInviteResponse(c echo.Context) error {
 			}
 			defer ins.Close()
 
-			ins.Exec(user.ID, groupID)
+			ins.Exec(me.ID, groupID)
 		}
 	}
 
 	stmt := "DELETE FROM groups_invites WHERE user_id = ? and group_id = ?"
-
 	del, err := db.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/me/groups")
 	}
 	defer del.Close()
-
-	del.Exec(user.ID, groupID)
+	del.Exec(me.ID, groupID)
 
 	SetToast(c, response)
 	return c.Redirect(302, "/me/groups")
@@ -291,10 +286,9 @@ func GroupInviteResponse(c echo.Context) error {
 
 // GroupRequestResponse ...
 func GroupRequestResponse(c echo.Context) error {
-
-	user := GetUser(c, true)
-
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -305,8 +299,7 @@ func GroupRequestResponse(c echo.Context) error {
 		return c.Redirect(302, "/me/groups")
 	}
 
-	userID := 0
-	groupID := 0
+	userID, groupID := 0, 0
 	err = db.QueryRow("SELECT user_id, group_id FROM groups_requests WHERE id = ?", requestID).Scan(&userID, &groupID)
 	if err != nil {
 		SetToast(c, "404")
@@ -314,7 +307,6 @@ func GroupRequestResponse(c echo.Context) error {
 	}
 
 	response := c.Param("response")
-
 	if response != "accept" && response != "decline" {
 		SetToast(c, "502")
 		return c.Redirect(302, "/me/groups")
@@ -328,20 +320,17 @@ func GroupRequestResponse(c echo.Context) error {
 
 		if !inGroup {
 			stmt := "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,'member')"
-
 			ins, err := db.Prepare(stmt)
 			if err != nil {
 				SetToast(c, "502")
 				return c.Redirect(302, "/me/groups")
 			}
 			defer ins.Close()
-
 			ins.Exec(userID, groupID)
 		}
 	}
 
 	stmt := "DELETE FROM groups_requests WHERE id = ?"
-
 	del, err := db.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
@@ -356,111 +345,96 @@ func GroupRequestResponse(c echo.Context) error {
 
 // GetUserGroups ...
 func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
-	queryRequests := `SELECT groups.id as group_id, groups.title, groups_requests.id as request_id, nickname from groups_requests
-					LEFT JOIN users_groups on groups_requests.group_id = users_groups.group_id
-					LEFT JOIN users on groups_requests.user_id = users.id
-					LEFT JOIN beatbattle.groups on groups.id = groups_requests.group_id
-					WHERE users_groups.user_id = ? and users_groups.role = "owner"`
-
-	queryInvites := `SELECT groups.id, groups.title, groups.description, "invited", groups.owner_id, users.nickname
+	queryRequests := `SELECT groups_requests.group_id, groups.title, groups.owner_id
+					FROM groups_requests
+					INNER JOIN groups ON groups_requests.group_id = groups.id
+					INNER JOIN users_groups ON users_groups.group_id = groups_requests.group_id
+					WHERE users_groups.user_id = ? AND users_groups.role = "owner"`
+	queryInvites := `SELECT groups.id, groups.title, groups.description, "invited", groups.owner_id
 					FROM groups_invites
 					LEFT JOIN beatbattle.groups ON groups.id = groups_invites.group_id 
-					LEFT JOIN users on users.id=groups.owner_id
 					WHERE groups_invites.user_id = ?`
-
-	queryGroups := `SELECT groups.id, groups.title, groups.description, "requested", groups.owner_id, users.nickname
-					FROM groups_requests
-					LEFT JOIN beatbattle.groups ON groups.id = groups_requests.group_id 
-					LEFT JOIN users on users.id=groups.owner_id
-					WHERE groups_requests.user_id = ?
-					UNION
-					SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id, users.nickname
+	queryGroups := `SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id
 					FROM users_groups
 					LEFT JOIN beatbattle.groups ON groups.id = users_groups.group_id 
-					LEFT JOIN users on users.id=groups.owner_id
 					WHERE users_groups.user_id = ?`
 
 	requests := []Group{}
 	invites := []Group{}
 	groups := []Group{}
 
-	rows, err := db.Query(queryRequests, value)
-
-	// TODO USE DIFFERENT VARIABLES FOR EACH ROW
-
+	// Get the request rows from DB.
+	requestsRows, err := db.Query(queryRequests, value)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, nil, nil
 	}
-	defer rows.Close()
+	defer requestsRows.Close()
 
-	for rows.Next() {
+	for requestsRows.Next() {
 		group := Group{}
-		err = rows.Scan(&group.ID, &group.Title, &group.OwnerID, &group.OwnerNickname)
+		err = requestsRows.Scan(&group.ID, &group.Title, &group.Owner.ID)
 		if err != nil {
 			return nil, nil, nil
 		}
-
+		group.Owner = GetUserDB(group.Owner.ID)
 		group.StatusDisplay = "Requested"
-
 		requests = append(requests, group)
 	}
-	if err = rows.Err(); err != nil {
-		// handle the error here
+
+	if err = requestsRows.Err(); err != nil {
+		log.Println(err)
 	}
-	if err = rows.Close(); err != nil {
-		// but what should we do if there's an error?
+	if err = requestsRows.Close(); err != nil {
 		log.Println(err)
 	}
 
-	rows, err = db.Query(queryInvites, value)
-
+	// Get the invite rows from DB.
+	invitesRows, err := db.Query(queryInvites, value)
 	if err != nil && err != sql.ErrNoRows {
 		return requests, nil, nil
 	}
-	defer rows.Close()
+	defer invitesRows.Close()
 
-	for rows.Next() {
+	for invitesRows.Next() {
 		group := Group{}
-		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.OwnerID, &group.OwnerNickname)
+		err = invitesRows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.Owner.ID)
 		if err != nil {
 			return requests, nil, nil
 		}
-
+		group.Owner = GetUserDB(group.Owner.ID)
 		group.StatusDisplay = "Invited"
-
 		invites = append(invites, group)
 	}
-	if err = rows.Err(); err != nil {
-		// handle the error here
+
+	if err = invitesRows.Err(); err != nil {
+		log.Println(err)
 	}
-	if err = rows.Close(); err != nil {
-		// but what should we do if there's an error?
+	if err = invitesRows.Close(); err != nil {
 		log.Println(err)
 	}
 
-	rows, err = db.Query(queryGroups, value, value)
-
+	// Get the group rows from DB.
+	groupsRows, err := db.Query(queryGroups, value)
 	if err != nil && err != sql.ErrNoRows {
 		return requests, invites, nil
 	}
-	defer rows.Close()
+	defer groupsRows.Close()
 
-	for rows.Next() {
+	for groupsRows.Next() {
 		group := Group{}
-		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.OwnerID, &group.OwnerNickname)
+		err = groupsRows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.Owner.ID)
 		if err != nil {
 			return requests, invites, nil
 		}
-
+		group.Owner = GetUserDB(group.Owner.ID)
 		group.StatusDisplay = strings.Title(group.Status)
-
 		groups = append(groups, group)
 	}
-	if err = rows.Err(); err != nil {
-		// handle the error here
+
+	if err = groupsRows.Err(); err != nil {
+		log.Println(err)
 	}
-	if err = rows.Close(); err != nil {
-		// but what should we do if there's an error?
+	if err = groupsRows.Close(); err != nil {
 		log.Println(err)
 	}
 
@@ -512,38 +486,36 @@ func GetGroupsByRole(db *sql.DB, value int, role string) []Group {
 	return groups
 }
 
-// GetGroups retrieves battles from the database using a field and value.
+// GetGroups retrieves groups from the database using a field and value.
 func GetGroups(db *sql.DB, value int) []Group {
-	query := `SELECT groups.id, groups.title, groups.description, groups.status, groups.owner_id, users.nickname
-			FROM beatbattle.groups
-			LEFT JOIN users on users.id=groups.owner_id`
-
+	query := `SELECT groups.id, groups.title, groups.description, groups.status, groups.owner_id
+			FROM beatbattle.groups`
 	args := []interface{}{}
 
 	if value > 0 {
-		query = `SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id, users.nickname
+		query = `SELECT groups.id, groups.title, groups.description, users_groups.role, groups.owner_id
 				FROM users_groups
 				LEFT JOIN beatbattle.groups ON groups.id = users_groups.group_id 
-				LEFT JOIN users on users.id=groups.owner_id
 				WHERE users_groups.user_id = ?`
 		args = []interface{}{value}
 	}
 
 	rows, err := db.Query(query, args...)
-
 	if err != nil {
 		return nil
 	}
 	defer rows.Close()
 
-	group := Group{}
 	groups := []Group{}
 
 	for rows.Next() {
-		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.OwnerID, &group.OwnerNickname)
+		group := Group{}
+		err = rows.Scan(&group.ID, &group.Title, &group.Description, &group.Status, &group.Owner.ID)
 		if err != nil {
 			return nil
 		}
+
+		group.Owner = GetUserDB(group.Owner.ID)
 
 		switch group.Status {
 		case "owner":
@@ -560,11 +532,11 @@ func GetGroups(db *sql.DB, value int) []Group {
 
 		groups = append(groups, group)
 	}
+
 	if err = rows.Err(); err != nil {
-		// handle the error here
+		log.Println(err)
 	}
 	if err = rows.Close(); err != nil {
-		// but what should we do if there's an error?
 		log.Println(err)
 	}
 
@@ -576,21 +548,19 @@ func GetGroup(db *sql.DB, groupID int) Group {
 	users := []GroupUser{}
 	group := Group{}
 
-	query := `
-			SELECT groups.id, groups.title, groups.description, groups.status, groups.owner_id, users.nickname
-			FROM beatbattle.groups 
-			LEFT JOIN users ON groups.owner_id = users.id 
+	query := `SELECT groups.id, groups.title, groups.description, groups.status, groups.owner_id
+			FROM beatbattle.groups  
 			WHERE groups.id = ?`
 
 	err := db.QueryRow(query, groupID).Scan(&group.ID, &group.Title, &group.Description,
-		&group.Status, &group.OwnerID, &group.OwnerNickname)
+		&group.Status, &group.Owner.ID)
 
 	if err != nil {
 		return group
 	}
 
 	group.Title = html.UnescapeString(group.Title)
-	group.OwnerNickname = html.UnescapeString(group.OwnerNickname)
+	group.Owner = GetUserDB(group.Owner.ID)
 
 	md := []byte(html.UnescapeString(group.Description))
 	group.Description = html.UnescapeString(group.Description)
@@ -616,25 +586,20 @@ func GetGroup(db *sql.DB, groupID int) Group {
 		if err != nil {
 			return group
 		}
-
 		user.Role = strings.Title(user.Role)
 		users = append(users, user)
 	}
 
 	group.Users = users
-
 	return group
 }
 
 // GroupHTTP - Retrieves group and displays to user.
 func GroupHTTP(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	toast := GetToast(c)
-
-	isOwner := false
-	inGroup := false
-	invited := false
-	requested := false
 	ads := GetAdvertisements()
+	isOwner, inGroup, invited, requested := false, false, false, false
 
 	groupID, err := strconv.Atoi(c.Param("id"))
 	if err != nil && err != sql.ErrNoRows {
@@ -642,11 +607,8 @@ func GroupHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	user := GetUser(c, false)
-
 	// Retrieve group, return to front page if group doesn't exist.
 	group := GetGroup(db, groupID)
-
 	if group.Users == nil {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
@@ -658,20 +620,19 @@ func GroupHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	if user.Authenticated {
-		isOwner = RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
-		inGroup = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, groupID)
-		invited = RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", user.ID, groupID)
-		requested = RowExists("SELECT user_id FROM groups_requests WHERE user_id = ? AND group_id = ?", user.ID, groupID)
+	me := GetUser(c, false)
+	if me.Authenticated {
+		isOwner = group.Owner.ID == me.ID
+		inGroup = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID)
+		invited = RowExists("SELECT user_id FROM groups_invites WHERE user_id = ? AND group_id = ?", me.ID, groupID)
+		requested = RowExists("SELECT user_id FROM groups_requests WHERE user_id = ? AND group_id = ?", me.ID, groupID)
 	}
-
-	print(invited)
 
 	m := map[string]interface{}{
 		"Title":     group.Title,
 		"Group":     group,
 		"Users":     string(e),
-		"User":      user,
+		"Me":        me,
 		"IsOwner":   isOwner,
 		"InGroup":   inGroup,
 		"Invited":   invited,
@@ -685,6 +646,7 @@ func GroupHTTP(c echo.Context) error {
 
 // UpdateGroup ...
 func UpdateGroup(c echo.Context) error {
+	c.Request().Header.Set("Connection", "close")
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
@@ -694,14 +656,13 @@ func UpdateGroup(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	user := GetUser(c, false)
-
-	if !user.Authenticated {
+	me := GetUser(c, false)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
 
-	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
+	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", me.ID, groupID)
 	if !isOwner {
 		SetToast(c, "notuser")
 		return c.Redirect(302, "/")
@@ -723,7 +684,7 @@ func UpdateGroup(c echo.Context) error {
 	m := map[string]interface{}{
 		"Title":      group.Title,
 		"Group":      group,
-		"User":       user,
+		"Me":         me,
 		"Toast":      toast,
 		"InviteOnly": inviteOnly,
 		"Ads":        ads,
@@ -734,10 +695,9 @@ func UpdateGroup(c echo.Context) error {
 
 // UpdateGroupDB ...
 func UpdateGroupDB(c echo.Context) error {
-
-	user := GetUser(c, true)
-
-	if !user.Authenticated {
+	c.Request().Header.Set("Connection", "close")
+	me := GetUser(c, true)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -748,30 +708,27 @@ func UpdateGroupDB(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", user.ID, groupID)
+	isOwner := RowExists("SELECT id FROM beatbattle.groups WHERE owner_id = ? AND id = ?", me.ID, groupID)
 	if !isOwner {
 		SetToast(c, "notuser")
 		return c.Redirect(302, "/")
 	}
 
+	status := "open"
 	title := policy.Sanitize(c.FormValue("title"))
 	description := policy.Sanitize(c.FormValue("description"))
 	inviteonly := policy.Sanitize(c.FormValue("inviteonly"))
-	status := "open"
-
 	if inviteonly == "on" {
 		status = "inviteonly"
 	}
 
 	stmt := "UPDATE beatbattle.groups SET title = ?, description = ?, status = ? WHERE id = ?"
-
 	upd, err := db.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
 	defer upd.Close()
-
 	upd.Exec(title, description, status, groupID)
 
 	SetToast(c, "successupdate")
