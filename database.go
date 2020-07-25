@@ -24,8 +24,8 @@ func dbInit() (db *sql.DB) {
 	db.SetMaxOpenConns(50)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)*/
-	db.SetMaxOpenConns(1024)
-	db.SetMaxIdleConns(256)
+	db.SetMaxOpenConns(10240)
+	db.SetMaxIdleConns(1024)
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	return db
