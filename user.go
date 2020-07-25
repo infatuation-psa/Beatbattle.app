@@ -101,7 +101,10 @@ func GetUserDB(UserID int) User {
 // Callback does the main heavy lifting of the 2FA authentication.
 // This code is kind of messy and should be refactored.
 func Callback(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
+
 	sess, _ := session.Get("beatbattle", c)
 	Account := User{}
 	handler := c.QueryParam("provider")
@@ -206,7 +209,9 @@ func Callback(c echo.Context) error {
 
 // Login returns the login page.
 func Login(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	toast := GetToast(c)
 
 	m := map[string]interface{}{
@@ -219,7 +224,9 @@ func Login(c echo.Context) error {
 
 // Auth routes the login request to the proper handler.
 func Auth(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Retrieve the handler from the GET request.
 	handler := c.QueryParam("provider")
 	if handler == "reddit" {
@@ -231,7 +238,9 @@ func Auth(c echo.Context) error {
 
 // Logout deletes the local session.
 func Logout(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	gothic.Logout(c.Response(), c.Request())
 
 	sess, _ := session.Get("beatbattle", c)
@@ -244,7 +253,9 @@ func Logout(c echo.Context) error {
 // GetUser retrieves user details from local storage.
 // If validation is required, it checks if the access token is expired.
 func GetUser(c echo.Context, validate bool) User {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	var user User
 	user.ID = 0
 
@@ -325,7 +336,9 @@ func GetUser(c echo.Context, validate bool) User {
 
 // AjaxResponse ...
 func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery string) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	type AjaxData struct {
 		Redirect     bool   `json:"Redirect"`
 		RedirectPath string `json:"RedirectPath"`
@@ -354,7 +367,9 @@ func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery
 
 // AddVote is a user function that grabs the logged in user object and adds a vote to the DB.
 func AddVote(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
@@ -511,7 +526,9 @@ func AddVote(c echo.Context) error {
 
 // AddLike ...
 func AddLike(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
@@ -554,7 +571,9 @@ func AddLike(c echo.Context) error {
 
 // AddFeedback ...
 func AddFeedback(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
@@ -602,7 +621,9 @@ func AddFeedback(c echo.Context) error {
 
 // ViewFeedback - Retrieves user's feedback and returns a page containing them.
 func ViewFeedback(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if the user is properly authenticated.
 	me := GetUser(c, true)
 	if !me.Authenticated {
@@ -680,7 +701,9 @@ func ViewFeedback(c echo.Context) error {
 
 // UserBattles - Retrieves user's battles and returns a page containing them.
 func UserBattles(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	userID := 0
@@ -725,7 +748,9 @@ func UserBattles(c echo.Context) error {
 
 // UserSubmissions - Retrieves user's submissions and returns a page containing them.
 func UserSubmissions(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	userID := 0
@@ -833,7 +858,9 @@ func UserSubmissions(c echo.Context) error {
 
 // UserGroups - Retrieves user's groups and returns a page containing them.
 func UserGroups(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	user := User{}

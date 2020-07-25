@@ -35,7 +35,9 @@ type GroupUser struct {
 
 // SubmitGroup ...
 func SubmitGroup(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	toast := GetToast(c)
 	me := GetUser(c, false)
 	ads := GetAdvertisements()
@@ -52,7 +54,10 @@ func SubmitGroup(c echo.Context) error {
 
 // ViewPublicGroups - Retrieves all groups and displays to user.
 func ViewPublicGroups(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
+
 	me := GetUser(c, false)
 	toast := GetToast(c)
 	ads := GetAdvertisements()
@@ -73,7 +78,9 @@ func ViewPublicGroups(c echo.Context) error {
 
 // InsertGroup ...
 func InsertGroup(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 
 	if !me.Authenticated {
@@ -129,7 +136,9 @@ func InsertGroup(c echo.Context) error {
 
 // InsertGroupInvite ...
 func InsertGroupInvite(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated.
 	me := GetUser(c, true)
 	if !me.Authenticated {
@@ -177,7 +186,9 @@ func InsertGroupInvite(c echo.Context) error {
 
 // InsertGroupRequest ...
 func InsertGroupRequest(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		SetToast(c, "relog")
@@ -225,7 +236,9 @@ func InsertGroupRequest(c echo.Context) error {
 
 // GroupInviteResponse ...
 func GroupInviteResponse(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is properly authenticated before modifying DB.
 	me := GetUser(c, true)
 	if !me.Authenticated {
@@ -286,7 +299,9 @@ func GroupInviteResponse(c echo.Context) error {
 
 // GroupRequestResponse ...
 func GroupRequestResponse(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		SetToast(c, "relog")
@@ -596,7 +611,9 @@ func GetGroup(db *sql.DB, groupID int) Group {
 
 // GroupHTTP - Retrieves group and displays to user.
 func GroupHTTP(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	isOwner, inGroup, invited, requested := false, false, false, false
@@ -646,7 +663,9 @@ func GroupHTTP(c echo.Context) error {
 
 // UpdateGroup ...
 func UpdateGroup(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
@@ -695,7 +714,9 @@ func UpdateGroup(c echo.Context) error {
 
 // UpdateGroupDB ...
 func UpdateGroupDB(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		SetToast(c, "relog")

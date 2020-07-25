@@ -116,7 +116,9 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 
 // ViewBattles - Retrieves all battles and displays to user. Homepage.
 func ViewBattles(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	URL := c.Request().URL.String()
@@ -147,7 +149,9 @@ func ViewBattles(c echo.Context) error {
 
 // ViewTaggedBattles - Retrieves all tagged battles and displays to user.
 func ViewTaggedBattles(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, false)
 	toast := GetToast(c)
 	ads := GetAdvertisements()
@@ -244,7 +248,9 @@ func GetBattles(field string, value string) []Battle {
 
 // BattleHTTP - Retrieves battle and displays to user.
 func BattleHTTP(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
@@ -524,7 +530,9 @@ func GetBattle(battleID int) Battle {
 
 // SubmitBattle ...
 func SubmitBattle(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, false)
 	if !me.Authenticated {
 		SetToast(c, "relog")
@@ -552,7 +560,9 @@ func SubmitBattle(c echo.Context) error {
 
 // UpdateBattle ...
 func UpdateBattle(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	me := GetUser(c, false)
 
 	if !me.Authenticated {
@@ -616,7 +626,9 @@ func UpdateBattle(c echo.Context) error {
 
 // UpdateBattleDB ...
 func UpdateBattleDB(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated, if not kick them out.
 	me := GetUser(c, true)
 	if !me.Authenticated {
@@ -774,7 +786,9 @@ func UpdateBattleDB(c echo.Context) error {
 
 // InsertBattle ...
 func InsertBattle(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated.
 	me := GetUser(c, true)
 	if !me.Authenticated {
@@ -1019,7 +1033,9 @@ func GetTags(battleID int) []Tag {
 
 // DeleteBattle ...
 func DeleteBattle(c echo.Context) error {
+	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
 	// Check if user is authenticated.
 	me := GetUser(c, true)
 	if !me.Authenticated {
