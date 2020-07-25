@@ -179,18 +179,18 @@ func main() {
 
 	// Me
 	e.POST("/user/:id/invite", InsertGroupInvite)
-	e.GET("/user/:id/groups", ViewGroups)
-	e.GET("/user/:id/submissions", ViewSubmissions)
-	e.GET("/user/:id", ViewAccount)
+	e.GET("/user/:id/groups", UserGroups)
+	e.GET("/user/:id/submissions", UserSubmissions)
+	e.GET("/user/:id", UserBattles)
 	e.GET("/recalculate", CalculateVotes)
 	e.GET("/recalculate2", CalculateVoted)
 
 	// Me
 	e.GET("/me/groups/request/:id/:response", GroupRequestResponse)
 	e.GET("/me/groups/invite/:id/:response", GroupInviteResponse)
-	e.GET("/me/groups", ViewGroups)
-	e.GET("/me/submissions", ViewSubmissions)
-	e.GET("/me", ViewAccount)
+	e.GET("/me/groups", UserGroups)
+	e.GET("/me/submissions", UserSubmissions)
+	e.GET("/me", UserBattles)
 
 	// Groups
 	e.POST("/group/submit", InsertGroup)

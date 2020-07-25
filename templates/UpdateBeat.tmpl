@@ -4,7 +4,7 @@
     {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.UserID}}">{{.Battle.Host}}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
+        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.Host.ID}}">{{.Battle.Host.Name}}{{ if .Battle.Host.Patron }}&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>{{ end }}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
         <nav class="battle-title">
           <div class="nav-left">
           <h1>{{.Battle.Title}}</h1>

@@ -24,11 +24,13 @@ type User struct {
 	Provider      string `gorm:"column:provider"`
 	ProviderID    string `gorm:"column:provider_id"`
 	Name          string `gorm:"column:nickname"`
+	NameHTML      string
 	Avatar        string
 	RefreshToken  string
 	AccessToken   string    `gorm:"column:access_token"`
 	ExpiresAt     time.Time `gorm:"column:expiry"`
 	Authenticated bool
+	Patron        bool `gorm:"column:patron"`
 }
 
 // HashAndSalt returns a hashed password.
@@ -57,6 +59,43 @@ func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
 		return false
 	}
 	return true
+}
+
+// GetUserDB retrieves user from the database using a UserID.
+func GetUserDB(UserID int) User {
+	query := "SELECT provider, provider_id, nickname, patron FROM users WHERE id = ?"
+	rows, err := db.Query(query, UserID)
+	if err != nil {
+		log.Println(err)
+		return User{}
+	}
+	defer rows.Close()
+
+	user := User{}
+	user.ID = UserID
+
+	for rows.Next() {
+		err = rows.Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Patron)
+		if err != nil {
+			log.Println(err)
+			return User{}
+		}
+	}
+
+	user.NameHTML = user.Name
+
+	if user.Patron {
+		user.NameHTML = user.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Println(err)
+	}
+	if err = rows.Close(); err != nil {
+		log.Println(err)
+	}
+
+	return user
 }
 
 // Callback does the main heavy lifting of the 2FA authentication.
@@ -128,7 +167,7 @@ func Callback(c echo.Context) error {
 	accessTokenEncrypted := HashAndSalt([]byte(Account.AccessToken))
 	// If user doesn't exist, add to db
 	if userID == 0 {
-		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry) VALUES(?,?,?,?,?)"
+		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry, patron) VALUES(?,?,?,?,?,?)"
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
@@ -137,7 +176,7 @@ func Callback(c echo.Context) error {
 		}
 		defer stmt.Close()
 
-		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt)
+		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt, 0)
 	} else {
 		sql := "UPDATE users SET nickname = ?, access_token = ?, expiry = ? WHERE id = ?"
 
@@ -629,41 +668,31 @@ func ViewFeedback(c echo.Context) error {
 	return c.Render(302, "Feedback", m)
 }
 
-// ViewAccount - Retrieves user's battles and returns a page containing them.
-func ViewAccount(c echo.Context) error {
+// UserBattles - Retrieves user's battles and returns a page containing them.
+func UserBattles(c echo.Context) error {
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	userID := 0
-	user := GetUser(c, false)
+	user := User{}
+	me := GetUser(c, false)
 	userGroups := []Group{}
-	if user.Authenticated {
-		userGroups = GetGroupsByRole(db, user.ID, "owner")
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(db, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	title := ""
-	nickname := ""
-	isPatron := false
 
 	// Is this a request to check their own account?
 	if c.Request().URL.String() == "/me" {
-		userID = user.ID
+		userID = me.ID
+		user = GetUserDB(userID)
 		title = "My"
-		err := db.QueryRow("SELECT nickname, patron FROM users WHERE id = ?", userID).Scan(&nickname, &isPatron)
-		if err != nil {
-			// User's session ID didn't resolve, get them to relog.
-			SetToast(c, "relog")
-			return c.Redirect(302, "/login")
-		}
 	} else {
 		userID, _ = strconv.Atoi(c.Param("id"))
-		err := db.QueryRow("SELECT nickname, patron FROM users WHERE id = ?", userID).Scan(&nickname, &isPatron)
-		if err != nil {
-			SetToast(c, "404")
-			return c.Redirect(302, "/")
-		}
-		title = nickname + "'s"
+		user = GetUserDB(userID)
+		title = user.Name + "'s"
 	}
 
 	battles := GetBattles("challenges.user_id", strconv.Itoa(userID))
@@ -672,53 +701,42 @@ func ViewAccount(c echo.Context) error {
 	m := map[string]interface{}{
 		"Title":      title + " Battles",
 		"Battles":    string(battlesJSON),
+		"Me":         me,
 		"User":       user,
-		"UserID":     userID,
 		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(c.Param("tag")),
-		"Nickname":   nickname,
 		"Ads":        ads,
-		"IsPatron":   isPatron,
 	}
 
-	return c.Render(302, "ViewAccount", m)
+	return c.Render(302, "UserBattles", m)
 }
 
-// ViewSubmissions - Retrieves user's submissions and returns a page containing them.
-func ViewSubmissions(c echo.Context) error {
+// UserSubmissions - Retrieves user's submissions and returns a page containing them.
+func UserSubmissions(c echo.Context) error {
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
 	userID := 0
-	user := GetUser(c, false)
+	user := User{}
+	me := GetUser(c, false)
 	userGroups := []Group{}
-	if user.Authenticated {
-		userGroups = GetGroupsByRole(db, user.ID, "owner")
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(db, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	title := ""
-	nickname := ""
-	isPatron := false
 
 	// Is this a request to check their own account?
 	if c.Request().URL.String() == "/me/submissions" {
-		userID = user.ID
+		userID = me.ID
+		user = GetUserDB(userID)
 		title = "My"
-		err := db.QueryRow("SELECT nickname, patron FROM users WHERE id = ?", userID).Scan(&nickname, &isPatron)
-		if err != nil {
-			SetToast(c, "404")
-			return c.Redirect(302, "/")
-		}
 	} else {
 		userID, _ = strconv.Atoi(c.Param("id"))
-		err := db.QueryRow("SELECT nickname, patron FROM users WHERE id = ?", userID).Scan(&nickname, &isPatron)
-		if err != nil {
-			SetToast(c, "404")
-			return c.Redirect(302, "/")
-		}
-		title = nickname + "'s"
+		user = GetUserDB(userID)
+		title = user.Name + "'s"
 	}
 
 	submission := Beat{}
@@ -789,49 +807,39 @@ func ViewSubmissions(c echo.Context) error {
 	m := map[string]interface{}{
 		"Title":      title + " Submissions",
 		"Beats":      string(submissionsJSON),
+		"Me":         me,
 		"User":       user,
 		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(c.Param("tag")),
-		"UserID":     userID,
 		"IsMobile":   isMobile,
-		"Nickname":   nickname,
 		"Ads":        ads,
-		"IsPatron":   isPatron,
 	}
 
-	return c.Render(302, "ViewSubmissions", m)
+	return c.Render(302, "UserSubmissions", m)
 }
 
-// ViewGroups - Retrieves user's groups and returns a page containing them.
-func ViewGroups(c echo.Context) error {
+// UserGroups - Retrieves user's groups and returns a page containing them.
+func UserGroups(c echo.Context) error {
 	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
 	// This is for the invite functionality.
-	userID := 0
-	user := GetUser(c, false)
+	user := User{}
+	me := GetUser(c, false)
 	userGroups := []Group{}
-	if user.Authenticated {
-		userGroups = GetGroupsByRole(db, user.ID, "owner")
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(db, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	title := ""
-	nickname := ""
-	isPatron := false
 
 	requestsString, invitesString, groupsString := "", "", ""
 
 	// Is this a request to check their own account?
 	if c.Request().URL.String() == "/me/groups" {
-		userID = user.ID
+		user = GetUserDB(me.ID)
 		title = "My"
-
-		err := db.QueryRow("SELECT nickname, patron FROM users WHERE id = ?", userID).Scan(&nickname, &isPatron)
-		if err != nil {
-			SetToast(c, "404")
-			return c.Redirect(302, "/")
-		}
 
 		requests, invites, groups := GetUserGroups(db, user.ID)
 
@@ -853,19 +861,11 @@ func ViewGroups(c echo.Context) error {
 			groupsString = ""
 		}
 	} else {
-		userID, _ = strconv.Atoi(c.Param("id"))
-		err := db.QueryRow("SELECT nickname, patron FROM users WHERE id = ?", userID).Scan(&nickname, &isPatron)
-		if err != nil {
-			SetToast(c, "404")
-			return c.Redirect(302, "/")
-		}
-		if err != nil {
-			SetToast(c, "404")
-			return c.Redirect(302, "/")
-		}
-		title = nickname + "'s"
+		userID, _ := strconv.Atoi(c.Param("id"))
+		user = GetUserDB(userID)
+		title = user.Name + "'s"
 
-		groups := GetGroups(db, userID)
+		groups := GetGroups(db, user.ID)
 		groupsJSON, _ := json.Marshal(groups)
 		groupsString = string(groupsJSON)
 	}
@@ -875,14 +875,12 @@ func ViewGroups(c echo.Context) error {
 		"Requests":   requestsString,
 		"Invites":    invitesString,
 		"Groups":     groupsString,
+		"Me":         me,
 		"User":       user,
 		"UserGroups": userGroups,
 		"Toast":      toast,
-		"UserID":     userID,
-		"Nickname":   nickname,
 		"Ads":        ads,
-		"IsPatron":   isPatron,
 	}
 
-	return c.Render(302, "ViewGroups", m)
+	return c.Render(302, "UserGroups", m)
 }

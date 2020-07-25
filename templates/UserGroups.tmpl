@@ -1,18 +1,23 @@
-{{ define "ViewGroups" }}
+{{ define "UserGroups" }}
   {{ template "Header" .Title }}
-    {{ template "Menu" .User }}
+    {{ template "Menu" .Me }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
         <nav class="battle-title">
-          <h1 class="nav-left profile">{{ if .IsPatron }}<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>&nbsp;{{ end }}{{.Title}}</h1>
+          <h1 class="nav-left profile">{{ if .User.Patron }}<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>&nbsp;{{ end }}{{.Title}}</h1>
           <ul class="nav-links">
-              <li class="nav-item nav-secondary"><a href="{{ if eq .UserID .User.ID }}/me{{ else }}/user/{{.UserID}}{{ end }}">BATTLES</a></li>
-              <li class="nav-item nav-secondary"><a href="{{ if eq .UserID .User.ID }}/me{{ else }}/user/{{.UserID}}{{ end }}/submissions">SUBMISSIONS</a></li>
+              <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
+              <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
+              {{ if ne .Me.ID .User.ID }}
+                {{ if .UserGroups }}
+                  <li class="nav-item nav-cta"><a class="modal-trigger" href="#invite">INVITE</a></li>
+                {{ end }}
+              {{ end }}
           </ul>
         </nav>
       </div>
-      {{ if eq .UserID .User.ID }}
+      {{ if eq .Me.ID .User.ID }}
         {{ if .Requests }}
         <zing-grid id="requests-grid" no-data="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
           <zg-colgroup>
@@ -74,7 +79,7 @@
         <script>window.addEventListener('load',()=>{const t=document.querySelector('#requests-grid');const data={{.Requests}};t.setData(data);})</script>
         {{ end }}
       {{ else }}
-      <zing-grid no-data="{{.Nickname}} hasn't joined a group yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid no-data="{{.User.Name}} hasn't joined a group yet." caption="Groups" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           <zg-column cell-class="zing-left" header="Group" index="title">
             <a class="battle-url" href="/group/[[record.id]]">[[index.title]]</a>
@@ -85,8 +90,31 @@
       </zing-grid>
       {{ end }}
     </div>
+    {{ if ne .Me.ID .User.ID }}
+      {{ if .UserGroups }}
+      <div id="invite" class="modal">
+        <form id="invite-user" method="POST" action="/user/{{.User.ID}}/invite">
+          <div class="modal-content">
+            <h4 id="modal-header">Invite</h4>
+            <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.User.Name}} to?</p>
+            <div class="container-form submit-border">   
+            <select name="group">
+              <option value="" disabled selected>Group</option>
+              {{ range .UserGroups }}
+                <option value="{{.ID}}">{{.Title}}</option>
+              {{ end }}
+            </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+                <input type="submit" name="submit" class="nav-item nav-cta" value="INVITE" />
+          </div>
+        </form>
+      </div>
+      {{ end }}
+    {{ end }}
     <script>
-      {{ if eq .UserID .User.ID }}
+    {{ if eq .Me.ID .User.ID }}
       var onChange = function (event) {
         $('.modal').modal();
         $('.modal-invite').click(function() {
@@ -103,27 +131,28 @@
         });
         setTimeout(function(){$(".tooltipped").tooltip()},1);
       };
-      {{ else }}
+    {{ else }}
       var onChange = function (event) { 
         setTimeout(function(){$(".tooltipped").tooltip()},1);
       };
-      {{ end }}
-      window.addEventListener('load', () => {
-          var data = {{ .Groups }};
-          const zgRef = document.querySelector('zing-grid');
-          zgRef.setData(data);
+    {{ end }}
 
-          zgRef.executeOnLoad(function() {
-            const observer = lozad();
-            observer.observe();
-            onChange();
-          });
+    window.addEventListener('load', () => {
+        var data = {{ .Groups }};
+        const zgRef = document.querySelector('zing-grid');
+        zgRef.setData(data);
 
-          zgRef.addEventListener('grid:ready', onChange);
-          zgRef.addEventListener('grid:refresh', onChange);
-          zgRef.addEventListener('grid:pagesizechange', onChange);
-          zgRef.addEventListener('grid:pagechange', onChange);
-      });      
-    </script>
+        zgRef.executeOnLoad(function() {
+          const observer = lozad();
+          observer.observe();
+          onChange();
+        });
+
+        zgRef.addEventListener('grid:ready', onChange);
+        zgRef.addEventListener('grid:refresh', onChange);
+        zgRef.addEventListener('grid:pagesizechange', onChange);
+        zgRef.addEventListener('grid:pagechange', onChange);
+    });      
+  </script>
   {{ template "Footer" .Toast }}
 {{ end }}

@@ -11,11 +11,10 @@ import (
 // Beat struct.
 type Beat struct {
 	ID          int    `gorm:"column:id" json:"id"`
-	Artist      string `json:"artist"`
+	Artist      User   `json:"artist"`
 	URL         string `gorm:"column:beat_url" json:"url"`
 	Votes       int    `json:"votes"`
 	ChallengeID int    `gorm:"column:challenge_id" json:"challenge_id,omitempty"`
-	UserID      int    `gorm:"column:user_id" json:"user_id,omitempty"`
 	LikeColour  string `json:"like_colour"`
 	VoteColour  string `json:"vote_colour"`
 	Feedback    string `json:"feedback"`
@@ -27,8 +26,8 @@ type Beat struct {
 // SubmitBeat returns a page that allows a user to submit or update their entry.
 func SubmitBeat(c echo.Context) error {
 	// Check if user is authenticated.
-	user := GetUser(c, false)
-	if !user.Authenticated {
+	me := GetUser(c, false)
+	if !me.Authenticated {
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}
@@ -53,7 +52,7 @@ func SubmitBeat(c echo.Context) error {
 	}
 
 	if battle.GroupID != 0 {
-		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", user.ID, battle.GroupID)
+		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
 
 		if !hasPermissions {
 			SetToast(c, "notingroup")
@@ -71,7 +70,7 @@ func SubmitBeat(c echo.Context) error {
 	m := map[string]interface{}{
 		"Title":  title,
 		"Battle": battle,
-		"User":   user,
+		"Me":     me,
 		"Toast":  toast,
 		"Ads":    ads,
 	}
