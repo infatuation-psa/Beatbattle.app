@@ -224,7 +224,9 @@ func main() {
 	e.GET("/past", ViewBattles)
 	e.GET("/", ViewBattles)
 
+	go StartDiscordBot()
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
+
 }
 
 // ContainsString just checks if the str is whthin the array.
