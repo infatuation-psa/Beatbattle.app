@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/gob"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/cameronstanley/go-reddit"
 	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -88,11 +90,16 @@ func init() {
 	e.Server.ReadTimeout = 5 * time.Second
 	e.Server.IdleTimeout = 10 * time.Second
 
+	// Enable metrics middleware
+	p := prometheus.NewPrometheus("echo", nil)
+	p.Use(e)
+
 	e.Pre(middleware.HTTPSNonWWWRedirect())
 	e.Pre(middleware.RemoveTrailingSlash())
 
 	e.Use(session.Middleware(store))
 	e.Use(middleware.Secure())
+	e.Use(middleware.Logger())
 
 	tmpl := &Template{
 		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),
@@ -223,6 +230,20 @@ func main() {
 
 	e.GET("/past", ViewBattles)
 	e.GET("/", ViewBattles)
+
+	e.GET("/request", func(c echo.Context) error {
+		req := c.Request()
+		format := `
+		  <code>
+			Protocol: %s<br>
+			Host: %s<br>
+			Remote Address: %s<br>
+			Method: %s<br>
+			Path: %s<br>
+		  </code>
+		`
+		return c.HTML(http.StatusOK, fmt.Sprintf(format, req.Proto, req.Host, req.RemoteAddr, req.Method, req.URL.Path))
+	})
 
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
 }
