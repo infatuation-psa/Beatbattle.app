@@ -20,7 +20,7 @@ const {
 const Commands = {
   "battles": {
     "function": function(msg, args) {
-      con.query("SELECT * FROM challenges WHERE status='open' OR status='voting'", function(err, result) {
+      con.query("SELECT * FROM challenges WHERE status='entry' OR status='voting'", function(err, result) {
         if (err) msg.reply(err);
         var battleEmbed = new Discord.MessageEmbed()
           .setColor(embedColor)
@@ -28,7 +28,7 @@ const Commands = {
           .setURL(url);
         result.forEach(challenge => {
           //replace method is to get rid of nasty unicode that discord can't use
-          if (challenge.status == "open") {
+          if (challenge.status == "entry") {
             battleEmbed.addField(challenge.title.replace(String.fromCharCode(38, 35, 51, 57, 59), String.fromCharCode(39)), "Open - " + timeFormat(challenge.deadline), true);
           } else {
             battleEmbed.addField(challenge.title.replace(String.fromCharCode(38, 35, 51, 57, 59), String.fromCharCode(39)), "Voting - " + timeFormat(challenge.voting_deadline), true);
@@ -86,7 +86,7 @@ const Commands = {
   },
   "search": {
     "function": function(msg, args) {
-      con.query("SELECT * FROM challenges WHERE status='open' OR status='voting'", function(err, result) {
+      con.query("SELECT * FROM challenges WHERE status='entry' OR status='voting'", function(err, result) {
         var s = args.slice(1).join(" ");
         result = result.filter(challenge => challenge.title.toLowerCase().includes(s.toLowerCase()));
         if (result.length == 0) {
@@ -99,7 +99,7 @@ const Commands = {
             .setURL(url);
           result.forEach(challenge => {
             //replace method is to get rid of nasty unicode that discord can't use
-            if (challenge.status == "open") {
+            if (challenge.status == "entry") {
               battleEmbed.addField(challenge.title.replace(String.fromCharCode(38, 35, 51, 57, 59), String.fromCharCode(39)), "Open - " + timeFormat(challenge.deadline), true);
             } else {
               battleEmbed.addField(challenge.title.replace(String.fromCharCode(38, 35, 51, 57, 59), String.fromCharCode(39)), "Voting - " + timeFormat(challenge.voting_deadline), true);
@@ -115,7 +115,7 @@ const Commands = {
   },
   "status": {
     "function": function(msg, args) {
-      con.query("SELECT * FROM challenges WHERE status='open' OR status='voting'", function(err, result) {
+      con.query("SELECT * FROM challenges WHERE status='entry' OR status='voting'", function(err, result) {
         var s = args.slice(1).join(" ");
         result = result.filter(challenge => challenge.title.toLowerCase().includes(s.toLowerCase()));
         switch (result.length) {
@@ -139,7 +139,7 @@ const Commands = {
               .setTitle('Found multiple battles for search term: ' + s)
               .setURL(url);
             result.forEach(challenge => {
-              if (challenge.status == "open") {
+              if (challenge.status == "entry") {
                 battleEmbed.addField(challenge.title.replace(String.fromCharCode(38, 35, 51, 57, 59), String.fromCharCode(39)), "Open - " + timeFormat(challenge.deadline), true);
               } else {
                 battleEmbed.addField(challenge.title.replace(String.fromCharCode(38, 35, 51, 57, 59), String.fromCharCode(39)), "Voting - " + timeFormat(challenge.voting_deadline), true);

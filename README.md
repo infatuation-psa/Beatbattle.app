@@ -14,6 +14,33 @@ Database actions should return the value as well as an error in order to be idio
 Consistently used stuff (ie: Ads, Alert Messages) should be put into a type so it's easier to maintain.
 <div class="battle-information"> should be extrapolated into a template for maintainability purposes.
 
+How-To Setup .env
+DISCORD_KEY=
+DISCORD_SECRET=
+DISCORD_CALLBACK=
+
+REDDIT_KEY=
+REDDIT_SECRET=
+REDDIT_CALLBACK=
+REDDIT_STATE=
+
+MYSQL_USER=
+MYSQL_PASS=
+MYSQL_DB=
+
+SECURE_KEY64=
+SECURE_KEY32=
+
+How-To Setup Config.json
+{
+  "prefix": "",
+  "embedColor": "#",
+  "servicePath": "",
+  "token": "",
+  "url": ""
+}
+
+
 SEO Shit -
 https://support.google.com/webmasters/answer/34441?hl=en
 

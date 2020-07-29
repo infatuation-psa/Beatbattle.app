@@ -499,7 +499,6 @@ func GetBattle(battleID int) Battle {
 		&battle.Password, &battle.MaxVotes, &battle.Host.ID, &battle.GroupID, &battle.Type)
 
 	if err != nil {
-		log.Fatal(err)
 		return battle
 	}
 
