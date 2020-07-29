@@ -124,7 +124,7 @@ const Commands = {
             msg.reply("No results found for search term: " + s);
             break;
           case 1:
-            if (result[0].status.includes("Open")) {
+            if (result[0].status.includes("entry")) {
               //one result and Open
               msg.reply("Battle " + result[0].title + " is closing submissions in: " + timeFormat(result[0].deadline));
             } else {
