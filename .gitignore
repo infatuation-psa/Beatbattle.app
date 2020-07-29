@@ -45,5 +45,6 @@ Thumbs.db
 sessions/
 *.ai
 .vscode/
+discord/config.json
 **/node_modules
 **/config.json
