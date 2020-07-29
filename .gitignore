@@ -38,7 +38,6 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-config.json
 
 *.crt
 *.cert
@@ -47,3 +46,4 @@ sessions/
 *.ai
 .vscode/
 **/node_modules
+**/config.json
