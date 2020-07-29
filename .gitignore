@@ -45,3 +45,4 @@ Thumbs.db
 sessions/
 *.ai
 .vscode/
+**/node_modules
