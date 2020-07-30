@@ -4,42 +4,7 @@
     {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
-        <span class="battle-host"><a class="battle-url" href="/user/{{.Battle.Host.ID}}">{{.Battle.Host.Name}}{{ if .Battle.Host.Patron }}&nbsp;<span class="material-icons tooltipped tooltip-patron" data-tooltip="Patron">local_fire_department</span>{{ end }}</a>&nbsp;- {{.Battle.Type}} Battle |&nbsp;{{if eq "entry" .Battle.Status}}<span style="color: #ff5800">Open</span>{{else if eq "voting" .Battle.Status}}<span style="color: #1E19FF; font-weight: bold;">Voting</span>{{else}}Finished{{end}}</span>
-        <nav class="battle-title">
-          <div class="nav-left">
-          <h1>{{.Battle.Title}}</h1>
-          <span class="battle-deadline">{{if eq "entry" .Battle.Status}}{{trimPrefix "Open - " .Battle.StatusDisplay}}{{else if eq "voting" .Battle.Status}}{{trimPrefix "Voting - " .Battle.StatusDisplay}}{{else}}{{.Battle.StatusDisplay}}{{end}}</span>
-          </div>
-          <ul class="nav-links">
-            {{if .IsOwner}}
-              <li class="nav-item nav-secondary"><a class="modal-trigger" href="#deleteBattle">Delete</a></li>
-              {{if eq "complete" .Battle.Status}}
-                <li class="nav-item nav-disabled"><a>CLOSED</a></li>
-              {{else}}              
-                <li class="nav-item nav-cta"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
-              {{end}}
-            {{else}}
-              {{if .Battle.Attachment}}
-              <li class="nav-item nav-secondary"><a href="{{.Battle.Attachment}}">FILES</a></li>
-              {{end}}
-              {{if eq "entry" .Battle.Status}}
-                {{ if .EnteredBattle }}
-                <li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>
-                <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
-                {{ else }}
-                {{ if .CanEnter }}
-                <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/submit">SUBMIT</a></li>
-                {{ else }}
-                <li class="nav-item nav-disabled"><a>NOT IN GROUP</a></li>
-                {{ end }}
-                {{ end }}
-              {{ else }}
-              {{if .EnteredBattle}}<li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}/feedback">FEEDBACK</a></li>{{ end }}
-              <li class="nav-item nav-disabled"><a>CLOSED</a></li>
-              {{end}}
-            {{end}}
-          </ul>
-        </nav>
+        {{ template "BattleHeader" . }}
         <h3>Rules</h3>
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         {{if .Battle.Tags }}
@@ -180,15 +145,19 @@
 
     zgRef.addEventListener("grid:pagechange", zgRef => {
         setTimeout(function(){onChange()},1);
+        expandWaveform();
     });
     zgRef.addEventListener("grid:refresh", zgRef => {
         setTimeout(function(){onChange()},1);
+        expandWaveform();
     });
     zgRef.addEventListener("grid:pagesizechange", zgRef => {
         setTimeout(function(){onChange()},1);
+        expandWaveform();
     });
     zgRef.addEventListener("grid:ready", zgRef => {
         setTimeout(function(){onChange()},1);
+        expandWaveform();
     })
   });
 </script>

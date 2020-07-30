@@ -807,8 +807,8 @@ func UserSubmissions(c echo.Context) error {
 		}
 
 		submission.Status = strings.Title(submission.Status)
-		if submission.Voted {
-			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #1E19FF;">(*)</span></span>`
+		if !submission.Voted {
+			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #0D88FF;">(*)</span></span>`
 		}
 
 		u, _ := url.Parse(submission.URL)

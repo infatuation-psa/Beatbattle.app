@@ -137,7 +137,7 @@ func ViewBattles(c echo.Context) error {
 	me := GetUser(c, false)
 
 	m := map[string]interface{}{
-		"Title":   title,
+		"Title":   "Beatbattle.app - " + title,
 		"Battles": string(battlesJSON),
 		"Me":      me,
 		"Toast":   toast,
@@ -361,7 +361,7 @@ func BattleHTTP(c echo.Context) error {
 
 		submission.Artist = GetUserDB(submission.Artist.ID)
 		if battle.Status == "complete" && !submission.Voted {
-			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="tooltipped" style="color: #1E19FF;" data-tooltip="Did Not Vote">(*)</span>`
+			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="tooltipped" style="color: #0D88FF;" data-tooltip="Did Not Vote">(*)</span>`
 		}
 		count++
 
@@ -442,7 +442,6 @@ func BattleHTTP(c echo.Context) error {
 	}
 
 	entries = append(entries, didntVote...)
-
 	battle.Entries = count
 
 	// PERF - Shuffle entries per fcuser.
@@ -460,9 +459,7 @@ func BattleHTTP(c echo.Context) error {
 	}
 
 	isOwner := RowExists("SELECT id FROM challenges WHERE user_id = ? AND id = ?", me.ID, battleID)
-
 	canEnter := true
-
 	if battle.GroupID != 0 {
 		canEnter = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
 	}
@@ -480,6 +477,7 @@ func BattleHTTP(c echo.Context) error {
 		"IsMobile":       isMobile,
 		"VotesRemaining": battle.MaxVotes - userVotes,
 		"Ads":            ads,
+		"Buttons":        "Battle",
 	}
 
 	return c.Render(http.StatusOK, "Battle", m)

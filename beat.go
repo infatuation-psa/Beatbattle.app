@@ -61,18 +61,19 @@ func SubmitBeat(c echo.Context) error {
 	}
 
 	tpl := "SubmitBeat"
-	title := "Submit Beat"
+	title := "Submit"
 	if strings.Contains(URL, "update") {
 		tpl = "UpdateBeat"
-		title = "Update Beat"
+		title = "Update"
 	}
 
 	m := map[string]interface{}{
-		"Title":  title,
-		"Battle": battle,
-		"Me":     me,
-		"Toast":  toast,
-		"Ads":    ads,
+		"Title":   title + "Entry",
+		"Battle":  battle,
+		"Me":      me,
+		"Toast":   toast,
+		"Ads":     ads,
+		"Buttons": title,
 	}
 
 	return c.Render(http.StatusOK, tpl, m)
