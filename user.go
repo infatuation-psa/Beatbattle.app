@@ -180,7 +180,7 @@ func Callback(c echo.Context) error {
 		}
 		defer stmt.Close()
 
-		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt, 0, 0)
+		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt, 0, "")
 	} else {
 		sql := "UPDATE users SET nickname = ?, access_token = ?, expiry = ? WHERE id = ?"
 
