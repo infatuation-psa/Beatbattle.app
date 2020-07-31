@@ -642,7 +642,6 @@ func ViewFeedback(c echo.Context) error {
 
 	// Retrieve battle, return to front page if battle doesn't exist.
 	battle := GetBattle(battleID)
-
 	if battle.Title == "" {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
@@ -690,6 +689,7 @@ func ViewFeedback(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Title":    battle.Title,
+		"Buttons":  "Feedback",
 		"Battle":   battle,
 		"Feedback": string(feedbackJSON),
 		"Me":       me,

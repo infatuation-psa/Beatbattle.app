@@ -30,7 +30,7 @@
             {{ end }}
         </span>
         </div>
-        <ul class="nav-links">          
+        <ul class="nav-links">        
             {{ if eq "Battle" .Buttons }}
                 <!-- If owner, give elevated access buttons -->
                 {{ if .IsOwner }}
@@ -56,6 +56,22 @@
                         {{ end }}
                     {{ else }}<li class="nav-item nav-disabled"><a>CLOSED</a></li>
                     {{ end }}
+                {{ end }}
+            {{ else if eq "Feedback" .Buttons }}
+                <!-- If owner, give elevated access buttons -->
+                {{ if .IsOwner }}
+                    <li class="nav-item nav-secondary"><a class="modal-trigger" href="#deleteBattle">DELETE</a></li>
+                    {{ if eq "complete" .Battle.Status }}<li class="nav-item nav-disabled"><a>CLOSED</a></li>
+                    {{ else }}<li class="nav-item nav-cta"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
+                    {{ end }}
+                {{ else }} 
+                    <!-- Get attachment -->
+                    {{ if .Battle.Attachment }}
+                        {{ if eq "Rap" .Battle.Type }}<li class="nav-item nav-secondary"><a href="{{.Battle.Attachment}}">BEAT</a></li>
+                        {{ else }}<li class="nav-item nav-secondary"><a href="{{.Battle.Attachment}}">SAMPLES</a></li>
+                        {{ end }}
+                    {{ end }}
+                    <li class="nav-item nav-secondary"><a onclick="history.back()">BACK</a></li>
                 {{ end }}
             {{ else }}
                 <!-- Get attachment -->
