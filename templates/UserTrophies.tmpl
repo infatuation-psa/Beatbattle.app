@@ -1,11 +1,11 @@
-{{ define "UserSubmissions" }}
+{{ define "UserTrophies" }}
   {{ template "Header" .Title }}
   {{ template "Menu" .Me }}
   {{ template "Advertisement" .Ads }}
   <div class="container">
   <!-- This should be templated -->
     {{ template "UserHeader" . }}
-    <zing-grid no-data="{{.User.Name}} hasn't entered any battles yet." caption="Submissions" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
+    <zing-grid no-data="{{ .User.Name }} hasn't placed top three in any battles yet." caption="Submissions" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
       <zg-colgroup>
         <zg-column cell-class="zing-left" header="Battle" index="battle" type="url" cell-class="link">
           <a class="battle-url" href="/battle/[[record.challenge_id]]">[[index.battle]]</a>
@@ -32,6 +32,7 @@
           </div>
         </zg-column>
         {{ end }}  
+        <zg-column cell-class="zing-left" header="Placement" index="votes"></zg-column>
         <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
         <zg-column cell-class="zing-both" header="Status" index="status"></zg-column>
       </zg-colgroup>

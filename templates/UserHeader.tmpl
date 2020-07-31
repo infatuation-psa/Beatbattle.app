@@ -1,0 +1,41 @@
+{{ define "UserHeader" }}
+    <div class="battle-information">
+      <nav class="battle-title">
+        <h1 class="nav-left profile">
+          {{.Title}}&nbsp;
+          {{ if .User.Flair }}
+            <span class="material-icons tooltipped" data-tooltip="{{ .User.Flair }}">emoji_events&nbsp;</span>
+          {{ end }}
+          {{ if .User.Patron }}
+            <span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>
+          {{ end }}
+        </h1>
+        <ul class="nav-links">
+            <!-- Generate context-appropriate links -->
+            {{ if eq "submissions" .Page }}
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies">TROPHIES</a></li>
+            {{ else if eq "groups" .Page }}
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies">TROPHIES</a></li>
+            {{ else if eq "battles" .Page }}
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies">TROPHIES</a></li>
+            {{ else }}
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>
+                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
+            {{ end }}
+            
+            {{ if ne .Me.ID .User.ID }}
+                {{ if .UserGroups }}
+                    <li class="nav-item nav-cta"><a class="modal-trigger" href="#invite">INVITE</a></li>
+                {{ end }}
+            {{ end }}
+        </ul>
+      </nav>
+    </div>
+{{ end }}

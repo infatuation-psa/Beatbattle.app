@@ -3,20 +3,7 @@
   {{ template "Menu" .Me }}
   {{ template "Advertisement" .Ads }}
     <div class="container">
-      <div class="battle-information">
-        <nav class="battle-title">
-          <h1 class="nav-left profile">{{ if .User.Patron }}<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>&nbsp;{{ end }}{{.Title}}</h1>
-          <ul class="nav-links">
-              <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
-              <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
-              {{ if ne .Me.ID .User.ID }}
-                {{ if .UserGroups }}
-                  <li class="nav-item nav-cta"><a class="modal-trigger" href="#invite">INVITE</a></li>
-                {{ end }}
-              {{ end }}
-          </ul>
-        </nav>
-      </div>
+      {{ template "UserHeader" . }}
       {{ if eq .Me.ID .User.ID }}
         {{ if .Requests }}
           <zing-grid id="requests-grid" no-data="There are no requests to join your groups." caption="Requests" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>

@@ -245,7 +245,7 @@ func main() {
 		return c.HTML(http.StatusOK, fmt.Sprintf(format, req.Proto, req.Host, req.RemoteAddr, req.Method, req.URL.Path))
 	})
 
-	go StartDiscordBot()
+	//go StartDiscordBot()
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
 }
 

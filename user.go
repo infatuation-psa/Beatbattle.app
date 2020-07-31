@@ -30,7 +30,8 @@ type User struct {
 	AccessToken   string    `gorm:"column:access_token"`
 	ExpiresAt     time.Time `gorm:"column:expiry"`
 	Authenticated bool
-	Patron        bool `gorm:"column:patron"`
+	Patron        bool   `gorm:"column:patron"`
+	Flair         string `gorm:"column:flair"`
 }
 
 // HashAndSalt returns a hashed password.
@@ -63,7 +64,7 @@ func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
 
 // GetUserDB retrieves user from the database using a UserID.
 func GetUserDB(UserID int) User {
-	query := "SELECT provider, provider_id, nickname, patron FROM users WHERE id = ?"
+	query := "SELECT provider, provider_id, nickname, patron, flair FROM users WHERE id = ?"
 	rows, err := db.Query(query, UserID)
 	if err != nil {
 		log.Println(err)
@@ -75,7 +76,7 @@ func GetUserDB(UserID int) User {
 	user.ID = UserID
 
 	for rows.Next() {
-		err = rows.Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Patron)
+		err = rows.Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Patron, &user.Flair)
 		if err != nil {
 			log.Println(err)
 			return User{}
@@ -83,7 +84,6 @@ func GetUserDB(UserID int) User {
 	}
 
 	user.NameHTML = user.Name
-
 	if user.Patron {
 		user.NameHTML = user.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 	}
@@ -171,7 +171,7 @@ func Callback(c echo.Context) error {
 	accessTokenEncrypted := HashAndSalt([]byte(Account.AccessToken))
 	// If user doesn't exist, add to db
 	if userID == 0 {
-		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry, patron) VALUES(?,?,?,?,?,?)"
+		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry, patron, flair) VALUES(?,?,?,?,?,?,?)"
 
 		stmt, err := db.Prepare(sql)
 		if err != nil {
@@ -180,7 +180,7 @@ func Callback(c echo.Context) error {
 		}
 		defer stmt.Close()
 
-		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt, 0)
+		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt, 0, 0)
 	} else {
 		sql := "UPDATE users SET nickname = ?, access_token = ?, expiry = ? WHERE id = ?"
 
@@ -256,6 +256,7 @@ func GetUser(c echo.Context, validate bool) User {
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
+
 	var user User
 	user.ID = 0
 
@@ -734,6 +735,7 @@ func UserBattles(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Title":      title + " Battles",
+		"Page":       "battles",
 		"Battles":    string(battlesJSON),
 		"Me":         me,
 		"User":       user,
@@ -843,6 +845,118 @@ func UserSubmissions(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Title":      title + " Submissions",
+		"Page":       "submissions",
+		"Beats":      string(submissionsJSON),
+		"Me":         me,
+		"User":       user,
+		"UserGroups": userGroups,
+		"Toast":      toast,
+		"Tag":        policy.Sanitize(c.Param("tag")),
+		"IsMobile":   isMobile,
+		"Ads":        ads,
+	}
+
+	return c.Render(302, "UserSubmissions", m)
+}
+
+// UserTrophies - Retrieves user's victories and returns a page containing them.
+func UserTrophies(c echo.Context) error {
+	// Set the request to close automatically.
+	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
+	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
+	// This is for the invite functionality.
+	userID := 0
+	user := User{}
+	me := GetUser(c, false)
+	userGroups := []Group{}
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(db, me.ID, "owner")
+	}
+
+	toast := GetToast(c)
+	ads := GetAdvertisements()
+	title := ""
+
+	// Is this a request to check their own account?
+	if c.Request().URL.String() == "/me/submissions" {
+		userID = me.ID
+		user = GetUserDB(userID)
+		title = "My"
+	} else {
+		userID, _ = strconv.Atoi(c.Param("id"))
+		user = GetUserDB(userID)
+		title = user.Name + "'s"
+	}
+
+	submission := Beat{}
+	entries := []Beat{}
+
+	query := `
+			SELECT beats.url, beats.votes, beats.voted, challenges.id, challenges.status, challenges.title
+			FROM beats
+			LEFT JOIN challenges on challenges.id=beats.challenge_id
+			WHERE beats.user_id=?
+			GROUP BY 1
+			ORDER BY beats.id DESC`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
+	}
+	defer rows.Close()
+
+	ua := c.Request().Header.Get("User-Agent")
+	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry|iPhone/`)
+	isMobile := mobileUA.MatchString(ua)
+
+	for rows.Next() {
+		submission = Beat{}
+		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+
+		submission.Status = strings.Title(submission.Status)
+		if !submission.Voted {
+			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #0D88FF;">(*)</span></span>`
+		}
+
+		u, _ := url.Parse(submission.URL)
+		urlSplit := strings.Split(u.RequestURI(), "/")
+
+		if len(urlSplit) >= 4 {
+			secretURL := urlSplit[3]
+			if strings.Contains(secretURL, "s-") {
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+			} else {
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+			}
+		} else {
+			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+		}
+
+		entries = append(entries, submission)
+	}
+	// Reference: http://go-database-sql.org/errors.html - I'm not really sure if this does anything positive lmao.
+	if err = rows.Err(); err != nil {
+		log.Println(err)
+	}
+	if err = rows.Close(); err != nil {
+		log.Println(err)
+	}
+
+	submissionsJSON, err := json.Marshal(entries)
+	if err != nil {
+		SetToast(c, "502")
+		return c.Redirect(302, "/")
+	}
+
+	m := map[string]interface{}{
+		"Title":      title + " Submissions",
+		"Page":       "submissions",
 		"Beats":      string(submissionsJSON),
 		"Me":         me,
 		"User":       user,
@@ -912,6 +1026,7 @@ func UserGroups(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Title":      title + " Groups",
+		"Page":       "groups",
 		"Requests":   requestsString,
 		"Invites":    invitesString,
 		"Groups":     groupsString,

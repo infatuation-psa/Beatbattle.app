@@ -3,21 +3,8 @@
     {{ template "Menu" .Me }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
-      <div class="battle-information">
-        <nav class="battle-title">
-          <h1 class="nav-left profile">{{ if .User.Patron }}<span class="material-icons tooltipped tooltip-patron" data-tooltip="Patron">local_fire_department</span>&nbsp;{{ end }}{{.Title}}</h1>
-          <ul class="nav-links">
-              <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>
-              <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
-              {{ if ne .Me.ID .User.ID }}
-                {{ if .UserGroups }}
-                  <li class="nav-item nav-cta"><a class="modal-trigger" href="#invite">INVITE</a></li>
-                {{ end }}
-              {{ end }}
-          </ul>
-        </nav>
-      </div>
-    {{ template "BattleGrid" }}
+      {{ template "UserHeader" . }}
+      {{ template "BattleGrid" }}
     </div>
     {{ if ne .Me.ID .User.ID }}
       {{ if .UserGroups }}
