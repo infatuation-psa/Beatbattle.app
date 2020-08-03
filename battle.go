@@ -388,7 +388,7 @@ func BattleHTTP(c echo.Context) error {
 
 		u, err := url.Parse(submission.URL)
 		if err != nil {
-			u = url.Parse("https://soundcloud.com/")
+			u, _ = url.Parse("https://soundcloud.com/")
 		}
 		urlSplit := strings.Split(u.RequestURI(), "/")
 
