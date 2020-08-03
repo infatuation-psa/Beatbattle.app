@@ -386,7 +386,10 @@ func BattleHTTP(c echo.Context) error {
 			submission.LikeColour = "#ff5800"
 		}
 
-		u, _ := url.Parse(submission.URL)
+		u, err := url.Parse(submission.URL)
+		if err != nil {
+			u = url.Parse("https://soundcloud.com/")
+		}
 		urlSplit := strings.Split(u.RequestURI(), "/")
 
 		width := "width='100%'"

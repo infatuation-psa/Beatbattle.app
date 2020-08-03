@@ -15,7 +15,6 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/cameronstanley/go-reddit"
 	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -91,8 +90,8 @@ func init() {
 	e.Server.IdleTimeout = 10 * time.Second
 
 	// Enable metrics middleware
-	p := prometheus.NewPrometheus("echo", nil)
-	p.Use(e)
+	// p := prometheus.NewPrometheus("echo", nil)
+	// p.Use(e)
 
 	e.Pre(middleware.HTTPSNonWWWRedirect())
 	e.Pre(middleware.RemoveTrailingSlash())
