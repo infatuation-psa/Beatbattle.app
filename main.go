@@ -40,7 +40,7 @@ var policy *bluemonday.Policy
 
 var whitelist []string
 var state string
-var db *sql.DB
+var dbWrite, dbRead *sql.DB
 var e *echo.Echo
 
 /*-------
@@ -81,7 +81,7 @@ func init() {
 
 	gob.Register(User{})
 
-	db = dbInit()
+	dbRead, dbWrite = dbInit()
 
 	e = echo.New()
 
@@ -98,7 +98,7 @@ func init() {
 
 	e.Use(session.Middleware(store))
 	e.Use(middleware.Secure())
-	e.Use(middleware.Logger())
+	// e.Use(middleware.Logger())
 
 	tmpl := &Template{
 		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),
@@ -160,7 +160,8 @@ func RandString(length int) string {
 }
 
 func main() {
-	defer db.Close()
+	defer dbWrite.Close()
+	defer dbRead.Close()
 	// TODO - IS IT SAFE TO STORE STATE?
 	state = os.Getenv("REDDIT_STATE")
 

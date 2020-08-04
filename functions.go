@@ -166,7 +166,7 @@ func GetToast(c echo.Context) [2]string {
 func GetAdvertisements() Advertisement {
 	query := `SELECT id, url, image FROM ads WHERE active = 1`
 
-	rows, err := db.Query(query)
+	rows, err := dbRead.Query(query)
 	if err != nil {
 		return Advertisement{}
 	}

@@ -65,7 +65,7 @@ func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
 // GetUserDB retrieves user from the database using a UserID.
 func GetUserDB(UserID int) User {
 	query := "SELECT provider, provider_id, nickname, patron, flair FROM users WHERE id = ?"
-	rows, err := db.Query(query, UserID)
+	rows, err := dbRead.Query(query, UserID)
 	if err != nil {
 		log.Println(err)
 		return User{}
@@ -162,7 +162,7 @@ func Callback(c echo.Context) error {
 	}
 
 	userID := 0
-	err := db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+	err := dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -173,7 +173,7 @@ func Callback(c echo.Context) error {
 	if userID == 0 {
 		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry, patron, flair) VALUES(?,?,?,?,?,?,?)"
 
-		stmt, err := db.Prepare(sql)
+		stmt, err := dbWrite.Prepare(sql)
 		if err != nil {
 			SetToast(c, "cache")
 			return c.Redirect(302, "/login")
@@ -184,7 +184,7 @@ func Callback(c echo.Context) error {
 	} else {
 		sql := "UPDATE users SET nickname = ?, access_token = ?, expiry = ? WHERE id = ?"
 
-		stmt, err := db.Prepare(sql)
+		stmt, err := dbWrite.Prepare(sql)
 		if err != nil {
 			SetToast(c, "cache")
 			return c.Redirect(302, "/login")
@@ -194,7 +194,7 @@ func Callback(c echo.Context) error {
 		stmt.Exec(Account.Name, accessTokenEncrypted, Account.ExpiresAt, userID)
 	}
 
-	err = db.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+	err = dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -274,7 +274,7 @@ func GetUser(c echo.Context, validate bool) User {
 
 		if validate {
 			var dbHash string
-			err := db.QueryRow("SELECT access_token, expiry FROM users WHERE id = ?", user.ID).Scan(&dbHash, &user.ExpiresAt)
+			err := dbRead.QueryRow("SELECT access_token, expiry FROM users WHERE id = ?", user.ID).Scan(&dbHash, &user.ExpiresAt)
 			if err != nil {
 				return User{}
 			}
@@ -306,7 +306,7 @@ func GetUser(c echo.Context, validate bool) User {
 				sql := "UPDATE users SET access_token = ?, expiry = ? WHERE id = ?"
 
 				// If we can't update the users in the database, destroy the session.
-				stmt, err := db.Prepare(sql)
+				stmt, err := dbWrite.Prepare(sql)
 				if err != nil {
 					sess.Values["user"] = User{}
 					sess.Save(c.Request(), c.Response())
@@ -385,7 +385,7 @@ func AddVote(c echo.Context) error {
 	var beatUserID int
 
 	// Get battle (challenge) ID and user ID from the beat ID.
-	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
+	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
@@ -395,7 +395,7 @@ func AddVote(c echo.Context) error {
 	// Get battle status & max votes.
 	status := ""
 	maxVotes := 1
-	err = db.QueryRow("SELECT status, maxvotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
+	err = dbRead.QueryRow("SELECT status, maxvotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
 	if err != nil && err != sql.ErrNoRows {
 		return AjaxResponse(c, true, "/", "502")
 	}
@@ -411,17 +411,17 @@ func AddVote(c echo.Context) error {
 	}
 
 	count := 0
-	_ = db.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", me.ID, battleID).Scan(&count)
+	_ = dbRead.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", me.ID, battleID).Scan(&count)
 
 	voteID := 0
-	voteErr := db.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", me.ID, beatID).Scan(&voteID)
+	voteErr := dbRead.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", me.ID, beatID).Scan(&voteID)
 
 	// TODO Change from transaction maybe
 
 	if count < maxVotes {
 		// If a vote for this beat does not exist
 		if voteErr == sql.ErrNoRows {
-			tx, err := db.Begin()
+			tx, err := dbWrite.Begin()
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
@@ -455,7 +455,7 @@ func AddVote(c echo.Context) error {
 			return AjaxResponse(c, false, redirectURL, "successvote")
 		} else if voteErr == nil {
 			// Delete vote from the votes table.
-			tx, err := db.Begin()
+			tx, err := dbWrite.Begin()
 			sql := "DELETE FROM votes WHERE id = ?"
 			stmt, err := tx.Prepare(sql)
 			if err != nil {
@@ -491,7 +491,7 @@ func AddVote(c echo.Context) error {
 			return AjaxResponse(c, false, redirectURL, "maxvotes")
 		}
 		// Delete vote from the votes table.
-		tx, err := db.Begin()
+		tx, err := dbWrite.Begin()
 		sql := "DELETE FROM votes WHERE id = ?"
 		stmt, err := tx.Prepare(sql)
 		if err != nil {
@@ -543,7 +543,7 @@ func AddLike(c echo.Context) error {
 	var battleID int
 	var userID int
 
-	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
+	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
@@ -551,7 +551,7 @@ func AddLike(c echo.Context) error {
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
 	if !RowExists("SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
-		ins, err := db.Prepare("INSERT INTO likes(user_id, beat_id, challenge_id) VALUES (?, ?, ?)")
+		ins, err := dbWrite.Prepare("INSERT INTO likes(user_id, beat_id, challenge_id) VALUES (?, ?, ?)")
 		if err != nil {
 			return AjaxResponse(c, true, "/", "502")
 		}
@@ -560,7 +560,7 @@ func AddLike(c echo.Context) error {
 		return AjaxResponse(c, false, redirectURL, "liked")
 	}
 
-	del, err := db.Prepare("DELETE from likes WHERE user_id = ? AND beat_id = ? AND challenge_id = ?")
+	del, err := dbWrite.Prepare("DELETE from likes WHERE user_id = ? AND beat_id = ? AND challenge_id = ?")
 	if err != nil {
 		return AjaxResponse(c, true, "/", "502")
 	}
@@ -589,7 +589,7 @@ func AddFeedback(c echo.Context) error {
 	var userID int
 	feedback := policy.Sanitize(c.FormValue("feedback"))
 
-	err = db.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
+	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
@@ -601,7 +601,7 @@ func AddFeedback(c echo.Context) error {
 	}
 
 	if !RowExists("SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
-		ins, err := db.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
+		ins, err := dbWrite.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
 		if err != nil {
 			return AjaxResponse(c, true, "/", "502")
 		}
@@ -610,7 +610,7 @@ func AddFeedback(c echo.Context) error {
 		return AjaxResponse(c, false, redirectURL, "successaddfeedback")
 	}
 
-	update, err := db.Prepare("UPDATE feedback SET feedback = ? WHERE user_id = ? AND beat_id = ?")
+	update, err := dbWrite.Prepare("UPDATE feedback SET feedback = ? WHERE user_id = ? AND beat_id = ?")
 	if err != nil {
 		return AjaxResponse(c, true, "/", "502")
 	}
@@ -653,7 +653,7 @@ func ViewFeedback(c echo.Context) error {
 				LEFT JOIN users on feedback.user_id = users.id
 				WHERE beats.challenge_id = ? AND beats.user_id = ? AND feedback.feedback IS NOT NULL`
 
-	rows, err := db.Query(query, battleID, me.ID)
+	rows, err := dbRead.Query(query, battleID, me.ID)
 	if err != nil {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
@@ -695,6 +695,8 @@ func ViewFeedback(c echo.Context) error {
 		"Me":       me,
 		"Toast":    toast,
 		"Ads":      ads,
+		// Fix this hardwrite
+		"EnteredBattle": "true",
 	}
 
 	return c.Render(302, "Feedback", m)
@@ -712,7 +714,7 @@ func UserBattles(c echo.Context) error {
 	me := GetUser(c, false)
 	userGroups := []Group{}
 	if me.Authenticated {
-		userGroups = GetGroupsByRole(db, me.ID, "owner")
+		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
@@ -760,7 +762,7 @@ func UserSubmissions(c echo.Context) error {
 	me := GetUser(c, false)
 	userGroups := []Group{}
 	if me.Authenticated {
-		userGroups = GetGroupsByRole(db, me.ID, "owner")
+		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
@@ -789,7 +791,7 @@ func UserSubmissions(c echo.Context) error {
 			GROUP BY 1
 			ORDER BY beats.id DESC`
 
-	rows, err := db.Query(query, userID)
+	rows, err := dbRead.Query(query, userID)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -871,7 +873,7 @@ func UserTrophies(c echo.Context) error {
 	me := GetUser(c, false)
 	userGroups := []Group{}
 	if me.Authenticated {
-		userGroups = GetGroupsByRole(db, me.ID, "owner")
+		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
@@ -900,7 +902,7 @@ func UserTrophies(c echo.Context) error {
 			GROUP BY 1
 			ORDER BY beats.id DESC`
 
-	rows, err := db.Query(query, userID)
+	rows, err := dbRead.Query(query, userID)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -981,7 +983,7 @@ func UserGroups(c echo.Context) error {
 	me := GetUser(c, false)
 	userGroups := []Group{}
 	if me.Authenticated {
-		userGroups = GetGroupsByRole(db, me.ID, "owner")
+		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
 	}
 
 	toast := GetToast(c)
@@ -995,7 +997,7 @@ func UserGroups(c echo.Context) error {
 		user = GetUserDB(me.ID)
 		title = "My"
 
-		requests, invites, groups := GetUserGroups(db, user.ID)
+		requests, invites, groups := GetUserGroups(dbRead, user.ID)
 
 		requestsJSON, _ := json.Marshal(requests)
 		invitesJSON, _ := json.Marshal(invites)
@@ -1019,7 +1021,7 @@ func UserGroups(c echo.Context) error {
 		user = GetUserDB(userID)
 		title = user.Name + "'s"
 
-		groups := GetGroups(db, user.ID)
+		groups := GetGroups(dbRead, user.ID)
 		groupsJSON, _ := json.Marshal(groups)
 		groupsString = string(groupsJSON)
 	}

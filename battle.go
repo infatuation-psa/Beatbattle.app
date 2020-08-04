@@ -50,7 +50,7 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 	var deadlineParsed string = "Open - "
 	var curStatus string
 
-	err := db.QueryRow("SELECT status FROM challenges WHERE id = ?", battleID).Scan(&curStatus)
+	err := dbRead.QueryRow("SELECT status FROM challenges WHERE id = ?", battleID).Scan(&curStatus)
 	if err != nil {
 		return ""
 	}
@@ -64,12 +64,11 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 			sql = "UPDATE challenges SET status = 'complete' WHERE id = ?"
 		}
 
-		updateStatus, err := db.Prepare(sql)
+		updateStatus, err := dbWrite.Prepare(sql)
 		if err != nil {
 			return ""
 		}
 		defer updateStatus.Close()
-
 		updateStatus.Exec(battleID)
 
 		if curStatus == "voting" {
@@ -203,7 +202,7 @@ func GetBattles(field string, value string) []Battle {
 	}
 
 	query := querySELECT + " " + queryWHERE + " " + queryGROUP + " " + queryORDER
-	rows, err := db.Query(query, value)
+	rows, err := dbRead.Query(query, value)
 	if err != nil {
 		return nil
 	}
@@ -214,6 +213,7 @@ func GetBattles(field string, value string) []Battle {
 	for rows.Next() {
 		err = rows.Scan(&battle.ID, &battle.Title, &battle.Deadline, &battle.VotingDeadline, &battle.Status, &battle.Host.ID, &battle.Type, &battle.Entries)
 		if err != nil {
+			log.Fatal(err)
 			return nil
 		}
 
@@ -274,7 +274,7 @@ func BattleHTTP(c echo.Context) error {
 
 	// Get beats user has liked.
 	if me.Authenticated {
-		likes, err := db.Query("SELECT beat_id FROM likes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
+		likes, err := dbRead.Query("SELECT beat_id FROM likes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
 		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
@@ -294,7 +294,7 @@ func BattleHTTP(c echo.Context) error {
 
 	// Get beats user has voted for if in voting stage.
 	if battle.Status == "voting" && me.Authenticated {
-		votes, err := db.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
+		votes, err := dbRead.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
 		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
@@ -336,7 +336,7 @@ func BattleHTTP(c echo.Context) error {
 		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist.ID, &submission.Voted}
 	}
 
-	rows, err := db.Query(query, args...)
+	rows, err := dbRead.Query(query, args...)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -437,7 +437,7 @@ func BattleHTTP(c echo.Context) error {
 					FROM beats
 					WHERE challenge_id=? AND votes > (SELECT votes FROM beats WHERE user_id=? AND challenge_id=?)`
 
-		db.QueryRow(query, battleID, me.ID, battleID).Scan(&entryPosition)
+		dbRead.QueryRow(query, battleID, me.ID, battleID).Scan(&entryPosition)
 	}
 
 	if hasEntered && battle.Status == "complete" && userVotes == 0 {
@@ -495,7 +495,7 @@ func GetBattle(battleID int) Battle {
 		FROM challenges 
         WHERE challenges.id = ?`
 
-	err := db.QueryRow(query, battleID).Scan(&battle.ID,
+	err := dbRead.QueryRow(query, battleID).Scan(&battle.ID,
 		&battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline, &battle.Attachment, &battle.Status,
 		&battle.Password, &battle.MaxVotes, &battle.Host.ID, &battle.GroupID, &battle.Type)
 
@@ -544,7 +544,7 @@ func SubmitBattle(c echo.Context) error {
 
 	userGroups := []Group{}
 	if me.Authenticated {
-		userGroups = GetGroupsByRole(db, me.ID, "member")
+		userGroups = GetGroupsByRole(dbRead, me.ID, "member")
 	}
 
 	m := map[string]interface{}{
@@ -599,7 +599,7 @@ func UpdateBattle(c echo.Context) error {
 
 	userGroups := []Group{}
 	if me.Authenticated {
-		userGroups = GetGroupsByRole(db, me.ID, "member")
+		userGroups = GetGroupsByRole(dbRead, me.ID, "member")
 	}
 
 	// For time.Parse
@@ -665,7 +665,7 @@ func UpdateBattleDB(c echo.Context) error {
 	// Check if battle is open and able to be edited. Checks if user ID matches the battle's ID.
 	curStatus := "entry"
 	userID := -1
-	err = db.QueryRow("SELECT status, user_id FROM challenges WHERE id = ?", battleID).Scan(&curStatus, &userID)
+	err = dbRead.QueryRow("SELECT status, user_id FROM challenges WHERE id = ?", battleID).Scan(&curStatus, &userID)
 	if err != nil || userID != me.ID {
 		SetToast(c, "notuser")
 		return c.Redirect(302, "/")
@@ -766,7 +766,7 @@ func UpdateBattleDB(c echo.Context) error {
 			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?, group_id = ?, type = ?
 			WHERE id = ? AND user_id = ?`
 
-	ins, err := db.Prepare(query)
+	ins, err := dbWrite.Prepare(query)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -797,7 +797,7 @@ func InsertBattle(c echo.Context) error {
 	}
 
 	entries := 0
-	err := db.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", me.ID).Scan(&entries)
+	err := dbRead.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", me.ID).Scan(&entries)
 	if err != nil && err != sql.ErrNoRows {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -914,7 +914,7 @@ func InsertBattle(c echo.Context) error {
 
 	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes, group_id, type) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
 
-	ins, err := db.Prepare(stmt)
+	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -953,7 +953,7 @@ func TagsDB(update bool, tagsJSON string, battleID int64) {
 			break
 		}
 
-		ins, err := db.Prepare("INSERT INTO tags(tag) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)")
+		ins, err := dbWrite.Prepare("INSERT INTO tags(tag) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)")
 		if err != nil {
 			return
 		}
@@ -972,7 +972,7 @@ func TagsDB(update bool, tagsJSON string, battleID int64) {
 	}
 
 	if update {
-		del, err := db.Prepare("DELETE FROM challenges_tags WHERE challenge_id = ?")
+		del, err := dbWrite.Prepare("DELETE FROM challenges_tags WHERE challenge_id = ?")
 		if err != nil {
 			return
 		}
@@ -986,7 +986,7 @@ func TagsDB(update bool, tagsJSON string, battleID int64) {
 			break
 		}
 
-		ins, err := db.Prepare("INSERT INTO challenges_tags VALUES(?, ?)")
+		ins, err := dbWrite.Prepare("INSERT INTO challenges_tags VALUES(?, ?)")
 		if err != nil {
 			return
 		}
@@ -1004,7 +1004,7 @@ func GetTags(battleID int) []Tag {
 
 	query := `SELECT tags.tag FROM challenges_tags LEFT JOIN tags ON tags.id = challenges_tags.tag_id WHERE challenges_tags.challenge_id = ?`
 
-	rows, err := db.Query(query, battleID)
+	rows, err := dbRead.Query(query, battleID)
 	if err != nil {
 		return Tags
 	}
@@ -1054,7 +1054,7 @@ func DeleteBattle(c echo.Context) error {
 	if c.FormValue("delete") == "yes" {
 		stmt := "DELETE FROM challenges WHERE user_id = ? AND id = ?"
 
-		del, err := db.Prepare(stmt)
+		del, err := dbWrite.Prepare(stmt)
 		if err != nil {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")

@@ -62,7 +62,7 @@ func ViewPublicGroups(c echo.Context) error {
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
-	groups := GetGroups(db, 0)
+	groups := GetGroups(dbRead, 0)
 	groupsJSON, _ := json.Marshal(groups)
 
 	m := map[string]interface{}{
@@ -100,7 +100,7 @@ func InsertGroup(c echo.Context) error {
 
 	stmt := "INSERT INTO beatbattle.groups(title, description, status, owner_id) VALUES(?,?,?,?)"
 
-	ins, err := db.Prepare(stmt)
+	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -121,7 +121,7 @@ func InsertGroup(c echo.Context) error {
 
 	stmt = "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,?)"
 
-	ins, err = db.Prepare(stmt)
+	ins, err = dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -171,7 +171,7 @@ func InsertGroupInvite(c echo.Context) error {
 	}
 
 	stmt := "INSERT INTO groups_invites(user_id, group_id) VALUES(?,?)"
-	ins, err := db.Prepare(stmt)
+	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
@@ -221,7 +221,7 @@ func InsertGroupRequest(c echo.Context) error {
 
 	stmt := "INSERT INTO groups_requests(user_id, group_id) VALUES(?,?)"
 
-	ins, err := db.Prepare(stmt)
+	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/group/"+strconv.Itoa(groupID))
@@ -273,7 +273,7 @@ func GroupInviteResponse(c echo.Context) error {
 
 		if !inGroup {
 			stmt := "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,'member')"
-			ins, err := db.Prepare(stmt)
+			ins, err := dbWrite.Prepare(stmt)
 			if err != nil {
 				SetToast(c, "502")
 				return c.Redirect(302, "/me/groups")
@@ -285,7 +285,7 @@ func GroupInviteResponse(c echo.Context) error {
 	}
 
 	stmt := "DELETE FROM groups_invites WHERE user_id = ? and group_id = ?"
-	del, err := db.Prepare(stmt)
+	del, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/me/groups")
@@ -315,7 +315,7 @@ func GroupRequestResponse(c echo.Context) error {
 	}
 
 	userID, groupID := 0, 0
-	err = db.QueryRow("SELECT user_id, group_id FROM groups_requests WHERE id = ?", requestID).Scan(&userID, &groupID)
+	err = dbRead.QueryRow("SELECT user_id, group_id FROM groups_requests WHERE id = ?", requestID).Scan(&userID, &groupID)
 	if err != nil {
 		SetToast(c, "404")
 		return c.Redirect(302, "/me/groups")
@@ -335,7 +335,7 @@ func GroupRequestResponse(c echo.Context) error {
 
 		if !inGroup {
 			stmt := "INSERT INTO users_groups(user_id, group_id, role) VALUES(?,?,'member')"
-			ins, err := db.Prepare(stmt)
+			ins, err := dbWrite.Prepare(stmt)
 			if err != nil {
 				SetToast(c, "502")
 				return c.Redirect(302, "/me/groups")
@@ -346,7 +346,7 @@ func GroupRequestResponse(c echo.Context) error {
 	}
 
 	stmt := "DELETE FROM groups_requests WHERE id = ?"
-	del, err := db.Prepare(stmt)
+	del, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/me/groups")
@@ -379,7 +379,7 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 	groups := []Group{}
 
 	// Get the request rows from DB.
-	requestsRows, err := db.Query(queryRequests, value)
+	requestsRows, err := dbRead.Query(queryRequests, value)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, nil, nil
 	}
@@ -404,7 +404,7 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 	}
 
 	// Get the invite rows from DB.
-	invitesRows, err := db.Query(queryInvites, value)
+	invitesRows, err := dbRead.Query(queryInvites, value)
 	if err != nil && err != sql.ErrNoRows {
 		return requests, nil, nil
 	}
@@ -429,7 +429,7 @@ func GetUserGroups(db *sql.DB, value int) ([]Group, []Group, []Group) {
 	}
 
 	// Get the group rows from DB.
-	groupsRows, err := db.Query(queryGroups, value)
+	groupsRows, err := dbRead.Query(queryGroups, value)
 	if err != nil && err != sql.ErrNoRows {
 		return requests, invites, nil
 	}
@@ -472,7 +472,7 @@ func GetGroupsByRole(db *sql.DB, value int, role string) []Group {
 		args = []interface{}{value}
 	}
 
-	rows, err := db.Query(query, args...)
+	rows, err := dbRead.Query(query, args...)
 
 	if err != nil {
 		return nil
@@ -515,7 +515,7 @@ func GetGroups(db *sql.DB, value int) []Group {
 		args = []interface{}{value}
 	}
 
-	rows, err := db.Query(query, args...)
+	rows, err := dbRead.Query(query, args...)
 	if err != nil {
 		return nil
 	}
@@ -567,7 +567,7 @@ func GetGroup(db *sql.DB, groupID int) Group {
 			FROM beatbattle.groups  
 			WHERE groups.id = ?`
 
-	err := db.QueryRow(query, groupID).Scan(&group.ID, &group.Title, &group.Description,
+	err := dbRead.QueryRow(query, groupID).Scan(&group.ID, &group.Title, &group.Description,
 		&group.Status, &group.Owner.ID)
 
 	if err != nil {
@@ -588,7 +588,7 @@ func GetGroup(db *sql.DB, groupID int) Group {
 		group.StatusDisplay = "Open"
 	}
 
-	groupUsers, err := db.Query("SELECT user_id, role, users.nickname FROM users_groups LEFT JOIN users on users.id = users_groups.user_id WHERE group_id = ?", groupID)
+	groupUsers, err := dbRead.Query("SELECT user_id, role, users.nickname FROM users_groups LEFT JOIN users on users.id = users_groups.user_id WHERE group_id = ?", groupID)
 	if err != nil && err != sql.ErrNoRows {
 		return group
 	}
@@ -625,7 +625,7 @@ func GroupHTTP(c echo.Context) error {
 	}
 
 	// Retrieve group, return to front page if group doesn't exist.
-	group := GetGroup(db, groupID)
+	group := GetGroup(dbRead, groupID)
 	if group.Users == nil {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
@@ -688,7 +688,7 @@ func UpdateGroup(c echo.Context) error {
 	}
 
 	// Retrieve group, return to front page if group doesn't exist.
-	group := GetGroup(db, groupID)
+	group := GetGroup(dbRead, groupID)
 
 	if group.Users == nil {
 		SetToast(c, "404")
@@ -744,7 +744,7 @@ func UpdateGroupDB(c echo.Context) error {
 	}
 
 	stmt := "UPDATE beatbattle.groups SET title = ?, description = ?, status = ? WHERE id = ?"
-	upd, err := db.Prepare(stmt)
+	upd, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")

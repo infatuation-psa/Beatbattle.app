@@ -110,7 +110,7 @@ func InsertBeat(c echo.Context) error {
 	// EFFI - CAN MAYBE MAKE MORE EFFICIENT BY JOINING BEAT TABLE TO SEE IF ENTERED
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
-	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
+	err = dbRead.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
 	if err != nil {
 		SetToast(c, "notopen")
 		return c.Redirect(302, redirectURL)
@@ -145,7 +145,7 @@ func InsertBeat(c echo.Context) error {
 		response = "/successupdate"
 	}
 
-	ins, err := db.Prepare(stmt)
+	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -174,7 +174,7 @@ func UpdateBeat(c echo.Context) error {
 
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
-	err = db.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
+	err = dbRead.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
 	if err != nil {
 		SetToast(c, "notopen")
 		return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
@@ -197,7 +197,7 @@ func UpdateBeat(c echo.Context) error {
 				}
 	*/
 
-	ins, err := db.Prepare("UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?")
+	ins, err := dbWrite.Prepare("UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?")
 	if err != nil {
 		SetToast(c, "nobeat")
 		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
@@ -226,7 +226,7 @@ func DeleteBeat(c echo.Context) error {
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
 	stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
-	ins, err := db.Prepare(stmt)
+	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "validationerror")
 		return c.Redirect(302, redirectURL)

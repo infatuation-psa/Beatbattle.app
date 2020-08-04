@@ -4,33 +4,43 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"time"
 )
 
 // dbConn ...
-func dbInit() (db *sql.DB) {
+func dbInit() (*sql.DB, *sql.DB) {
 	dbDriver := "mysql"
+	dbName := os.Getenv("MYSQL_DB")
 	dbUser := os.Getenv("MYSQL_USER")
 	dbPass := os.Getenv("MYSQL_PASS")
-	dbName := os.Getenv("MYSQL_DB")
 
-	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName+"?parseTime=true")
+	readServer := os.Getenv("MYSQL_READ")
+	writeServer := os.Getenv("MYSQL_WRITE")
+
+	dbWrite, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@"+readServer+"/"+dbName+"?parseTime=true")
 	if err != nil {
-		// Real error
-		log.Print(err)
+		log.Fatal(err)
 	}
 
-	db.SetMaxOpenConns(256)
-	db.SetMaxIdleConns(16)
-	db.SetConnMaxLifetime(30 * time.Second)
+	dbRead, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@"+writeServer+"/"+dbName+"?parseTime=true")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	return db
+	// db.t2.small max connections is 150
+	dbWrite.SetMaxOpenConns(150)
+	dbRead.SetMaxOpenConns(150)
+
+	/*
+		db.SetMaxIdleConns(16)
+		db.SetConnMaxLifetime(30 * time.Second)*/
+
+	return dbRead, dbWrite
 }
 
 // RowExists ...
 func RowExists(sqlStmt string, args ...interface{}) bool {
 	var empty int
-	err := db.QueryRow(sqlStmt, args...).Scan(&empty)
+	err := dbRead.QueryRow(sqlStmt, args...).Scan(&empty)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			// Real error
