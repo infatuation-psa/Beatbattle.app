@@ -246,7 +246,8 @@ func main() {
 	})
 
 	//go StartDiscordBot()
-	e.Logger.Fatal(e.StartTLS(":5000", "server.crt", "server.key"))
+	//e.Logger.Fatal(e.StartTLS(":5000", "server.crt", "server.key"))
+	e.Logger.Fatal(e.Start(":80"))
 }
 
 // ContainsString just checks if the str is whthin the array.
