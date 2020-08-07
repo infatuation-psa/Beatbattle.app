@@ -30,7 +30,6 @@ func dbInit() (*sql.DB, *sql.DB) {
 		log.Fatal(err)
 	}
 
-	// db.t2.small max connections is 45
 	dbRead.SetMaxOpenConns(readConns)
 	dbWrite.SetMaxOpenConns(writeConns)
 	/*

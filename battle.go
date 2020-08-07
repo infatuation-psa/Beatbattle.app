@@ -37,6 +37,7 @@ type Battle struct {
 	MaxVotes       int           `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
 	GroupID        int           `gorm:"column:group_id" json:"group_id"`
 	Type           string        `gorm:"column:type" json:"type"`
+	TagNames       []uint8
 	Tags           []Tag
 }
 
@@ -171,21 +172,24 @@ func ViewTaggedBattles(c echo.Context) error {
 }
 
 // GetBattles retrieves battles from the database using a field and value.
+// Review - If selecting by tags, it only returns one of the tags.
 func GetBattles(field string, value string) []Battle {
+	start := time.Now()
 	// FIELD & VALUE
-	querySELECT := `SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, challenges.type, COUNT(beats.id) as entry_count
-					FROM challenges 
-					LEFT JOIN beats ON challenges.id = beats.challenge_id`
+	querySELECT := `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+					challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
+					challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
+					GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+					FROM challenges
+					INNER JOIN users ON challenges.user_id = users.id
+					LEFT JOIN beats ON challenges.id = beats.challenge_id
+					LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+					LEFT JOIN tags ON tags.id = challenges_tags.tag_id`
 	queryWHERE := "WHERE " + field + "=?"
-	queryGROUP := "GROUP BY 1"
+	queryGROUP := "GROUP BY challenges.id"
 	queryORDER := "ORDER BY challenges.deadline DESC"
 
 	if field == "tags.tag" {
-		querySELECT = `SELECT challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, challenges.status, challenges.user_id, challenges.type, COUNT(beats.id) as entry_count
-						FROM tags
-						LEFT JOIN challenges_tags ON challenges_tags.tag_id = tags.id
-						LEFT JOIN challenges on challenges.id = challenges_tags.challenge_id
-						LEFT JOIN beats ON challenges.id = beats.challenge_id `
 		queryORDER = "ORDER BY challenges.deadline ASC"
 	}
 
@@ -210,10 +214,19 @@ func GetBattles(field string, value string) []Battle {
 	battle := Battle{}
 	battles := []Battle{}
 	for rows.Next() {
-		err = rows.Scan(&battle.ID, &battle.Title, &battle.Deadline, &battle.VotingDeadline, &battle.Status, &battle.Host.ID, &battle.Type, &battle.Entries)
+		err = rows.Scan(&battle.Host.ID, &battle.Host.Provider, &battle.Host.ProviderID, &battle.Host.Name,
+			&battle.Host.Patron, &battle.Host.Flair, &battle.ID, &battle.Title, &battle.Deadline,
+			&battle.VotingDeadline, &battle.Status, &battle.Type, &battle.Entries, &battle.TagNames)
 		if err != nil {
 			log.Fatal(err)
 			return nil
+		}
+
+		battle.Tags = SetTags(battle.TagNames)
+
+		battle.Host.NameHTML = battle.Host.Name
+		if battle.Host.Patron {
+			battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 		}
 
 		switch battle.Status {
@@ -228,8 +241,7 @@ func GetBattles(field string, value string) []Battle {
 			battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
 		}
 
-		battle.Host = GetUserDB(battle.Host.ID)
-		battle.Tags = GetTags(battle.ID)
+		//battle.Tags = GetTags(battle.ID)
 		battle.Type = strings.Title(battle.Type)
 		battles = append(battles, battle)
 	}
@@ -242,16 +254,26 @@ func GetBattles(field string, value string) []Battle {
 		log.Println(err)
 	}
 
+	duration := time.Since(start)
+	fmt.Println("GetBattles time: " + duration.String())
+
 	return battles
 }
 
 // BattleHTTP - Retrieves battle and displays to user.
+// TODO - fix feedback
+// TODO - slows down on the mainpage
 func BattleHTTP(c echo.Context) error {
+	start := time.Now()
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
+
 	toast := GetToast(c)
 	ads := GetAdvertisements()
+
+	// Probably unnecessary.
+	canEnter := true
 
 	// Validate that ID is an int.
 	battleID, err := strconv.Atoi(c.Param("id"))
@@ -267,7 +289,12 @@ func BattleHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
+	// Get user and check if they're in the battle's group.
 	me := GetUser(c, false)
+	if battle.GroupID != 0 {
+		canEnter = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
+	}
+
 	var lastVotes []int
 	var lastLikes []int
 
@@ -316,20 +343,23 @@ func BattleHTTP(c echo.Context) error {
 	didntVote := []Beat{}
 	submission := Beat{}
 
-	query := `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-					beats.id, beats.url, beats.votes, beats.voted
+	query := `SELECT 
+			users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+			beats.id, beats.url, beats.votes, beats.voted
 			FROM beats 
 			INNER JOIN users
 			ON beats.user_id = users.id
 			WHERE beats.challenge_id = ?
 			GROUP BY 1
 			ORDER BY votes DESC`
-	args := []interface{}{battleID}
-	scanArgs := []interface{}{&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
+	scanArgs := []interface{}{
+		// Artist
+		&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
 		&submission.Artist.Name, &submission.Artist.Patron, &submission.Artist.Flair,
+		// Beat
 		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted}
 
-	rows, err := dbRead.Query(query, args...)
+	rows, err := dbRead.Query(query, battleID)
 	if err != nil {
 		log.Fatal(err)
 		SetToast(c, "502")
@@ -341,18 +371,20 @@ func BattleHTTP(c echo.Context) error {
 	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry|iPhone/`)
 	isMobile := mobileUA.MatchString(ua)
 
-	// PERF
 	entryPosition := 0
 	hasEntered := false
 	userVotes := 0
 
-	start := time.Now()
 	for rows.Next() {
 		err = rows.Scan(scanArgs...)
 		if err != nil {
 			log.Fatal(err)
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
+		}
+
+		if submission.Artist.ID == me.ID {
+			canEnter = false
 		}
 
 		submission.Artist.NameHTML = submission.Artist.Name
@@ -365,9 +397,9 @@ func BattleHTTP(c echo.Context) error {
 		}
 		count++
 
+		submission.ChallengeID = battle.ID
+
 		// VoteColour & LikeColour are workarounds to the limits of ZingGrid.
-		// ZingGrid usage should be deprecated eventually.
-		// Actually after 4 hours of research zinggrid isn't that bad compared to alternatives
 		submission.VoteColour = ""
 		if battle.Status == "voting" {
 			if ContainsInt(lastVotes, submission.ID) {
@@ -424,9 +456,8 @@ func BattleHTTP(c echo.Context) error {
 			entryPosition = len(entries)
 		}
 	}
-	duration := time.Since(start)
-	log.Println(duration)
 
+	// Handle if rows error exists, or if closing results in error.
 	if err = rows.Err(); err != nil {
 		log.Println(err)
 	}
@@ -434,6 +465,10 @@ func BattleHTTP(c echo.Context) error {
 		log.Println(err)
 	}
 
+	isOwner := me.ID == battle.Host.ID
+
+	// Get user vote position.
+	// TODO - Make this a function that is called from the client.
 	if hasEntered && battle.Status == "voting" {
 		query := `SELECT count(*)+1
 					FROM beats
@@ -449,25 +484,20 @@ func BattleHTTP(c echo.Context) error {
 	entries = append(entries, didntVote...)
 	battle.Entries = count
 
-	// PERF - Shuffle entries per fcuser.
-	if battle.Status != "complete" {
+	// Shuffle entries per user.
+	if battle.Status == "complete" {
 		rand.Seed(int64(me.ID * battle.ID))
 		rand.Shuffle(len(entries), func(i, j int) {
 			entries[i], entries[j] = entries[j], entries[i]
 		})
 	}
 
+	// Convert the entries to JSON.
 	e, err := json.Marshal(entries)
 	if err != nil {
 		log.Fatal(err)
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
-	}
-
-	isOwner := RowExists("SELECT id FROM challenges WHERE user_id = ? AND id = ?", me.ID, battleID)
-	canEnter := true
-	if battle.GroupID != 0 {
-		canEnter = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
 	}
 
 	m := map[string]interface{}{
@@ -486,32 +516,50 @@ func BattleHTTP(c echo.Context) error {
 		"Buttons":        "Battle",
 	}
 
+	duration := time.Since(start)
+	fmt.Println("BattleHTTP time: " + duration.String())
+
 	return c.Render(http.StatusOK, "Battle", m)
 }
 
 // GetBattle retrieves a battle from the database using an ID.
 func GetBattle(battleID int) Battle {
+	start := time.Now()
 	battle := Battle{}
 
 	query := `
-		SELECT challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, challenges.user_id, challenges.group_id, challenges.type
-		FROM challenges 
+		SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair, 
+		challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, 
+		challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, 
+		challenges.group_id, challenges.type,
+		GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+		FROM challenges
+		INNER JOIN users ON users.id = challenges.user_id
+		LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+		LEFT JOIN tags ON tags.id = challenges_tags.tag_id
         WHERE challenges.id = ?`
 
-	err := dbRead.QueryRow(query, battleID).Scan(&battle.ID,
-		&battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline, &battle.Attachment, &battle.Status,
-		&battle.Password, &battle.MaxVotes, &battle.Host.ID, &battle.GroupID, &battle.Type)
-
+	err := dbRead.QueryRow(query, battleID).Scan(
+		// Battle Host
+		&battle.Host.ID, &battle.Host.Provider, &battle.Host.ProviderID,
+		&battle.Host.Name, &battle.Host.Patron, &battle.Host.Flair,
+		// Battle
+		&battle.ID, &battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline,
+		&battle.Attachment, &battle.Status, &battle.Password, &battle.MaxVotes, &battle.GroupID,
+		&battle.Type, &battle.TagNames)
 	if err != nil {
 		return battle
 	}
 
 	battle.Title = html.UnescapeString(battle.Title)
-	battle.Host = GetUserDB(battle.Host.ID)
-
 	md := []byte(html.UnescapeString(battle.Rules))
 	battle.Rules = html.UnescapeString(battle.Rules)
 	battle.RulesHTML = template.HTML(markdown.ToHTML(md, nil, nil))
+
+	battle.Host.NameHTML = battle.Host.Name
+	if battle.Host.Patron {
+		battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+	}
 
 	switch battle.Status {
 	case "entry":
@@ -525,8 +573,11 @@ func GetBattle(battleID int) Battle {
 		battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
 	}
 
-	battle.Tags = GetTags(battleID)
+	battle.Tags = SetTags(battle.TagNames)
 	battle.Type = strings.Title(battle.Type)
+
+	duration := time.Since(start)
+	fmt.Println("GetBattle time: " + duration.String())
 
 	return battle
 }
@@ -563,6 +614,7 @@ func SubmitBattle(c echo.Context) error {
 
 // UpdateBattle ...
 func UpdateBattle(c echo.Context) error {
+	start := time.Now()
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
@@ -624,11 +676,15 @@ func UpdateBattle(c echo.Context) error {
 		"Ads":                ads,
 	}
 
+	duration := time.Since(start)
+	fmt.Println("UpdateBattle time: " + duration.String())
 	return c.Render(http.StatusOK, "UpdateBattle", m)
 }
 
 // UpdateBattleDB ...
+// TODO - Return to battle ID.
 func UpdateBattleDB(c echo.Context) error {
+	start := time.Now()
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
@@ -784,6 +840,10 @@ func UpdateBattleDB(c echo.Context) error {
 
 	TagsDB(true, c.FormValue("tags"), int64(battleID))
 	SetToast(c, "successupdate")
+
+	duration := time.Since(start)
+	fmt.Println("UpdateBattleDB time: " + duration.String())
+
 	return c.Redirect(302, "/")
 }
 
@@ -793,6 +853,7 @@ func duration(msg string, start time.Time) {
 
 // InsertBattle ...
 func InsertBattle(c echo.Context) error {
+	start := time.Now()
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
@@ -940,11 +1001,16 @@ func InsertBattle(c echo.Context) error {
 	TagsDB(false, c.FormValue("tags"), battleInsertedID)
 
 	SetToast(c, "successadd")
+
+	duration := time.Since(start)
+	fmt.Println("InsertBattle time: " + duration.String())
+
 	return c.Redirect(302, "/battle/"+strconv.FormatInt(battleInsertedID, 10))
 }
 
 // TagsDB adds / updates tags in the DB.
 func TagsDB(update bool, tagsJSON string, battleID int64) {
+	start := time.Now()
 	var tagIDs []int64
 
 	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
@@ -1001,41 +1067,25 @@ func TagsDB(update bool, tagsJSON string, battleID int64) {
 
 		ins.Exec(battleID, tagID)
 	}
+
+	duration := time.Since(start)
+	fmt.Println("InsertTags time: " + duration.String())
 }
 
-// GetTags retrieves tags from the DB
-func GetTags(battleID int) []Tag {
-	// TODO - TAGS (NEED TO GET INSERTED ID FOR BATTLE AND TAGS)
-	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
-	var Tags []Tag
+// SetTags resolves a battle's tags.
+func SetTags(tagNames []uint8) []Tag {
+	names := string(tagNames)
+	tagValues := strings.Split(names, ",")
 
-	query := `SELECT tags.tag FROM challenges_tags LEFT JOIN tags ON tags.id = challenges_tags.tag_id WHERE challenges_tags.challenge_id = ?`
-
-	rows, err := dbRead.Query(query, battleID)
-	if err != nil {
-		return Tags
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		tag := Tag{Value: ""}
-		err = rows.Scan(&tag.Value)
-		if err != nil {
-			return Tags
-		}
-
-		tag.Value = html.UnescapeString(tag.Value)
-		Tags = append(Tags, tag)
-	}
-	if err = rows.Err(); err != nil {
-		// handle the error here
-	}
-	if err = rows.Close(); err != nil {
-		// but what should we do if there's an error?
-		log.Println(err)
+	// REVIEW - Is this loop necessary? Do I need to cast to the struct?
+	var tags []Tag
+	for _, s := range tagValues {
+		newTag := Tag{Value: ""}
+		newTag.Value = html.UnescapeString(s)
+		tags = append(tags, newTag)
 	}
 
-	return Tags
+	return tags
 }
 
 // DeleteBattle ...

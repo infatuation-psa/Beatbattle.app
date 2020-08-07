@@ -44,7 +44,9 @@
           {{if eq "voting" .Battle.Status}}
           <zg-column width="85px" cell-class="zing-left" sorter="voteSort" header="Vote" index="vote_colour">
             <form class="form-ajax" action="/vote" method="post">
-              <input name="id" type="hidden" value="[[record.id]]" />
+              <input name="beatID" type="hidden" value="[[record.id]]" />
+              <input name="battleID" type="hidden" value="[[record.challenge_id]]" />
+              <input name="userID" type="hidden" value="[[record.artist.ID]]" />
               <button type="submit" class="btn-link">
                 <span class="material-icons" row-class="dark" style="color: [[index.vote_colour]]">
                 done
@@ -91,7 +93,8 @@
           {{ end }}
           <zg-column cell-class="zing-right" sorter="loveSort" header="Bookmark" index="like_colour">
             <form class="form-ajax" action="/like" method="post">
-              <input name="id" type="hidden" value="[[record.id]]" />
+              <input name="beatID" type="hidden" value="[[record.id]]" />
+              <input name="battleID" type="hidden" value="[[record.challenge_id]]" />
               <button type="submit" class="btn-link">
                 <span class="material-icons" row-class="dark" style="color: [[index.like_colour]]">
                 favorite_border

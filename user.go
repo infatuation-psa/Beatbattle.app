@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -65,34 +66,19 @@ func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
 // GetUserDB retrieves user from the database using a UserID.
 func GetUserDB(UserID int) User {
 	query := "SELECT provider, provider_id, nickname, patron, flair FROM users WHERE id = ?"
-	rows, err := dbRead.Query(query, UserID)
-	if err != nil {
-		log.Println(err)
-		return User{}
-	}
-	defer rows.Close()
 
 	user := User{}
 	user.ID = UserID
 
-	for rows.Next() {
-		err = rows.Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Patron, &user.Flair)
-		if err != nil {
-			log.Println(err)
-			return User{}
-		}
+	err := dbRead.QueryRow(query, UserID).Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Patron, &user.Flair)
+	if err != nil {
+		log.Println(err)
+		return User{}
 	}
 
 	user.NameHTML = user.Name
 	if user.Patron {
 		user.NameHTML = user.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
-	}
-
-	if err = rows.Err(); err != nil {
-		log.Println(err)
-	}
-	if err = rows.Close(); err != nil {
-		log.Println(err)
 	}
 
 	return user
@@ -252,6 +238,7 @@ func Logout(c echo.Context) error {
 
 // GetUser retrieves user details from local storage.
 // If validation is required, it checks if the access token is expired.
+// REVIEW - not slow, but confusing
 func GetUser(c echo.Context, validate bool) User {
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
@@ -368,6 +355,7 @@ func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery
 
 // AddVote is a user function that grabs the logged in user object and adds a vote to the DB.
 func AddVote(c echo.Context) error {
+	start := time.Now()
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
@@ -376,26 +364,37 @@ func AddVote(c echo.Context) error {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
-	beatID, err := strconv.Atoi(c.FormValue("id"))
+	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
 
-	var battleID int
-	var beatUserID int
+	battleID, err := strconv.Atoi(c.FormValue("battleID"))
+	if err != nil {
+		return AjaxResponse(c, true, "/", "404")
+	}
 
-	// Get battle (challenge) ID and user ID from the beat ID.
-	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &beatUserID)
+	beatUserID, err := strconv.Atoi(c.FormValue("userID"))
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
+	// Reject if user ID matches the track.
+	if beatUserID == me.ID {
+		return AjaxResponse(c, false, redirectURL, "owntrack")
+	}
+
 	// Get battle status & max votes.
 	status := ""
 	maxVotes := 1
-	err = dbRead.QueryRow("SELECT status, maxvotes FROM challenges WHERE id = ?", battleID).Scan(&status, &maxVotes)
+	var voteArray []uint8
+	err = dbRead.QueryRow(
+		`SELECT battle.status, battle.maxvotes, GROUP_CONCAT(DISTINCT IFNULL(votes.beat_id, '')) AS user_votes
+		FROM (SELECT status, maxvotes, id FROM challenges WHERE challenges.id = ?) battle
+		LEFT JOIN (SELECT beat_id, challenge_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id) votes
+		ON battle.id = votes.challenge_id`, battleID, me.ID, battleID).Scan(&status, &maxVotes, &voteArray)
 	if err != nil && err != sql.ErrNoRows {
 		return AjaxResponse(c, true, "/", "502")
 	}
@@ -405,30 +404,23 @@ func AddVote(c echo.Context) error {
 		return AjaxResponse(c, true, redirectURL, "302")
 	}
 
-	// Reject if user ID matches the track.
-	if beatUserID == me.ID {
-		return AjaxResponse(c, false, redirectURL, "owntrack")
+	voteString := string(voteArray)
+	voteStringArray := strings.Split(voteString, ",")
+	var userVotes []int
+	for _, s := range voteStringArray {
+		voteID, _ := strconv.Atoi(s)
+		userVotes = append(userVotes, voteID)
 	}
 
-	count := 0
-	_ = dbRead.QueryRow("SELECT COUNT(id) FROM votes WHERE user_id = ? AND challenge_id = ?", me.ID, battleID).Scan(&count)
-
-	voteID := 0
-	voteErr := dbRead.QueryRow("SELECT id FROM votes WHERE user_id = ? AND beat_id = ?", me.ID, beatID).Scan(&voteID)
-
+	fmt.Println(len(userVotes))
+	fmt.Println(maxVotes)
 	// TODO Change from transaction maybe
-
-	if count < maxVotes {
+	fmt.Println(userVotes)
+	if len(userVotes) < maxVotes {
 		// If a vote for this beat does not exist
-		if voteErr == sql.ErrNoRows {
-			tx, err := dbWrite.Begin()
-			if err != nil {
-				return AjaxResponse(c, true, redirectURL, "404")
-			}
-
+		if !ContainsInt(userVotes, beatID) {
 			// Add a vote to the vote table for the beat.
-			sql := "INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)"
-			ins, err := tx.Prepare(sql)
+			ins, err := dbWrite.Prepare("INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)")
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
@@ -436,97 +428,99 @@ func AddVote(c echo.Context) error {
 			ins.Exec(beatID, me.ID, battleID)
 
 			// Mark user as having voted if they've entered the battle themselves.
-			votedSQL := "UPDATE beats SET voted = 1 WHERE user_id = ? AND challenge_id = ?"
-			voted, _ := tx.Prepare(votedSQL)
+			voted, _ := dbWrite.Prepare("UPDATE beats SET voted = 1 WHERE user_id = ? AND challenge_id = ?")
 			defer voted.Close()
 			voted.Exec(me.ID, battleID)
 
 			// Update the hard written votes on the beat.
-			updSQL := "UPDATE beats SET votes = votes + 1 WHERE id = ?"
-			upd, err := tx.Prepare(updSQL)
+			upd, err := dbWrite.Prepare("UPDATE beats SET votes = votes + 1 WHERE id = ?")
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
 			defer upd.Close()
 			upd.Exec(beatID)
 
-			// Commit the changes.
-			tx.Commit()
+			duration := time.Since(start)
+			fmt.Println("AddVote time: " + duration.String())
+
 			return AjaxResponse(c, false, redirectURL, "successvote")
-		} else if voteErr == nil {
+		} else if ContainsInt(userVotes, beatID) {
 			// Delete vote from the votes table.
-			tx, err := dbWrite.Begin()
-			sql := "DELETE FROM votes WHERE id = ?"
-			stmt, err := tx.Prepare(sql)
+			del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND challenge_id = ?")
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
-			defer stmt.Close()
-			stmt.Exec(voteID)
+			defer del.Close()
+			del.Exec(beatID, me.ID, battleID)
 
 			// Remove vote from the beats table.
-			updSQL := "UPDATE beats SET votes = votes - 1 WHERE id = ?"
-			upd, err := tx.Prepare(updSQL)
+			upd, err := dbWrite.Prepare("UPDATE beats SET votes = votes - 1 WHERE id = ?")
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
 			defer upd.Close()
 			upd.Exec(beatID)
 
-			if count-1 == 0 {
-				// Mark user as having voted if they've entered the battle themselves.
-				votedSQL := "UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?"
-				voted, _ := tx.Prepare(votedSQL)
+			if len(userVotes)-1 == 0 {
+				// Mark user as not having voted.
+				voted, err := dbWrite.Prepare("UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?")
+				if err != nil {
+					return AjaxResponse(c, true, redirectURL, "404")
+				}
 				defer voted.Close()
 				voted.Exec(me.ID, battleID)
 			}
 
-			// Commit and return deleted vote.
-			tx.Commit()
+			duration := time.Since(start)
+			fmt.Println("AddVote time: " + duration.String())
 			return AjaxResponse(c, false, redirectURL, "successdelvote")
 		}
 	} else {
 		// If a vote doesn't exist, return the user.
-		if voteErr == sql.ErrNoRows {
+		if !ContainsInt(userVotes, beatID) {
 			return AjaxResponse(c, false, redirectURL, "maxvotes")
 		}
+
 		// Delete vote from the votes table.
-		tx, err := dbWrite.Begin()
-		sql := "DELETE FROM votes WHERE id = ?"
-		stmt, err := tx.Prepare(sql)
+		del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND challenge_id = ?")
 		if err != nil {
 			return AjaxResponse(c, true, redirectURL, "404")
 		}
-		defer stmt.Close()
-		stmt.Exec(voteID)
+		defer del.Close()
+		del.Exec(beatID, me.ID, battleID)
 
 		// Remove vote from the beats table.
-		updSQL := "UPDATE beats SET votes = votes - 1 WHERE id = ?"
-		upd, err := tx.Prepare(updSQL)
+		upd, err := dbWrite.Prepare("UPDATE beats SET votes = votes - 1 WHERE id = ?")
 		if err != nil {
 			return AjaxResponse(c, true, redirectURL, "404")
 		}
 		defer upd.Close()
 		upd.Exec(beatID)
 
-		if count-1 == 0 {
-			// Mark user as having voted if they've entered the battle themselves.
-			votedSQL := "UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?"
-			voted, _ := tx.Prepare(votedSQL)
+		if len(userVotes)-1 == 0 {
+			// Mark user as not having voted.
+			voted, err := dbWrite.Prepare("UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?")
+			if err != nil {
+				return AjaxResponse(c, true, redirectURL, "404")
+			}
 			defer voted.Close()
 			voted.Exec(me.ID, battleID)
 		}
 
-		// Commit and return deleted vote.
-		tx.Commit()
+		duration := time.Since(start)
+		fmt.Println("AddVote time: " + duration.String())
 		return AjaxResponse(c, false, redirectURL, "successdelvote")
 	}
+
+	duration := time.Since(start)
+	fmt.Println("AddVote time: " + duration.String())
 
 	return AjaxResponse(c, false, redirectURL, "404")
 }
 
 // AddLike ...
 func AddLike(c echo.Context) error {
+	start := time.Now()
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
@@ -535,15 +529,12 @@ func AddLike(c echo.Context) error {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
-	beatID, err := strconv.Atoi(c.FormValue("id"))
+	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
 
-	var battleID int
-	var userID int
-
-	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
+	battleID, err := strconv.Atoi(c.FormValue("battleID"))
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
 	}
@@ -557,6 +548,8 @@ func AddLike(c echo.Context) error {
 		}
 		defer ins.Close()
 		ins.Exec(me.ID, beatID, battleID)
+		duration := time.Since(start)
+		fmt.Println("AddLike time: " + duration.String())
 		return AjaxResponse(c, false, redirectURL, "liked")
 	}
 
@@ -566,6 +559,9 @@ func AddLike(c echo.Context) error {
 	}
 	defer del.Close()
 	del.Exec(me.ID, beatID, battleID)
+
+	duration := time.Since(start)
+	fmt.Println("AddLike time: " + duration.String())
 
 	return AjaxResponse(c, false, redirectURL, "unliked")
 }
