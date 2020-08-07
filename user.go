@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -356,14 +355,18 @@ func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery
 // AddVote is a user function that grabs the logged in user object and adds a vote to the DB.
 func AddVote(c echo.Context) error {
 	start := time.Now()
+
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
+
+	// Get user, return if not auth.
 	me := GetUser(c, true)
 	if !me.Authenticated {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
+	// Get form values.
 	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
 		return AjaxResponse(c, true, "/", "404")
@@ -386,7 +389,7 @@ func AddVote(c echo.Context) error {
 		return AjaxResponse(c, false, redirectURL, "owntrack")
 	}
 
-	// Get battle status & max votes.
+	// Get battle status, max votes, and vote array.
 	status := ""
 	maxVotes := 1
 	var voteArray []uint8
@@ -412,10 +415,6 @@ func AddVote(c echo.Context) error {
 		userVotes = append(userVotes, voteID)
 	}
 
-	fmt.Println(len(userVotes))
-	fmt.Println(maxVotes)
-	// TODO Change from transaction maybe
-	fmt.Println(userVotes)
 	if len(userVotes) < maxVotes {
 		// If a vote for this beat does not exist
 		if !ContainsInt(userVotes, beatID) {
@@ -794,10 +793,6 @@ func UserSubmissions(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	ua := c.Request().Header.Get("User-Agent")
-	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry|iPhone/`)
-	isMobile := mobileUA.MatchString(ua)
-
 	for rows.Next() {
 		submission = Beat{}
 		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
@@ -817,12 +812,12 @@ func UserSubmissions(c echo.Context) error {
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
 			} else {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
 		}
 
 		entries = append(entries, submission)
@@ -850,7 +845,6 @@ func UserSubmissions(c echo.Context) error {
 		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(c.Param("tag")),
-		"IsMobile":   isMobile,
 		"Ads":        ads,
 	}
 
@@ -905,10 +899,6 @@ func UserTrophies(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	ua := c.Request().Header.Get("User-Agent")
-	mobileUA := regexp.MustCompile(`/Mobile|Android|BlackBerry|iPhone/`)
-	isMobile := mobileUA.MatchString(ua)
-
 	for rows.Next() {
 		submission = Beat{}
 		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
@@ -928,12 +918,12 @@ func UserTrophies(c echo.Context) error {
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
 			} else {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=` + strconv.FormatBool(!isMobile) + `&show_user=false'></iframe>`
+			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
 		}
 
 		entries = append(entries, submission)
@@ -961,7 +951,6 @@ func UserTrophies(c echo.Context) error {
 		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(c.Param("tag")),
-		"IsMobile":   isMobile,
 		"Ads":        ads,
 	}
 

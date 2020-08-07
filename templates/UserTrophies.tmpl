@@ -10,10 +10,6 @@
         <zg-column cell-class="zing-left" header="Battle" index="battle" type="url" cell-class="link">
           <a class="battle-url" href="/battle/[[record.challenge_id]]">[[index.battle]]</a>
         </zg-column>
-        {{ if .IsMobile }}
-        <zg-column cell-class="zing-left" header="Track" index="url">
-        </zg-column>
-        {{ else }}
         <zg-column cell-class="zing-left" header="Track" index="url">
           <div class="embedded-track">
             <button data-embed='[[index.url]]' class="playButton">
@@ -31,7 +27,6 @@
             </button>
           </div>
         </zg-column>
-        {{ end }}  
         <zg-column cell-class="zing-left" header="Placement" index="votes"></zg-column>
         <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
         <zg-column cell-class="zing-both" header="Status" index="status"></zg-column>
