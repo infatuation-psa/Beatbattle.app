@@ -94,11 +94,12 @@ func init() {
 	// p.Use(e)
 
 	e.Pre(middleware.HTTPSNonWWWRedirect())
-	e.Pre(middleware.RemoveTrailingSlash())
-
-	e.Use(session.Middleware(store))
 	e.Use(middleware.Secure())
-	// e.Use(middleware.Logger())
+
+	e.Pre(middleware.RemoveTrailingSlash())
+	e.Use(session.Middleware(store))
+
+	//e.Use(middleware.Logger())
 
 	tmpl := &Template{
 		templates: template.Must(template.New("base").Funcs(sprig.FuncMap()).ParseGlob("templates/*.tmpl")),
@@ -246,9 +247,14 @@ func main() {
 	})
 
 	//go StartDiscordBot()
+
+	go ListenHTTP()
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
-	//e.Logger.Fatal(e.StartTLS(":5000", "server.crt", "server.key"))
-	//e.Logger.Fatal(e.Start(":80"))
+}
+
+// ListenHTTP starts the HTTP server
+func ListenHTTP() {
+	e.Logger.Fatal(e.Start(":5000"))
 }
 
 // ContainsString just checks if the str is whthin the array.

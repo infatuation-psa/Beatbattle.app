@@ -54,7 +54,6 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 	if err != nil {
 		return ""
 	}
-
 	if time.Until(deadline) < 0 && curStatus == deadlineType {
 		deadlineParsed = "Voting - "
 		sql := "UPDATE challenges SET status = 'voting' WHERE id = ?"
@@ -317,27 +316,22 @@ func BattleHTTP(c echo.Context) error {
 	didntVote := []Beat{}
 	submission := Beat{}
 
-	args := []interface{}{me.ID, battleID}
-	scanArgs := []interface{}{&submission.ID, &submission.URL, &submission.Feedback, &submission.Artist.ID}
-	query := `SELECT beats.id, beats.url, IFNULL(feedback.feedback, ''), beats.user_id
+	query := `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+					beats.id, beats.url, beats.votes, beats.voted
 			FROM beats 
-			LEFT JOIN feedback on feedback.user_id=? AND feedback.beat_id=beats.id
-			WHERE beats.challenge_id=?
+			INNER JOIN users
+			ON beats.user_id = users.id
+			WHERE beats.challenge_id = ?
 			GROUP BY 1
-			ORDER BY beats.id DESC`
-
-	if battle.Status == "complete" {
-		query = `SELECT beats.id, beats.url, beats.votes, beats.user_id, beats.voted
-				FROM beats 
-				WHERE beats.challenge_id=?
-				GROUP BY 1
-				ORDER BY votes DESC`
-		args = []interface{}{battleID}
-		scanArgs = []interface{}{&submission.ID, &submission.URL, &submission.Votes, &submission.Artist.ID, &submission.Voted}
-	}
+			ORDER BY votes DESC`
+	args := []interface{}{battleID}
+	scanArgs := []interface{}{&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
+		&submission.Artist.Name, &submission.Artist.Patron, &submission.Artist.Flair,
+		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted}
 
 	rows, err := dbRead.Query(query, args...)
 	if err != nil {
+		log.Fatal(err)
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
@@ -352,14 +346,20 @@ func BattleHTTP(c echo.Context) error {
 	hasEntered := false
 	userVotes := 0
 
+	start := time.Now()
 	for rows.Next() {
 		err = rows.Scan(scanArgs...)
 		if err != nil {
+			log.Fatal(err)
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
 
-		submission.Artist = GetUserDB(submission.Artist.ID)
+		submission.Artist.NameHTML = submission.Artist.Name
+		if submission.Artist.Patron {
+			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+		}
+
 		if battle.Status == "complete" && !submission.Voted {
 			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="tooltipped" style="color: #0D88FF;" data-tooltip="Did Not Vote">(*)</span>`
 		}
@@ -424,6 +424,8 @@ func BattleHTTP(c echo.Context) error {
 			entryPosition = len(entries)
 		}
 	}
+	duration := time.Since(start)
+	log.Println(duration)
 
 	if err = rows.Err(); err != nil {
 		log.Println(err)
@@ -457,6 +459,7 @@ func BattleHTTP(c echo.Context) error {
 
 	e, err := json.Marshal(entries)
 	if err != nil {
+		log.Fatal(err)
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
@@ -782,6 +785,10 @@ func UpdateBattleDB(c echo.Context) error {
 	TagsDB(true, c.FormValue("tags"), int64(battleID))
 	SetToast(c, "successupdate")
 	return c.Redirect(302, "/")
+}
+
+func duration(msg string, start time.Time) {
+	log.Printf("%v: %v\n", msg, time.Since(start))
 }
 
 // InsertBattle ...

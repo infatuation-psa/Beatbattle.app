@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strconv"
 )
 
 // dbConn ...
@@ -16,20 +17,22 @@ func dbInit() (*sql.DB, *sql.DB) {
 	readServer := os.Getenv("MYSQL_READ")
 	writeServer := os.Getenv("MYSQL_WRITE")
 
-	dbWrite, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@"+readServer+"/"+dbName+"?parseTime=true")
+	readConns, _ := strconv.Atoi(os.Getenv("MYSQL_READ_OPEN"))
+	writeConns, _ := strconv.Atoi(os.Getenv("MYSQL_WRITE_OPEN"))
+
+	dbRead, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@"+readServer+"/"+dbName+"?parseTime=true")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dbRead, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@"+writeServer+"/"+dbName+"?parseTime=true")
+	dbWrite, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@"+writeServer+"/"+dbName+"?parseTime=true")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// db.t2.small max connections is 150
-	dbWrite.SetMaxOpenConns(150)
-	dbRead.SetMaxOpenConns(150)
-
+	// db.t2.small max connections is 45
+	dbRead.SetMaxOpenConns(readConns)
+	dbWrite.SetMaxOpenConns(writeConns)
 	/*
 		db.SetMaxIdleConns(16)
 		db.SetConnMaxLifetime(30 * time.Second)*/
