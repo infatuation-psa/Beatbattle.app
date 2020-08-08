@@ -163,6 +163,7 @@ func GetToast(c echo.Context) [2]string {
 }
 
 // GetAdvertisements returns an array of the current active ads.
+// TODO - Can store this in cache?
 func GetAdvertisements() Advertisement {
 	query := `SELECT id, url, image FROM ads WHERE active = 1`
 

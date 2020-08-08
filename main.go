@@ -71,10 +71,11 @@ func init() {
 	// Session
 	authKeyOne := []byte(os.Getenv("SECURE_KEY64"))
 	encryptionKeyOne := []byte(os.Getenv("SECURE_KEY32"))
+	sessionsPath := string(os.Getenv("SESSIONS_PATH"))
 
 	store = sessions.NewFilesystemStore("sessions/", authKeyOne, encryptionKeyOne)
 	store.Options = &sessions.Options{
-		Path:     "/",
+		Path:     sessionsPath,
 		MaxAge:   60 * 10080,
 		HttpOnly: true,
 	}
@@ -217,6 +218,7 @@ func main() {
 	e.GET("/battle/:id/update", UpdateBattle)                           // Update page
 	e.POST("/battle/:id/delete", DeleteBattle)
 	e.GET("/battle/:id/feedback", ViewFeedback)
+	e.GET("/battle/:id/recalculate", RecalculateBattle)
 
 	e.POST("/battle/submit", InsertBattle)
 	e.GET("/battle/submit", SubmitBattle)

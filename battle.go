@@ -54,12 +54,15 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 	if err != nil {
 		return ""
 	}
+
+	// If deadline has passed and status matches parameter
+	// Adjust status in DB.
 	if time.Until(deadline) < 0 && curStatus == deadlineType {
 		deadlineParsed = "Voting - "
 		sql := "UPDATE challenges SET status = 'voting' WHERE id = ?"
 
 		if curStatus == "voting" {
-			deadlineParsed = "Finished -"
+			deadlineParsed = "Finished - "
 			sql = "UPDATE challenges SET status = 'complete' WHERE id = ?"
 		}
 
@@ -68,11 +71,14 @@ func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortF
 			return ""
 		}
 		defer updateStatus.Close()
-		updateStatus.Exec(battleID)
 
 		if curStatus == "voting" {
-			return deadlineParsed
+			err = BattleResults(battleID)
+			if err != nil {
+				log.Println(err)
+			}
 		}
+		updateStatus.Exec(battleID)
 	}
 
 	if curStatus == "voting" {
@@ -159,7 +165,7 @@ func ViewTaggedBattles(c echo.Context) error {
 	battlesJSON, _ := json.Marshal(battles)
 
 	m := map[string]interface{}{
-		"Title":   title,
+		"Title":   "Beatbattle.app - " + title,
 		"Battles": string(battlesJSON),
 		"Me":      me,
 		"Toast":   toast,
@@ -172,6 +178,7 @@ func ViewTaggedBattles(c echo.Context) error {
 
 // GetBattles retrieves battles from the database using a field and value.
 // Review - If selecting by tags, it only returns one of the tags.
+// TODO - This is really messy. Think about splitting up the parts into each part of the query and combining.
 func GetBattles(field string, value string) []Battle {
 	start := time.Now()
 	// FIELD & VALUE
@@ -194,8 +201,32 @@ func GetBattles(field string, value string) []Battle {
 
 	if field == "challenges.status" {
 		if value == "entry" {
-			queryWHERE = queryWHERE + " OR challenges.status = 'voting'"
-			queryORDER = "ORDER BY challenges.deadline ASC"
+			querySELECT = `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+							challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
+							challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
+							GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+							FROM challenges
+							INNER JOIN users ON challenges.user_id = users.id
+							LEFT JOIN beats ON challenges.id = beats.challenge_id
+							LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+							LEFT JOIN tags ON tags.id = challenges_tags.tag_id
+							WHERE challenges.status = 'voting'
+							GROUP BY challenges.id
+							UNION ALL
+							SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+							challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
+							challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
+							GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+							FROM challenges
+							INNER JOIN users ON challenges.user_id = users.id
+							LEFT JOIN beats ON challenges.id = beats.challenge_id
+							LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+							LEFT JOIN tags ON tags.id = challenges_tags.tag_id
+							WHERE challenges.status = ?
+							GROUP BY challenges.id`
+			queryWHERE = ""
+			queryGROUP = ""
+			queryORDER = ""
 		}
 
 		if value == "past" {
@@ -257,6 +288,70 @@ func GetBattles(field string, value string) []Battle {
 	fmt.Println("GetBattles time: " + duration.String())
 
 	return battles
+}
+
+// RecalculateBattle ...
+func RecalculateBattle(c echo.Context) error {
+	// Set the request to close automatically.
+	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
+
+	me := GetUser(c, false)
+	if !me.Authenticated {
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
+	}
+
+	// Validate that ID is an int.
+	battleID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
+	}
+
+	userGroups := []Group{}
+	if me.Authenticated {
+		userGroups = GetGroupsByRole(dbRead, me.ID, "member")
+	}
+
+	for i := range userGroups {
+		if userGroups[i].ID == 8 {
+			BattleResults(battleID)
+		}
+	}
+
+	return c.Redirect(302, "/")
+}
+
+// BattleResults updates the voted and votes columns of a battle.
+func BattleResults(battleID int) error {
+	start := time.Now()
+	log.Println("test")
+	sql := `UPDATE beats
+			LEFT JOIN (SELECT beat_id, COUNT(beat_id) as beat_votes FROM votes WHERE challenge_id = ? GROUP BY beat_id) beat_votes
+				ON beat_votes.beat_id = beats.id
+			LEFT JOIN (SELECT DISTINCT user_id, IF(user_id IS NOT NULL, true, false) as user_voted FROM votes WHERE challenge_id = ? GROUP BY user_id) user_votes
+				ON user_votes.user_id = beats.user_id
+			SET
+				beats.votes = IFNULL(beat_votes, 0),
+				beats.voted = IFNULL(user_voted, FALSE)
+			WHERE beats.challenge_id = ?`
+
+	upd, err := dbWrite.Prepare(sql)
+	if err != nil {
+		return err
+	}
+	defer upd.Close()
+
+	upd.Exec(battleID, battleID, battleID)
+	if err != nil {
+		return err
+	}
+
+	duration := time.Since(start)
+	fmt.Println("BattleResults time: " + duration.String())
+
+	return nil
 }
 
 // BattleHTTP - Retrieves battle and displays to user.
@@ -344,17 +439,13 @@ func BattleHTTP(c echo.Context) error {
 
 	query := `SELECT 
 			users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-			beats.id, beats.url, IFNULL(beat_votes, 0) AS beat_votes, IF(user_votes.user_id IS NOT NULL, TRUE, FALSE) as user_voted
+			beats.id, beats.url, beats.votes, beats.voted
 			FROM beats
 			INNER JOIN users
 			ON beats.user_id = users.id
-			LEFT JOIN (SELECT beat_id, COUNT(id) as beat_votes FROM votes WHERE challenge_id = ? GROUP BY beat_id) beat_votes
-			ON beat_votes.beat_id = beats.id
-			LEFT JOIN (SELECT DISTINCT user_id FROM votes WHERE challenge_id = ? GROUP BY user_id) user_votes
-			ON user_votes.user_id = beats.user_id
 			WHERE beats.challenge_id = ?
 			GROUP BY 1
-			ORDER BY beat_votes DESC`
+			ORDER BY votes DESC`
 	scanArgs := []interface{}{
 		// Artist
 		&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
@@ -362,7 +453,7 @@ func BattleHTTP(c echo.Context) error {
 		// Beat
 		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted}
 
-	rows, err := dbRead.Query(query, battleID, battleID, battleID)
+	rows, err := dbRead.Query(query, battleID)
 	if err != nil {
 		log.Fatal(err)
 		SetToast(c, "502")
@@ -843,10 +934,6 @@ func UpdateBattleDB(c echo.Context) error {
 	fmt.Println("UpdateBattleDB time: " + duration.String())
 
 	return c.Redirect(302, "/")
-}
-
-func duration(msg string, start time.Time) {
-	log.Printf("%v: %v\n", msg, time.Since(start))
 }
 
 // InsertBattle ...
