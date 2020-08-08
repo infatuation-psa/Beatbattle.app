@@ -344,17 +344,17 @@ func BattleHTTP(c echo.Context) error {
 
 	query := `SELECT 
 			users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-			beats.id, beats.url, COUNT(DISTINCT beat_votes.id) AS beat_votes, COUNT(DISTINCT user_votes.user_id) AS user_votes
+			beats.id, beats.url, IFNULL(beat_votes, 0) AS beat_votes, IF(user_votes.user_id IS NOT NULL, TRUE, FALSE) as user_voted
 			FROM beats
 			INNER JOIN users
 			ON beats.user_id = users.id
-			LEFT JOIN (SELECT id, beat_id FROM votes WHERE challenge_id = ?) beat_votes
+			LEFT JOIN (SELECT beat_id, COUNT(id) as beat_votes FROM votes WHERE challenge_id = ? GROUP BY beat_id) beat_votes
 			ON beat_votes.beat_id = beats.id
-			LEFT JOIN (SELECT user_id FROM votes WHERE challenge_id = ?) user_votes
+			LEFT JOIN (SELECT DISTINCT user_id FROM votes WHERE challenge_id = ? GROUP BY user_id) user_votes
 			ON user_votes.user_id = beats.user_id
 			WHERE beats.challenge_id = ?
 			GROUP BY 1
-			ORDER BY votes DESC`
+			ORDER BY beat_votes DESC`
 	scanArgs := []interface{}{
 		// Artist
 		&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
@@ -484,7 +484,7 @@ func BattleHTTP(c echo.Context) error {
 	battle.Entries = count
 
 	// Shuffle entries per user.
-	if battle.Status == "complete" {
+	if battle.Status != "complete" {
 		rand.Seed(int64(me.ID * battle.ID))
 		rand.Shuffle(len(entries), func(i, j int) {
 			entries[i], entries[j] = entries[j], entries[i]
