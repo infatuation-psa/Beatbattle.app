@@ -344,10 +344,14 @@ func BattleHTTP(c echo.Context) error {
 
 	query := `SELECT 
 			users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-			beats.id, beats.url, beats.votes, beats.voted
-			FROM beats 
+			beats.id, beats.url, COUNT(DISTINCT beat_votes.id) AS beat_votes, COUNT(DISTINCT user_votes.user_id) AS user_votes
+			FROM beats
 			INNER JOIN users
 			ON beats.user_id = users.id
+			LEFT JOIN (SELECT id, beat_id FROM votes WHERE challenge_id = ?) beat_votes
+			ON beat_votes.beat_id = beats.id
+			LEFT JOIN (SELECT user_id FROM votes WHERE challenge_id = ?) user_votes
+			ON user_votes.user_id = beats.user_id
 			WHERE beats.challenge_id = ?
 			GROUP BY 1
 			ORDER BY votes DESC`
@@ -358,7 +362,7 @@ func BattleHTTP(c echo.Context) error {
 		// Beat
 		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted}
 
-	rows, err := dbRead.Query(query, battleID)
+	rows, err := dbRead.Query(query, battleID, battleID, battleID)
 	if err != nil {
 		log.Fatal(err)
 		SetToast(c, "502")

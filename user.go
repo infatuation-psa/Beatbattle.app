@@ -397,7 +397,11 @@ func AddVote(c echo.Context) error {
 		`SELECT battle.status, battle.maxvotes, GROUP_CONCAT(DISTINCT IFNULL(votes.beat_id, '')) AS user_votes
 		FROM (SELECT status, maxvotes, id FROM challenges WHERE challenges.id = ?) battle
 		LEFT JOIN (SELECT beat_id, challenge_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id) votes
-		ON battle.id = votes.challenge_id`, battleID, me.ID, battleID).Scan(&status, &maxVotes, &voteArray)
+		ON battle.id = votes.challenge_id`,
+		// Fill in
+		battleID, me.ID, battleID).Scan(
+		//
+		&status, &maxVotes, &voteArray)
 	if err != nil && err != sql.ErrNoRows {
 		return AjaxResponse(c, true, "/", "502")
 	}
@@ -426,19 +430,6 @@ func AddVote(c echo.Context) error {
 			defer ins.Close()
 			ins.Exec(beatID, me.ID, battleID)
 
-			// Mark user as having voted if they've entered the battle themselves.
-			voted, _ := dbWrite.Prepare("UPDATE beats SET voted = 1 WHERE user_id = ? AND challenge_id = ?")
-			defer voted.Close()
-			voted.Exec(me.ID, battleID)
-
-			// Update the hard written votes on the beat.
-			upd, err := dbWrite.Prepare("UPDATE beats SET votes = votes + 1 WHERE id = ?")
-			if err != nil {
-				return AjaxResponse(c, true, redirectURL, "404")
-			}
-			defer upd.Close()
-			upd.Exec(beatID)
-
 			duration := time.Since(start)
 			fmt.Println("AddVote time: " + duration.String())
 
@@ -451,24 +442,6 @@ func AddVote(c echo.Context) error {
 			}
 			defer del.Close()
 			del.Exec(beatID, me.ID, battleID)
-
-			// Remove vote from the beats table.
-			upd, err := dbWrite.Prepare("UPDATE beats SET votes = votes - 1 WHERE id = ?")
-			if err != nil {
-				return AjaxResponse(c, true, redirectURL, "404")
-			}
-			defer upd.Close()
-			upd.Exec(beatID)
-
-			if len(userVotes)-1 == 0 {
-				// Mark user as not having voted.
-				voted, err := dbWrite.Prepare("UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?")
-				if err != nil {
-					return AjaxResponse(c, true, redirectURL, "404")
-				}
-				defer voted.Close()
-				voted.Exec(me.ID, battleID)
-			}
 
 			duration := time.Since(start)
 			fmt.Println("AddVote time: " + duration.String())
@@ -487,24 +460,6 @@ func AddVote(c echo.Context) error {
 		}
 		defer del.Close()
 		del.Exec(beatID, me.ID, battleID)
-
-		// Remove vote from the beats table.
-		upd, err := dbWrite.Prepare("UPDATE beats SET votes = votes - 1 WHERE id = ?")
-		if err != nil {
-			return AjaxResponse(c, true, redirectURL, "404")
-		}
-		defer upd.Close()
-		upd.Exec(beatID)
-
-		if len(userVotes)-1 == 0 {
-			// Mark user as not having voted.
-			voted, err := dbWrite.Prepare("UPDATE beats SET voted = 0 WHERE user_id = ? AND challenge_id = ?")
-			if err != nil {
-				return AjaxResponse(c, true, redirectURL, "404")
-			}
-			defer voted.Close()
-			voted.Exec(me.ID, battleID)
-		}
 
 		duration := time.Since(start)
 		fmt.Println("AddVote time: " + duration.String())
