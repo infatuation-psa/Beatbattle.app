@@ -180,6 +180,7 @@ func ViewTaggedBattles(c echo.Context) error {
 // Review - If selecting by tags, it only returns one of the tags.
 // TODO - This is really messy. Think about splitting up the parts into each part of the query and combining.
 func GetBattles(field string, value string) []Battle {
+	// ADD FEEDBACK!!!
 	start := time.Now()
 	// FIELD & VALUE
 	querySELECT := `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
@@ -439,10 +440,12 @@ func BattleHTTP(c echo.Context) error {
 
 	query := `SELECT 
 			users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-			beats.id, beats.url, beats.votes, beats.voted
+			beats.id, beats.url, beats.votes, beats.voted, IFNULL(feedback.feedback, '')
 			FROM beats
 			INNER JOIN users
 			ON beats.user_id = users.id
+			LEFT JOIN (SELECT feedback.beat_id, feedback.feedback FROM feedback WHERE feedback.user_id = ?) feedback
+			ON feedback.beat_id = beats.id
 			WHERE beats.challenge_id = ?
 			GROUP BY 1
 			ORDER BY votes DESC`
@@ -451,9 +454,9 @@ func BattleHTTP(c echo.Context) error {
 		&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
 		&submission.Artist.Name, &submission.Artist.Patron, &submission.Artist.Flair,
 		// Beat
-		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted}
+		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted, &submission.Feedback}
 
-	rows, err := dbRead.Query(query, battleID)
+	rows, err := dbRead.Query(query, me.ID, battleID)
 	if err != nil {
 		log.Fatal(err)
 		SetToast(c, "502")

@@ -90,7 +90,11 @@ func Callback(c echo.Context) error {
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
 
-	sess, _ := session.Get("beatbattle", c)
+	sess, err := session.Get("beatbattle", c)
+	if err != nil {
+		log.Println(err)
+	}
+
 	Account := User{}
 	handler := c.QueryParam("provider")
 
@@ -147,7 +151,7 @@ func Callback(c echo.Context) error {
 	}
 
 	userID := 0
-	err := dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+	err = dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
@@ -523,6 +527,7 @@ func AddLike(c echo.Context) error {
 // AddFeedback ...
 func AddFeedback(c echo.Context) error {
 	// Set the request to close automatically.
+	//
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
 	me := GetUser(c, true)
