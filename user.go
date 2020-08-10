@@ -262,6 +262,7 @@ func GetUser(c echo.Context, validate bool) User {
 			var dbHash string
 			err := dbRead.QueryRow("SELECT access_token, expiry FROM users WHERE id = ?", user.ID).Scan(&dbHash, &user.ExpiresAt)
 			if err != nil {
+				log.Println(err)
 				return User{}
 			}
 
@@ -272,6 +273,7 @@ func GetUser(c echo.Context, validate bool) User {
 				if user.Provider == "discord" {
 					newToken, err = discordProvider.RefreshToken(user.RefreshToken)
 					if err != nil {
+						log.Println(err)
 						sess.Values["user"] = User{}
 						sess.Save(c.Request(), c.Response())
 						SetToast(c, "relog")
@@ -294,6 +296,7 @@ func GetUser(c echo.Context, validate bool) User {
 				// If we can't update the users in the database, destroy the session.
 				stmt, err := dbWrite.Prepare(sql)
 				if err != nil {
+					log.Println(err)
 					sess.Values["user"] = User{}
 					sess.Save(c.Request(), c.Response())
 					SetToast(c, "cache")
