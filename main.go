@@ -15,7 +15,6 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/cameronstanley/go-reddit"
 	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/markbates/goth"
@@ -32,7 +31,7 @@ Variables
 -------*/
 
 // store will hold all session data
-var store *sessions.FilesystemStore
+var store *sessions.CookieStore
 var discordProvider *discord.Provider
 var redditAuth *reddit.Authenticator
 
@@ -65,17 +64,13 @@ func init() {
 	policy = bluemonday.UGCPolicy()
 	//policy.AllowStandardURLs()
 
-	/*authKeyOne := securecookie.GenerateRandomKey(64)
-	encryptionKeyOne := securecookie.GenerateRandomKey(32)*/
-
 	// Session
 	authKeyOne := []byte(os.Getenv("SECURE_KEY64"))
 	encryptionKeyOne := []byte(os.Getenv("SECURE_KEY32"))
-	sessionsPath := string(os.Getenv("SESSIONS_PATH"))
 
-	store = sessions.NewFilesystemStore("sessions/", authKeyOne, encryptionKeyOne)
+	store = sessions.NewCookieStore(authKeyOne, encryptionKeyOne)
 	store.Options = &sessions.Options{
-		Path:     sessionsPath,
+		Path:     "/",
 		MaxAge:   60 * 10080,
 		HttpOnly: true,
 	}
@@ -98,7 +93,6 @@ func init() {
 	e.Use(middleware.Secure())
 
 	e.Pre(middleware.RemoveTrailingSlash())
-	e.Use(session.Middleware(store))
 
 	//e.Use(middleware.Logger())
 
@@ -171,7 +165,8 @@ func main() {
 		"linux:beatbattle:v1.2 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
 	redditAuth.RequestPermanentToken = true
 
-	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
+	// TODO DEPRECATE GOTHIC/GOTH
+	gothic.Store = store //sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
 
 	discordProvider = discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify, discord.ScopeGuilds)
 	goth.UseProviders(discordProvider)
@@ -249,8 +244,8 @@ func main() {
 	})
 
 	//go StartDiscordBot()
+	//go ListenHTTP()
 
-	go ListenHTTP()
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
 }
 

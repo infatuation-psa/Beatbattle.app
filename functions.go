@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,7 +13,12 @@ func GetToast(c echo.Context) [2]string {
 	html := ""
 	class := ""
 
-	sess, _ := session.Get("beatbattle", c)
+	// Get session
+	sess, err := store.Get(c.Request(), "beatbattleapp")
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Session get err: %s", err))
+	}
+
 	errorCode := sess.Values["error"]
 
 	switch message := errorCode; message {
@@ -202,7 +207,10 @@ func GetAdvertisements() Advertisement {
 
 // SetToast serves toast text.
 func SetToast(c echo.Context, code string) {
-	sess, _ := session.Get("beatbattle", c)
+	sess, err := store.Get(c.Request(), "beatbattleapp")
+	if err != nil {
+		fmt.Println(fmt.Sprintf("(TOAST) Session get err: %s", err))
+	}
 	sess.Values["error"] = code
 	sess.Save(c.Request(), c.Response())
 }

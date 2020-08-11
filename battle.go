@@ -677,7 +677,9 @@ func SubmitBattle(c echo.Context) error {
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
 	me := GetUser(c, false)
+	fmt.Println(me)
 	if !me.Authenticated {
+		fmt.Println("Submit error")
 		SetToast(c, "relog")
 		return c.Redirect(302, "/login")
 	}

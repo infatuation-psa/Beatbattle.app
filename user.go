@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/markbates/goth/gothic"
 	"golang.org/x/crypto/bcrypt"
@@ -90,105 +89,158 @@ func Callback(c echo.Context) error {
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
 
-	sess, _ := session.Get("beatbattle", c)
-	Account := User{}
+	// Get the session.
+	sess, err := store.Get(c.Request(), "beatbattleapp")
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Callback - Session get err: %s", err))
+	}
+
+	user := User{}
 	handler := c.QueryParam("provider")
 
 	if handler != "reddit" {
-		user, err := gothic.CompleteUserAuth(c.Response(), c.Request())
-
+		// Non-reddit oAuth requests are handled by gothic.
+		gothUser, err := gothic.CompleteUserAuth(c.Response(), c.Request())
 		if err != nil {
+			// Delete session.
 			sess.Options.MaxAge = -1
-			sess.Save(c.Request(), c.Response())
+			err = sess.Save(c.Request(), c.Response())
+			if err != nil {
+				fmt.Println(fmt.Sprintf("Session save error: %s", err))
+			}
+
 			SetToast(c, "cache")
+			fmt.Println(fmt.Sprintf("Goth authentication failure: %s", err))
+
 			return c.Redirect(302, "/login")
 		}
 
-		Account.Provider = user.Provider
-		Account.Name = user.Name
-		Account.Avatar = user.AvatarURL
-		Account.ProviderID = user.UserID
+		// Set account details.
+		user.Provider = gothUser.Provider
+		user.Name = gothUser.Name
+		user.Avatar = gothUser.AvatarURL
+		user.ProviderID = gothUser.UserID
 
-		// Auth
-		Account.RefreshToken = user.RefreshToken
-		Account.AccessToken = user.AccessToken
-		Account.ExpiresAt = user.ExpiresAt
-		Account.Authenticated = true
+		// Set oAuth 2.0 tokens.
+		user.RefreshToken = gothUser.RefreshToken
+		user.AccessToken = gothUser.AccessToken
+		user.ExpiresAt = gothUser.ExpiresAt
+
+		// Set user as authenticated.
+		user.Authenticated = true
 	}
 
 	if handler == "reddit" {
+		// Retrieve state & code from the oAuth url.
 		state := c.QueryParam("state")
 		code := c.QueryParam("code")
+
+		// Get a reddit token.
 		token, err := redditAuth.GetToken(state, code)
 		if err != nil {
 			sess.Options.MaxAge = -1
-			sess.Save(c.Request(), c.Response())
+			err = sess.Save(c.Request(), c.Response())
+			if err != nil {
+				fmt.Println(fmt.Sprintf("Session save error: %s", err))
+			}
+
+			fmt.Println(fmt.Sprintf("Reddit auth failure: %s", err))
 			SetToast(c, "cache")
+
 			return c.Redirect(302, "/login")
 		}
+
+		// Access the reddit cleint.
 		client := redditAuth.GetAuthClient(token)
-		user, err := client.GetMe()
+		redditUser, err := client.GetMe()
 		if err != nil {
 			sess.Options.MaxAge = -1
-			sess.Save(c.Request(), c.Response())
+			err = sess.Save(c.Request(), c.Response())
+			if err != nil {
+				fmt.Println(fmt.Sprintf("Session save error: %s", err))
+			}
+
+			fmt.Println(fmt.Sprintf("Reddit client failure: %s", err))
 			SetToast(c, "cache")
+
 			return c.Redirect(302, "/login")
 		}
-		Account.Provider = "reddit"
-		Account.Name = user.Name
-		Account.Avatar = ""
-		Account.ProviderID = user.ID
 
-		// Auth
-		Account.RefreshToken = token.RefreshToken
-		Account.AccessToken = token.AccessToken
-		Account.ExpiresAt = token.Expiry
-		Account.Authenticated = true
+		// Set account details.
+		user.Provider = "reddit"
+		user.Name = redditUser.Name
+		user.Avatar = ""
+		user.ProviderID = redditUser.ID
+
+		// Set oAuth 2.0 tokens.
+		user.RefreshToken = token.RefreshToken
+		user.AccessToken = token.AccessToken
+		user.ExpiresAt = token.Expiry
+
+		// Set user as authenticated.
+		user.Authenticated = true
 	}
 
+	// Check if user exists.
 	userID := 0
-	err := dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
+	err = dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", user.Provider, user.ProviderID).Scan(&userID)
 	if err != nil && err != sql.ErrNoRows {
+		fmt.Println(fmt.Sprintf("Checking to see if user exists failed: %s", err))
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
 
-	accessTokenEncrypted := HashAndSalt([]byte(Account.AccessToken))
-	// If user doesn't exist, add to db
+	accessTokenEncrypted := HashAndSalt([]byte(user.AccessToken))
+	// If user doesn't exist, add to db.
 	if userID == 0 {
-		sql := "INSERT INTO users(provider, provider_id, nickname, access_token, expiry, patron, flair) VALUES(?,?,?,?,?,?,?)"
+		sql := `INSERT INTO 
+				users(provider, provider_id, nickname, access_token, expiry, patron, flair) 
+				VALUES
+				(?,?,?,?,?,?,?)`
 
 		stmt, err := dbWrite.Prepare(sql)
 		if err != nil {
+			fmt.Println(fmt.Sprintf("User insert SQL failure: %s", err))
 			SetToast(c, "cache")
 			return c.Redirect(302, "/login")
 		}
 		defer stmt.Close()
-
-		stmt.Exec(Account.Provider, Account.ProviderID, Account.Name, accessTokenEncrypted, Account.ExpiresAt, 0, "")
+		stmt.Exec(user.Provider, user.ProviderID, user.Name, accessTokenEncrypted, user.ExpiresAt, 0, "")
 	} else {
-		sql := "UPDATE users SET nickname = ?, access_token = ?, expiry = ? WHERE id = ?"
+		sql := `UPDATE
+				users 
+				SET 
+				nickname = ?, access_token = ?, expiry = ? WHERE id = ?`
 
 		stmt, err := dbWrite.Prepare(sql)
 		if err != nil {
+			fmt.Println(fmt.Sprintf("User update SQL failure: %s", err))
 			SetToast(c, "cache")
 			return c.Redirect(302, "/login")
 		}
 		defer stmt.Close()
-
-		stmt.Exec(Account.Name, accessTokenEncrypted, Account.ExpiresAt, userID)
+		stmt.Exec(user.Name, accessTokenEncrypted, user.ExpiresAt, userID)
 	}
 
-	err = dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", Account.Provider, Account.ProviderID).Scan(&userID)
-	if err != nil && err != sql.ErrNoRows {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
+	// Select user ID. This seems awfully unnecessary. We shoudl be able to get this from the insert statement.
+	// TODO - Clean this up.
+	if userID == 0 {
+		err = dbRead.QueryRow("SELECT id FROM users WHERE provider=? and provider_id=?", user.Provider, user.ProviderID).Scan(&userID)
+		if err != nil && err != sql.ErrNoRows {
+			fmt.Println(fmt.Sprintf("(SQL) Selecting user ID failed: %s", err))
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
 	}
 
-	Account.ID = userID
-	sess.Values["user"] = Account
+	user.ID = userID
+	sess.Values["user"] = user
 
-	sess.Save(c.Request(), c.Response())
+	err = sess.Save(c.Request(), c.Response())
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Session save error: %s", err))
+	}
+
 	return c.Redirect(302, "/")
 }
 
@@ -226,9 +278,10 @@ func Logout(c echo.Context) error {
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
+
 	gothic.Logout(c.Response(), c.Request())
 
-	sess, _ := session.Get("beatbattle", c)
+	sess, _ := store.Get(c.Request(), "beatbattleapp")
 	sess.Options.MaxAge = -1
 	sess.Save(c.Request(), c.Response())
 
@@ -246,7 +299,11 @@ func GetUser(c echo.Context, validate bool) User {
 	var user User
 	user.ID = 0
 
-	sess, _ := session.Get("beatbattle", c)
+	sess, err := store.Get(c.Request(), "beatbattleapp")
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Session get err: %s", err))
+	}
+
 	if sess.Values["user"] != nil {
 		user = sess.Values["user"].(User)
 
@@ -262,7 +319,7 @@ func GetUser(c echo.Context, validate bool) User {
 			var dbHash string
 			err := dbRead.QueryRow("SELECT access_token, expiry FROM users WHERE id = ?", user.ID).Scan(&dbHash, &user.ExpiresAt)
 			if err != nil {
-				log.Println(err)
+				fmt.Println(fmt.Sprintf("(SQL) Selecting access token & expiry failed: %s", err))
 				return User{}
 			}
 
@@ -273,7 +330,7 @@ func GetUser(c echo.Context, validate bool) User {
 				if user.Provider == "discord" {
 					newToken, err = discordProvider.RefreshToken(user.RefreshToken)
 					if err != nil {
-						log.Println(err)
+						fmt.Println(fmt.Sprintf("(AUTH) Requesting discord refresh token failed: %s", err))
 						sess.Values["user"] = User{}
 						sess.Save(c.Request(), c.Response())
 						SetToast(c, "relog")
@@ -296,7 +353,7 @@ func GetUser(c echo.Context, validate bool) User {
 				// If we can't update the users in the database, destroy the session.
 				stmt, err := dbWrite.Prepare(sql)
 				if err != nil {
-					log.Println(err)
+					fmt.Println(fmt.Sprintf("(SQL) Cant update DB user, destroying session: %s", err))
 					sess.Values["user"] = User{}
 					sess.Save(c.Request(), c.Response())
 					SetToast(c, "cache")
@@ -310,6 +367,7 @@ func GetUser(c echo.Context, validate bool) User {
 			}
 
 			if !ComparePasswords(dbHash, []byte(user.AccessToken)) {
+				fmt.Println(fmt.Sprintf("(SQL) Hashed access token mismatch: %s", err))
 				sess.Values["user"] = User{}
 				sess.Save(c.Request(), c.Response())
 				SetToast(c, "relog")
