@@ -254,9 +254,9 @@ func GetBattles(field string, value string) []Battle {
 
 		battle.Tags = SetTags(battle.TagNames)
 
-		battle.Host.NameHTML = battle.Host.Name
+		battle.Host.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(battle.Host.ID) + `">` + battle.Host.Name + `</a>`
 		if battle.Host.Patron {
-			battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+			battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 		}
 
 		switch battle.Status {
@@ -477,9 +477,9 @@ func BattleHTTP(c echo.Context) error {
 			canEnter = false
 		}
 
-		submission.Artist.NameHTML = submission.Artist.Name
+		submission.Artist.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(submission.Artist.ID) + `">` + submission.Artist.Name + `</a>`
 		if submission.Artist.Patron {
-			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 		}
 
 		if battle.Status == "complete" && !submission.Voted {
@@ -645,9 +645,9 @@ func GetBattle(battleID int) Battle {
 	battle.Rules = html.UnescapeString(battle.Rules)
 	battle.RulesHTML = template.HTML(markdown.ToHTML(md, nil, nil))
 
-	battle.Host.NameHTML = battle.Host.Name
+	battle.Host.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(battle.Host.ID) + `">` + battle.Host.Name + `</a>`
 	if battle.Host.Patron {
-		battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+		battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 	}
 
 	switch battle.Status {

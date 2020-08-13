@@ -11,19 +11,18 @@
           {{ end }}
         </h1>
         <ul class="nav-links">
+            <!-- TODO: nav-active should be applied to current link instead of making context-sensitive buttons -->
             <!-- Generate context-appropriate links -->
+            <!-- href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies" -->
             {{ if eq "submissions" .Page }}
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>
-                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies">TROPHIES</a></li>
             {{ else if eq "groups" .Page }}
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
-                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies">TROPHIES</a></li>
             {{ else if eq "battles" .Page }}
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/submissions">SUBMISSIONS</a></li>
-                <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/trophies">TROPHIES</a></li>
             {{ else }}
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}">BATTLES</a></li>
                 <li class="nav-item nav-secondary"><a href="{{ if eq .Me.ID .User.ID }}/me{{ else }}/user/{{.User.ID}}{{ end }}/groups">GROUPS</a></li>

@@ -9,13 +9,24 @@
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         {{if .Battle.Tags }}
         <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
-        {{end}}
+        {{else}}{{end}}
       </div>
-      <zing-grid no-data="No one has entered this battle yet." {{if eq "voting" .Battle.Status}}class="zing-vote"{{end}} caption='{{.Battle.Entries}} Entries {{if eq "complete" .Battle.Status}}{{else}}| <span class="votes-remaining">{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Remaining{{end}}' layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
+      <zing-grid no-data="No one has entered this battle yet." {{if eq "voting" .Battle.Status}}class="zing-vote"{{end}} 
+                caption='
+                {{if eq "entry" .Battle.Status}}
+                {{if .EnteredBattle}}Entry Submitted | {{else}}Not Entered | {{end}}
+                {{end}}
+                {{if eq "voting" .Battle.Status}}
+                {{ if .EnteredBattle }}Entry Submitted | {{end}}
+                {{end}}
+                {{.Battle.Entries}} Entries 
+                {{if eq "voting" .Battle.Status}}
+                | <span class="votes-remaining">{{.VotesRemaining}}</span> Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Left
+                {{end}}' layout-controls="disabled" sort {{if eq "complete" .Battle.Status}}search{{end}} pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
         <zg-colgroup>
           {{if eq "complete" .Battle.Status}}
           <zg-column cell-class="zing-left" header="Artist" index="artist">
-            <a class="battle-url" href="/user/[[record.artist.ID]]">[[record.artist.NameHTML]]</a>
+            <span class="vertical-center">[[record.artist.NameHTML]]</span>
           </zg-column>
           <zg-column cell-class="zing-left" header="Track" index="url">
             <div class="embedded-track">

@@ -6,6 +6,8 @@ $error-color: #0D88FF
 $active-color: #666
 
 /* NAVIGATION STYLING */
+input
+	border: 0
 
 body
 	display: flex
@@ -76,8 +78,8 @@ body
 		padding: 0.75rem 1rem 
 		text-decoration: none 
 
-input[type="submit"]
-	border: 0
+.user-flair
+	color: $main-color
 
 .darkmode--activated .nav-secondary, 
 .darkmode--activated .nav-secondary input[type="submit"]
@@ -609,6 +611,10 @@ ul
 	margin-top: -0.5rem
 	padding-bottom: 2rem
 
+.battle-rules:empty
+	padding-bottom: 0
+	margin-top: 0
+
 .zing-feedback form
 	width: 100%
 
@@ -625,6 +631,10 @@ p
 	font-size: 1rem
 	align-items: center
 	color: #999
+
+.vertical-center
+	display: flex
+	align-items: center
 
 .battle-deadline 
 	align-self: flex-start

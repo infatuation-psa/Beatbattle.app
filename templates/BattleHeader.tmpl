@@ -2,7 +2,7 @@
 <!-- NEEDS TO HANDLE FEEDBACK AS A TYPE -->
     <span class="battle-host">
         <a class="battle-url" href="/user/{{.Battle.Host.ID}}">{{ .Battle.Host.Name }}</a>
-        {{ if .Battle.Host.Patron }}&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>{{ end }}
+        {{ if .Battle.Host.Patron }}&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>{{ end }}
         <span>&nbsp;- {{.Battle.Type}} Battle |&nbsp;</span>
         {{if eq "entry" .Battle.Status}}
             <span style="color: #ff5800">Open</span>

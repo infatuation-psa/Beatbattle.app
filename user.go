@@ -74,9 +74,9 @@ func GetUserDB(UserID int) User {
 		return User{}
 	}
 
-	user.NameHTML = user.Name
+	user.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(user.ID) + `">` + user.Name + `</a>`
 	if user.Patron {
-		user.NameHTML = user.NameHTML + `&nbsp;<span class="material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+		user.NameHTML = user.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 	}
 
 	return user
@@ -818,7 +818,7 @@ func UserSubmissions(c echo.Context) error {
 		}
 
 		submission.Status = strings.Title(submission.Status)
-		if !submission.Voted {
+		if !submission.Voted && submission.Status == "complete" {
 			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #0D88FF;">(*)</span></span>`
 		}
 

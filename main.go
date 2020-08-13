@@ -244,7 +244,8 @@ func main() {
 	})
 
 	//go StartDiscordBot()
-	//go ListenHTTP()
+	// We should try to make the alive check only respond to http to unrequire this.
+	go ListenHTTP()
 
 	e.Logger.Fatal(e.StartTLS(":443", "server.crt", "server.key"))
 }
