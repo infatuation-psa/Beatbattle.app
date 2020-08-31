@@ -35,7 +35,6 @@
         </div>
         {{ end }}
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="3072" placeholder="Battle Rules (Supports Markdown Syntax)" required>{{.Battle.Rules}}</textarea>
-        <input type="text" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="64" placeholder="Password (Optional)">
         <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
             <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="{{.Battle.MaxVotes}}" value="1" min="1" max="10" required>
@@ -56,7 +55,41 @@
               <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time"  value="{{.VotingDeadlineTime}}" placeholder="Voting Deadline Time" required>
           </div>
         </div>
-        <input type="url" class="submit-border submit-nobox" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (URL, Optional)">
+        <input type="url" class="submit-nobox" id="attachment" name="attachment" value="{{.Battle.Attachment}}" placeholder="Battle Attachment (URL, Optional)">
+        <ul class="collapsible">
+          <li>
+            <div class="collapsible-header"><i class="material-icons">psychology</i>Advanced Options</div>
+            <div class="collapsible-body">
+              <div class="submit-border submit-label submit-wide">
+                <input type="url" class="submit-nobox" id="logo" value="{{.Battle.Logo}}" name="logo" placeholder="Custom Logo (Direct Image Link)">
+                <!-- <span class="submit-text">Custom Logo</span>
+                <input type="file" class="" id="logo" name="logo" placeholder="Custom logo"> -->
+              </div>
+              <div class="submit-border submit-label submit-wide">
+                <input type="url" class="submit-nobox" id="background" value="{{.Battle.Background}}" name="background" placeholder="Custom Background (Direct Image Link)">
+                <!-- <span class="submit-text">Custom Background</span>
+                <input type="file" class="" id="background" name="background" placeholder="Custom Background (Direct Image Link)"> -->
+              </div>
+              <div class="submit-border submit-nobox submit-label submit-wide">
+                <span class="submit-text">Custom Color</span>
+                <input type="color" class="" id="color" name="color" value="{{.Battle.Color}}" placeholder="Custom color">
+              </div>
+              <input type="text" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="16" placeholder="Password (Optional)">
+              {{ if .UserGroups }}   
+              <div class="container-form submit-border submit-label submit-wide">
+                <span class="submit-text">Group (Optional)</span>
+                <select class="submit-nobox" name="group">
+                  <option value="0" selected>None</option>
+                  {{ range .UserGroups }}
+                  <option value="{{.ID}}">{{.Title}}</option>
+                  {{ end }}
+                </select>
+              </div>
+              {{ end }}
+            </div>
+          </li>
+        </ul>
+        <input type="hidden" name="style_id" id="style_id" value="{{.Battle.StyleID}}">
         <input type="hidden" name="timezone" id="timezone" value="">
         <input type="hidden" name="tags" id="tags" value="">
         </div>
@@ -74,6 +107,10 @@
       
       $('.modal').modal();
       $('select').formSelect();
+      $(".datepicker").datepicker();
+      $(".timepicker").timepicker();
+      $("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      $('.collapsible').collapsible();
 
       $('.chips').chips({
           data: [{{range .Battle.Tags}}{ tag: '{{.Value}}',},{{end}}],
@@ -83,7 +120,6 @@
           onChipAdd: (chipUpdate),
           onChipDelete: (chipUpdate),
       });
-      $(".datepicker").datepicker(), $(".timepicker").timepicker(), $("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)
     });
   </script>
   {{ template "Footer" .Toast }}

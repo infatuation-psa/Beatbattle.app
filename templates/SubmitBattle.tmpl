@@ -23,22 +23,10 @@
             <option value="art" disabled>Art Battle (Coming Soon)</option>
           </select>
         </div>
-        {{ if .UserGroups }}   
-        <div class="container-form submit-border submit-label submit-wide">
-          <span class="submit-text">Group (Optional)</span>
-          <select class="submit-nobox" name="group">
-            <option value="0" selected>None</option>
-            {{ range .UserGroups }}
-            <option value="{{.ID}}">{{.Title}}</option>
-            {{ end }}
-          </select>
-        </div>
-        {{ end }}
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="3072" placeholder="Battle Rules (Supports Markdown Syntax)" required></textarea>
-        <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="16" placeholder="Password - Keep It Simple (Optional)">
         <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
-            <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="1" min="1" max="10" required>
+            <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="3" min="1" max="10" required>
         </div>
         <div class="container-form submit-border">
           <div class="submit-split1">
@@ -57,6 +45,39 @@
           </div>
         </div>
         <input type="url" class="submit-nobox" id="attachment" name="attachment" placeholder="Battle Attachment (URL, Optional)">
+        <ul class="collapsible">
+          <li>
+            <div class="collapsible-header"><i class="material-icons">psychology</i>Advanced Options</div>
+            <div class="collapsible-body">
+              <div class="submit-border submit-label submit-wide">
+                <input type="url" class="submit-nobox" id="logo" name="logo" placeholder="Custom Logo (Direct Image Link)">
+                <!-- <span class="submit-text">Custom Logo</span>
+                <input type="file" class="" id="logo" name="logo" placeholder="Custom logo"> -->
+              </div>
+              <div class="submit-border submit-label submit-wide">
+                <input type="url" class="submit-nobox" id="background" name="background" placeholder="Custom Background (Direct Image Link)">
+                <!-- <span class="submit-text">Custom Background</span>
+                <input type="file" class="" id="background" name="background" placeholder="Custom Background (Direct Image Link)"> -->
+              </div>
+              <div class="submit-border submit-nobox submit-label submit-wide">
+                <span class="submit-text">Custom Color</span>
+                <input type="color" class="" id="color" name="color" placeholder="Custom color">
+              </div>
+              <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="16" placeholder="Password - Keep It Simple (Optional)">
+              {{ if .UserGroups }}   
+              <div class="container-form submit-border submit-label submit-wide">
+                <span class="submit-text">Group (Optional)</span>
+                <select class="submit-nobox" name="group">
+                  <option value="0" selected>None</option>
+                  {{ range .UserGroups }}
+                  <option value="{{.ID}}">{{.Title}}</option>
+                  {{ end }}
+                </select>
+              </div>
+              {{ end }}
+            </div>
+          </li>
+        </ul>
         <input type="hidden" name="timezone" id="timezone" value="">
         <input type="hidden" name="tags" id="tags" value="">
         </div>
@@ -65,6 +86,7 @@
     </div>
     <script>
       $(document).ready(function() {
+        $('.collapsible').collapsible();
         $('.modal').modal();
         $('select').formSelect();
         const observer = lozad();

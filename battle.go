@@ -38,6 +38,10 @@ type Battle struct {
 	Type           string        `gorm:"column:type" json:"type"`
 	TagNames       []uint8
 	Tags           []Tag
+	StyleID        int    `gorm:"column:style_id" json:"style_id"`
+	Logo           string `gorm:"column:logo" json:"logo"`
+	Background     string `gorm:"column:background" json:"background"`
+	Color          string `gorm:"column:color" json:"color"`
 }
 
 // Tag ...
@@ -237,6 +241,7 @@ func GetBattles(field string, value string) []Battle {
 	query := querySELECT + " " + queryWHERE + " " + queryGROUP + " " + queryORDER
 	rows, err := dbRead.Query(query, value)
 	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	defer rows.Close()
@@ -248,7 +253,7 @@ func GetBattles(field string, value string) []Battle {
 			&battle.Host.Patron, &battle.Host.Flair, &battle.ID, &battle.Title, &battle.Deadline,
 			&battle.VotingDeadline, &battle.Status, &battle.Type, &battle.Entries, &battle.TagNames)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			return nil
 		}
 
@@ -617,16 +622,17 @@ func GetBattle(battleID int) Battle {
 	battle := Battle{}
 
 	query := `
-		SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair, 
-		challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, 
-		challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, 
-		challenges.group_id, challenges.type,
-		GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
-		FROM challenges
-		INNER JOIN users ON users.id = challenges.user_id
-		LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
-		LEFT JOIN tags ON tags.id = challenges_tags.tag_id
-        WHERE challenges.id = ?`
+			SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair, 
+			challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, 
+			challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, 
+			challenges.group_id, challenges.type, GROUP_CONCAT(DISTINCT IFNULL(tags.tag, '')),
+			challenges.style_id, IFNULL(styles.logo, ''), IFNULL(styles.background, ''), IFNULL(styles.color, '')
+			FROM challenges
+			INNER JOIN users ON users.id = challenges.user_id
+			LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+			LEFT JOIN tags ON tags.id = challenges_tags.tag_id
+			LEFT JOIN styles ON styles.id = challenges.style_id
+			WHERE challenges.id = ?`
 
 	err := dbRead.QueryRow(query, battleID).Scan(
 		// Battle Host
@@ -635,8 +641,9 @@ func GetBattle(battleID int) Battle {
 		// Battle
 		&battle.ID, &battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline,
 		&battle.Attachment, &battle.Status, &battle.Password, &battle.MaxVotes, &battle.GroupID,
-		&battle.Type, &battle.TagNames)
+		&battle.Type, &battle.TagNames, &battle.StyleID, &battle.Logo, &battle.Background, &battle.Color)
 	if err != nil {
+		log.Println(err)
 		return battle
 	}
 
@@ -911,20 +918,63 @@ func UpdateBattleDB(c echo.Context) error {
 		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
 	}
 
+	logo := policy.Sanitize(c.FormValue("logo"))
+	background := policy.Sanitize(c.FormValue("background"))
+	color := policy.Sanitize(c.FormValue("color"))
+	if color == "#000000" {
+		color = ""
+	}
+
+	// If style ID exists, update. Otherwise, insert.
+	styleID, _ := strconv.Atoi(policy.Sanitize(c.FormValue("style_id")))
+	if styleID == 0 {
+		if len(logo) > 0 || len(background) > 0 || len(color) > 0 {
+			stmt := "INSERT INTO styles(user_id, logo, background, color) VALUES(?,?,?,?)"
+			ins, err := dbWrite.Prepare(stmt)
+			if err != nil {
+				log.Println(err)
+				SetToast(c, "502")
+				return c.Redirect(302, "/")
+			}
+			defer ins.Close()
+
+			res, err := ins.Exec(me.ID, logo, background, color)
+			if err != nil {
+				log.Println(err)
+				SetToast(c, "502")
+				return c.Redirect(302, "/")
+			}
+			lastInsertID, _ := res.LastInsertId()
+			styleID = int(lastInsertID) // truncated on machines with 32-bit ints
+		}
+	} else {
+		stmt := "UPDATE styles SET logo = ?, background = ?, color = ? WHERE user_id = ? AND id = ?"
+		upd, err := dbWrite.Prepare(stmt)
+		if err != nil {
+			log.Println(err)
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		defer upd.Close()
+		upd.Exec(logo, background, color, me.ID, styleID)
+	}
+
 	query := `
 			UPDATE challenges 
-			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?, group_id = ?, type = ?
+			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?, group_id = ?, type = ?, style_id = ?
 			WHERE id = ? AND user_id = ?`
 
 	ins, err := dbWrite.Prepare(query)
 	if err != nil {
+		log.Println(err)
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
 	defer ins.Close()
 
-	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battle.GroupID, battle.Type, battleID, me.ID)
+	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battle.GroupID, battle.Type, styleID, battleID, me.ID)
 	if err != nil {
+		log.Println(err)
 		SetToast(c, "failadd")
 		return c.Redirect(302, "/")
 	}
@@ -1067,8 +1117,34 @@ func InsertBattle(c echo.Context) error {
 		return c.Redirect(302, "/battle/submit")
 	}
 
-	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes, group_id, type) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
+	logo := policy.Sanitize(c.FormValue("logo"))
+	background := policy.Sanitize(c.FormValue("background"))
+	color := policy.Sanitize(c.FormValue("color"))
+	if color == "#000000" {
+		color = ""
+	}
 
+	var styleID int64 = 0
+	if len(logo) > 0 || len(background) > 0 || len(color) > 0 {
+		stmt := "INSERT INTO styles(user_id, logo, background, color) VALUES(?,?,?,?)"
+		ins, err := dbWrite.Prepare(stmt)
+		if err != nil {
+			log.Println(err)
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		defer ins.Close()
+
+		res, err := ins.Exec(me.ID, logo, background, color)
+		if err != nil {
+			log.Println(err)
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		styleID, _ = res.LastInsertId()
+	}
+
+	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes, group_id, type, style_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
 	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "502")
@@ -1078,7 +1154,7 @@ func InsertBattle(c echo.Context) error {
 
 	var battleInsertedID int64 = 0
 	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Status, battle.Password,
-		battle.Host.ID, battle.VotingDeadline, battle.MaxVotes, battle.GroupID, battle.Type)
+		battle.Host.ID, battle.VotingDeadline, battle.MaxVotes, battle.GroupID, battle.Type, styleID)
 	if err != nil {
 		SetToast(c, "502")
 		return c.Redirect(302, "/")

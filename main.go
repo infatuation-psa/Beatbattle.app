@@ -20,6 +20,7 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/discord"
+	"github.com/markbates/goth/providers/twitch"
 	"github.com/microcosm-cc/bluemonday"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -33,6 +34,7 @@ Variables
 // store will hold all session data
 var store *sessions.CookieStore
 var discordProvider *discord.Provider
+var twitchProvider *twitch.Provider
 var redditAuth *reddit.Authenticator
 
 var policy *bluemonday.Policy
@@ -169,7 +171,10 @@ func main() {
 	gothic.Store = store //sessions.NewCookieStore([]byte(os.Getenv("DISCORD_SECRET")))
 
 	discordProvider = discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), os.Getenv("DISCORD_CALLBACK"), discord.ScopeIdentify, discord.ScopeGuilds)
+	twitchProvider = twitch.New(os.Getenv("TWITCH_KEY"), os.Getenv("TWITCH_SECRET"), os.Getenv("TWITCH_CALLBACK"), twitch.ScopeChannelCheckSubscription)
+
 	goth.UseProviders(discordProvider)
+	goth.UseProviders(twitchProvider)
 
 	// Handlers for users & auth
 	e.GET("/auth/callback", Callback)

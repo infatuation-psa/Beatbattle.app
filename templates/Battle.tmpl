@@ -1,14 +1,18 @@
 {{ define "Battle" }}
   {{ template "Header" .Title }}
-    {{ template "Menu" .Me }}
+    {{ template "MenuLogo" dict "Me" .Me "Logo" .Battle.Logo }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
-      <div class="battle-information">
+      <div class="battle-information {{if .Battle.Background}}background{{end}}">
         {{ template "BattleHeader" . }}
+        {{ if .Battle.Rules }}
         <h3>Rules</h3>
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
+        {{ end }}
         {{if .Battle.Tags }}
-        <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
+        {{if ne "" (index .Battle.Tags 0).Value}}
+          <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
+        {{ end }}
         {{else}}{{end}}
       </div>
       <zing-grid no-data="No one has entered this battle yet." {{if eq "voting" .Battle.Status}}class="zing-vote"{{end}} 
@@ -165,5 +169,45 @@
     })
   });
 </script>
+<style>
+{{if .Battle.Background}}
+body {
+  background-image: url({{.Battle.Background}});
+  background-size: cover;
+}
+{{end}}
+{{if .Battle.Color}}
+.battle-url {
+  color: {{.Battle.Color}} !important;
+}
+
+.battle-url:hover {
+  border-color: {{.Battle.Color}} !important;
+}
+
+.nav-cta {
+  background-color: {{.Battle.Color}};
+  border-color: {{.Battle.Color}};
+}
+
+.nav-cta:hover {
+  color: {{.Battle.Color}};  
+}
+
+zg-row, zg-head {
+  --zg-pager-color: {{.Battle.Color}} !important;
+  --zg-icon-color: {{.Battle.Color}} !important;
+  --zg-head-cell-icon-color_sorted: {{.Battle.Color}} !important;
+}
+
+zing-grid {
+  --zg-pager-color: {{.Battle.Color}} !important;
+  --zg-icon-color: {{.Battle.Color}} !important;
+  --zg-head-cell-icon-color_sorted: {{.Battle.Color}} !important;
+  --zg-select-color_active: {{.Battle.Color}} !important;
+  --zg-pager-color: {{.Battle.Color}} !important;
+}
+{{end}}
+</style>
 {{ template "Footer" .Toast }}
 {{ end }}
