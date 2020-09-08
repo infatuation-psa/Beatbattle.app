@@ -1,3 +1,10 @@
+-- --------------------------------------------------------
+-- Host:                         127.0.0.1
+-- Server version:               10.5.4-MariaDB - mariadb.org binary distribution
+-- Server OS:                    Win64
+-- HeidiSQL Version:             11.0.0.5919
+-- --------------------------------------------------------
+
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET NAMES utf8 */;
 /*!50503 SET NAMES utf8mb4 */;
@@ -24,6 +31,8 @@ CREATE TABLE IF NOT EXISTS `ads` (
   CONSTRAINT `fk_user_id_ad` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
 
+-- Data exporting was unselected.
+
 -- Dumping structure for table beatbattle.beats
 CREATE TABLE IF NOT EXISTS `beats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -37,7 +46,9 @@ CREATE TABLE IF NOT EXISTS `beats` (
   KEY `fk_user_id_beats_idx` (`user_id`),
   CONSTRAINT `fk_challenge_id_beats` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_user_id_beats` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8789 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8794 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.challenges
 CREATE TABLE IF NOT EXISTS `challenges` (
@@ -54,8 +65,11 @@ CREATE TABLE IF NOT EXISTS `challenges` (
   `voting_deadline` datetime DEFAULT NULL,
   `maxvotes` int(11) DEFAULT 1,
   `winner_id` int(11) NOT NULL DEFAULT 0,
+  `style_id` int(11) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=215 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=222 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.challenges_tags
 CREATE TABLE IF NOT EXISTS `challenges_tags` (
@@ -66,6 +80,8 @@ CREATE TABLE IF NOT EXISTS `challenges_tags` (
   CONSTRAINT `fk_challenges_tags_challenge_id` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_challenges_tags_tag_id` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.feedback
 CREATE TABLE IF NOT EXISTS `feedback` (
@@ -80,6 +96,8 @@ CREATE TABLE IF NOT EXISTS `feedback` (
   CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4990 DEFAULT CHARSET=utf8mb4;
 
+-- Data exporting was unselected.
+
 -- Dumping structure for table beatbattle.groups
 CREATE TABLE IF NOT EXISTS `groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -91,6 +109,8 @@ CREATE TABLE IF NOT EXISTS `groups` (
   KEY `fk_groups_owner_id_idx` (`owner_id`),
   CONSTRAINT `fk_groups_owner_id` FOREIGN KEY (`owner_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.groups_invites
 CREATE TABLE IF NOT EXISTS `groups_invites` (
@@ -104,6 +124,8 @@ CREATE TABLE IF NOT EXISTS `groups_invites` (
   CONSTRAINT `fk_group_invite_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4;
 
+-- Data exporting was unselected.
+
 -- Dumping structure for table beatbattle.groups_requests
 CREATE TABLE IF NOT EXISTS `groups_requests` (
   `user_id` int(11) NOT NULL,
@@ -115,6 +137,8 @@ CREATE TABLE IF NOT EXISTS `groups_requests` (
   CONSTRAINT `fk_group_request_group_id` FOREIGN KEY (`group_id`) REFERENCES `groups` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_group_request_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.likes
 CREATE TABLE IF NOT EXISTS `likes` (
@@ -130,13 +154,29 @@ CREATE TABLE IF NOT EXISTS `likes` (
   CONSTRAINT `fk_user_likes` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Data exporting was unselected.
+
+-- Dumping structure for table beatbattle.styles
+CREATE TABLE IF NOT EXISTS `styles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `logo` text DEFAULT NULL,
+  `background` text DEFAULT NULL,
+  `color` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
+
+-- Data exporting was unselected.
+
 -- Dumping structure for table beatbattle.tags
 CREATE TABLE IF NOT EXISTS `tags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `tag` varchar(64) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tag_UNIQUE` (`tag`)
-) ENGINE=InnoDB AUTO_INCREMENT=244 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=251 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.users
 CREATE TABLE IF NOT EXISTS `users` (
@@ -149,7 +189,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `patron` tinyint(4) NOT NULL,
   `flair` varchar(64) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8245 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8247 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 -- Dumping structure for table beatbattle.users_groups
 CREATE TABLE IF NOT EXISTS `users_groups` (
@@ -162,6 +204,8 @@ CREATE TABLE IF NOT EXISTS `users_groups` (
   CONSTRAINT `fk_users_groups_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Data exporting was unselected.
+
 -- Dumping structure for table beatbattle.votes
 CREATE TABLE IF NOT EXISTS `votes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -173,7 +217,9 @@ CREATE TABLE IF NOT EXISTS `votes` (
   KEY `fk_beat_id_idx` (`beat_id`),
   CONSTRAINT `fk_beat_id` FOREIGN KEY (`beat_id`) REFERENCES `beats` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_challenge_id` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=35237 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=35247 DEFAULT CHARSET=utf8mb4;
+
+-- Data exporting was unselected.
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
