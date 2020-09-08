@@ -20,7 +20,7 @@
           <select class="submit-nobox" name="type">
             <option value="beat" selected>Beat Battle</option>
             <option value="rap">Rap Battle</option>
-            <option value="art" disabled>Art Battle (Coming Soon)</option>
+            <option value="art" disabled>Art Battle</option>
           </select>
         </div>
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="3072" placeholder="Battle Rules (Supports Markdown Syntax)" required></textarea>
@@ -64,6 +64,7 @@
                 <input type="color" class="" id="color" name="color" placeholder="Custom color">
               </div>
               <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="16" placeholder="Password - Keep It Simple (Optional)">
+              <input type="text" class="submit-border submit-nobox" id="analytics" name="analytics" maxlength="40" disabled placeholder="Google Analytics Tracking ID (Coming Soon)">
               {{ if .UserGroups }}   
               <div class="container-form submit-border submit-label submit-wide">
                 <span class="submit-text">Group (Optional)</span>

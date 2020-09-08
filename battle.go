@@ -814,7 +814,7 @@ func UpdateBattleDB(c echo.Context) error {
 
 	// Check if battle type is valid.
 	battleType := policy.Sanitize(c.FormValue("type"))
-	if battleType != "beat" && battleType != "rap" {
+	if battleType != "beat" && battleType != "rap" && battleType != "art" {
 		SetToast(c, "invalidtype")
 		return c.Redirect(302, "/battle/submit")
 	}
@@ -1024,7 +1024,7 @@ func InsertBattle(c echo.Context) error {
 
 	battleType := policy.Sanitize(c.FormValue("type"))
 
-	if battleType != "beat" && battleType != "rap" {
+	if battleType != "beat" && battleType != "rap" && battleType != "art" {
 		SetToast(c, "invalidtype")
 		return c.Redirect(302, "/battle/submit")
 	}

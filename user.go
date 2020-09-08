@@ -472,12 +472,15 @@ func AddVote(c echo.Context) error {
 		return AjaxResponse(c, true, redirectURL, "302")
 	}
 
+	log.Println(voteArray)
 	voteString := string(voteArray)
 	voteStringArray := strings.Split(voteString, ",")
 	var userVotes []int
 	for _, s := range voteStringArray {
 		voteID, _ := strconv.Atoi(s)
-		userVotes = append(userVotes, voteID)
+		if voteID != 0 {
+			userVotes = append(userVotes, voteID)
+		}
 	}
 
 	if len(userVotes) < maxVotes {
