@@ -15,7 +15,9 @@ function onChange() {
   if ($("zing-grid").hasClass("zing-vote")) {
     $("body > div.container > zing-grid > zg-head > zg-row > zg-head-cell:nth-child(2)").addClass("zing-vote-header");
   }
+  
   $(".form-ajax").unbind("submit")
+
   $(".form-ajax").submit(function(t) {
     t.preventDefault();
     var e = $(this).attr("action"),

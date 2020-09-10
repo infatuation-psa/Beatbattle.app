@@ -387,6 +387,7 @@ func AjaxResponse(c echo.Context, redirect bool, redirectPath string, toastQuery
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
+
 	type AjaxData struct {
 		Redirect     bool   `json:"Redirect"`
 		RedirectPath string `json:"RedirectPath"`
@@ -430,17 +431,17 @@ func AddVote(c echo.Context) error {
 	// Get form values.
 	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	battleID, err := strconv.Atoi(c.FormValue("battleID"))
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	beatUserID, err := strconv.Atoi(c.FormValue("userID"))
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
@@ -463,6 +464,7 @@ func AddVote(c echo.Context) error {
 		battleID, me.ID, battleID).Scan(
 		//
 		&status, &maxVotes, &voteArray)
+
 	if err != nil && err != sql.ErrNoRows {
 		return AjaxResponse(c, true, "/", "502")
 	}
@@ -472,7 +474,6 @@ func AddVote(c echo.Context) error {
 		return AjaxResponse(c, true, redirectURL, "302")
 	}
 
-	log.Println(voteArray)
 	voteString := string(voteArray)
 	voteStringArray := strings.Split(voteString, ",")
 	var userVotes []int
@@ -489,7 +490,7 @@ func AddVote(c echo.Context) error {
 			// Add a vote to the vote table for the beat.
 			ins, err := dbWrite.Prepare("INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)")
 			if err != nil {
-				return AjaxResponse(c, true, redirectURL, "404")
+				return AjaxResponse(c, false, redirectURL, "404")
 			}
 			defer ins.Close()
 			ins.Exec(beatID, me.ID, battleID)
@@ -520,8 +521,9 @@ func AddVote(c echo.Context) error {
 		// Delete vote from the votes table.
 		del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND challenge_id = ?")
 		if err != nil {
-			return AjaxResponse(c, true, redirectURL, "404")
+			return AjaxResponse(c, false, redirectURL, "404")
 		}
+
 		defer del.Close()
 		del.Exec(beatID, me.ID, battleID)
 
@@ -549,12 +551,12 @@ func AddLike(c echo.Context) error {
 
 	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	battleID, err := strconv.Atoi(c.FormValue("battleID"))
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
@@ -562,7 +564,7 @@ func AddLike(c echo.Context) error {
 	if !RowExists("SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
 		ins, err := dbWrite.Prepare("INSERT INTO likes(user_id, beat_id, challenge_id) VALUES (?, ?, ?)")
 		if err != nil {
-			return AjaxResponse(c, true, "/", "502")
+			return AjaxResponse(c, false, "/", "502")
 		}
 		defer ins.Close()
 		ins.Exec(me.ID, beatID, battleID)
@@ -573,7 +575,7 @@ func AddLike(c echo.Context) error {
 
 	del, err := dbWrite.Prepare("DELETE from likes WHERE user_id = ? AND beat_id = ? AND challenge_id = ?")
 	if err != nil {
-		return AjaxResponse(c, true, "/", "502")
+		return AjaxResponse(c, false, "/", "502")
 	}
 	defer del.Close()
 	del.Exec(me.ID, beatID, battleID)
@@ -596,7 +598,7 @@ func AddFeedback(c echo.Context) error {
 
 	beatID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	var battleID int
@@ -605,7 +607,7 @@ func AddFeedback(c echo.Context) error {
 
 	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil {
-		return AjaxResponse(c, true, "/", "404")
+		return AjaxResponse(c, false, "/", "404")
 	}
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
