@@ -1,5 +1,5 @@
 {{ define "UpdateBattle" }}
-  {{ template "Header" .Title }}
+  {{ template "Header" .Meta }}
     {{ template "Menu" .Me }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
@@ -23,21 +23,10 @@
             <option value="art" disabled>Art Battle (Coming Soon)</option>
           </select>
         </div>
-        {{ if .UserGroups }}   
-        <div class="container-form submit-border submit-label submit-wide">
-          <span class="submit-text">Group (Optional)</span>
-          <select class="submit-nobox" name="group">
-            <option {{if eq 0 .Battle.GroupID}}selected{{end}} value="0">None</option>
-            {{ range .UserGroups }}
-            <option {{if eq .ID $.Battle.GroupID}}selected{{end}} value="{{.ID}}">{{.Title}}</option>
-            {{ end }}
-          </select>
-        </div>
-        {{ end }}
         <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="3072" placeholder="Battle Rules (Supports Markdown Syntax)" required>{{.Battle.Rules}}</textarea>
         <div class="submit-border submit-label submit-wide">
             <span class="submit-text">Max Votes</span>
-            <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="{{.Battle.MaxVotes}}" value="1" min="1" max="10" required>
+            <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="{{.Battle.MaxVotes}}" value="1" min="1" max="999" required>
         </div>
         <div class="container-form submit-border">
           <div class="submit-split1">
@@ -61,35 +50,40 @@
             <div class="collapsible-header"><i class="material-icons">psychology</i>Advanced Options</div>
             <div class="collapsible-body">
               <div class="submit-border submit-label submit-wide">
-                <input type="url" class="submit-nobox" id="logo" value="{{.Battle.Logo}}" name="logo" placeholder="Custom Logo (Direct Image Link)">
+                <input type="url" class="submit-nobox" id="logo" value="{{.Battle.Settings.Logo}}" name="logo" placeholder="Custom Logo (Direct Image Link)">
                 <!-- <span class="submit-text">Custom Logo</span>
                 <input type="file" class="" id="logo" name="logo" placeholder="Custom logo"> -->
               </div>
               <div class="submit-border submit-label submit-wide">
-                <input type="url" class="submit-nobox" id="background" value="{{.Battle.Background}}" name="background" placeholder="Custom Background (Direct Image Link)">
+                <input type="url" class="submit-nobox" id="background" value="{{.Battle.Settings.Background}}" name="background" placeholder="Custom Background (Direct Image Link)">
                 <!-- <span class="submit-text">Custom Background</span>
                 <input type="file" class="" id="background" name="background" placeholder="Custom Background (Direct Image Link)"> -->
               </div>
-              <div class="submit-border submit-nobox submit-label submit-wide">
-                <span class="submit-text">Custom Color</span>
-                <input type="color" class="" id="color" name="color" value="{{.Battle.Color}}" placeholder="Custom color">
-              </div>
+              <!-- MOVE THIS TO SETTINGS -->
               <input type="text" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="16" placeholder="Password (Optional)">
-              {{ if .UserGroups }}   
-              <div class="container-form submit-border submit-label submit-wide">
-                <span class="submit-text">Group (Optional)</span>
-                <select class="submit-nobox" name="group">
-                  <option value="0" selected>None</option>
-                  {{ range .UserGroups }}
-                  <option value="{{.ID}}">{{.Title}}</option>
-                  {{ end }}
-                </select>
+              <div class="container-form submit-border">
+                <div class="submit-split1 submit-nobox">
+                  <input class="styled-checkbox" type="checkbox" name="show_entries" id="show_entries" {{ if .Battle.Settings.ShowEntries }}checked{{ end }} value="1" />
+                  <label for="show_entries">Show Soundcloud Waveform During Voting</label>
+                </div>
+                <div class="submit-split2 submit-nobox">
+                  <input class="styled-checkbox" type="checkbox" name="show_users" id="show_users" {{ if .Battle.Settings.ShowUsers }}checked{{ end }} value="1" />
+                  <label for="show_users">Show Users During Voting</label>
+                </div>
               </div>
-              {{ end }}
+              <div class="container-form submit-border">
+                <div class="submit-split1 submit-nobox">
+                  <input style="width: 100%;" type="text" id="tracking_id" name="tracking_id" value="{{.Battle.Settings.TrackingID}}" maxlength="64" placeholder="Google Analytics Tracking ID (Optional)">
+                </div>
+                <div class="submit-split2 submit-nobox">
+                  <input class="styled-checkbox" type="checkbox" name="private" id="private" {{ if .Battle.Settings.Private }}checked{{ end }} value="1" />
+                  <label for="private">Unlisted Battle</label>
+                </div>
+              </div>
             </div>
           </li>
         </ul>
-        <input type="hidden" name="style_id" id="style_id" value="{{.Battle.StyleID}}">
+        <input type="hidden" name="settings_id" id="settings_id" value="{{.Battle.Settings.ID}}">
         <input type="hidden" name="timezone" id="timezone" value="">
         <input type="hidden" name="tags" id="tags" value="">
         </div>
@@ -97,23 +91,60 @@
       </div>
     </div>
   <script>
+    $(".form-ajax").unbind("submit")
+
+    $(".form-ajax").submit(function(t) {
+      t.preventDefault();
+      var e = $(this).attr("action"),
+          o = $(this).attr("method"),
+          n = $(this).serialize();
+      i = $(this).find(".material-icons"), row = $(this).closest("zg-row").attr("aria-rowindex"), col = $(this).closest("zg-cell").attr("aria-colindex"), $.ajax({
+          url: e,
+          type: o,
+          data: n,
+          success: function(t) {
+              t.Redirect ? window.location.replace(t.RedirectPath) : (M.toast({
+                  html: t.ToastHTML,
+                  classes: t.ToastClass,
+              }))
+          }
+      })
+    })
+
+    function arrayToCSV(objArray) {
+      const array = typeof objArray !== 'object' ? JSON.parse(objArray) : objArray;
+      let str = ``;
+
+      return array.reduce((str, next) => {
+        if(str != ``) {
+          str += `,`;
+        }
+
+        str += `${Object.values(next).map(value => `${value}`)}`;
+        return str;
+      }, str);
+    }
+
     function chipUpdate() {
-        $('#tags').val(JSON.stringify(this.chipsData))
+      $('#tags').val(arrayToCSV(this.chipsData))
     };
+
     autosize($('textarea'));
+
     $(document).ready(function() {
+      $(".tooltipped").tooltip();
       const observer = lozad();
       observer.observe();
-      
+
       $('.modal').modal();
       $('select').formSelect();
       $(".datepicker").datepicker();
       $(".timepicker").timepicker();
       $("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone);
       $('.collapsible').collapsible();
-
+      $('#tags').val({{ .Battle.Tags | join ","}})
       $('.chips').chips({
-          data: [{{range .Battle.Tags}}{ tag: '{{.Value}}',},{{end}}],
+          data: [{{ range .Battle.Tags }}{ tag: '{{.}}' },{{else}}{{end}}],
           limit: 3,
           placeholder: 'Enter Up To 3 Tags (Optional)',
           secondaryPlaceholder: '+Tag',
@@ -122,5 +153,5 @@
       });
     });
   </script>
-  {{ template "Footer" .Toast }}
+{{ template "Footer" .Toast }}
 {{ end }}

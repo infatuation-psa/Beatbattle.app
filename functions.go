@@ -43,9 +43,6 @@ func GetToast(c echo.Context) [2]string {
 	case "noauth":
 		html = "You need to be logged in to do that."
 		class = "toast-error"
-	case "notuser":
-		html = "You're not allowed to do that."
-		class = "toast-error"
 	case "notvoting":
 		html = "This battle isn't currently accepting votes."
 		class = "toast-error"
@@ -55,26 +52,14 @@ func GetToast(c echo.Context) [2]string {
 	case "maxvotes":
 		html = "You're at your max votes for this battle."
 		class = "toast-error"
-	case "deadb4":
-		html = "The deadline cannot be before right now."
-		class = "toast-error"
 	case "voteb4":
 		html = "The voting deadline cannot be before the deadline."
-		class = "toast-error"
-	case "maxvotesinvalid":
-		html = "Max votes must be between 1 and 10."
-		class = "toast-error"
-	case "nodata":
-		html = "No data received.."
 		class = "toast-error"
 	case "validationerror":
 		html = "Validation error, please try again."
 		class = "toast-error"
 	case "maxbattles":
 		html = "You can only have 3 active battles at once."
-		class = "toast-error"
-	case "titleexists":
-		html = "You already have a battle with this title."
 		class = "toast-error"
 	case "sconly":
 		html = "You must submit a SoundCloud link."
@@ -104,6 +89,9 @@ func GetToast(c echo.Context) [2]string {
 	case "successdel":
 		html = "Successfully deleted."
 		class = "toast-success"
+	case "successclose":
+		html = "Successfully closed."
+		class = "toast-success"
 	case "successadd":
 		html = "Successfully added."
 		class = "toast-success"
@@ -113,48 +101,24 @@ func GetToast(c echo.Context) [2]string {
 	case "successaddfeedback":
 		html = "Successfully added feedback."
 		class = "toast-success"
-	case "acceptreq":
-		html = "User has been added to the group."
-		class = "toast-success"
-	case "accept":
-		html = "Successfully joined group."
-		class = "toast-success"
-	case "successreq":
-		html = "Requested to join group."
-		class = "toast-success"
-	case "declinereq":
-		html = "User has not been added to the group."
-		class = "toast-success"
-	case "decline":
-		html = "Successfully declined invite."
-		class = "toast-success"
-	case "successinv":
-		html = "Successfully invited user."
-		class = "toast-success"
-	case "ingroupreq":
-		html = "User already in group."
-		class = "toast-error"
-	case "ingroup":
-		html = "You're already in the group."
-		class = "toast-error"
-	case "notingroup":
-		html = "Not in group."
-		class = "toast-error"
 	case "invalid":
 		html = "Your SoundCloud url format is invalid."
-		class = "toast-error"
-	case "reqexists":
-		html = "You've already requested to join this group."
-		class = "toast-error"
-	case "invexists":
-		html = "User has already been invited to the group."
-		class = "toast-error"
-	case "notopengrp":
-		html = "This group is not open."
 		class = "toast-error"
 	case "relog":
 		html = "Login session expired."
 		class = "toast-error"
+	case "requalified":
+		html = "Requalified submission."
+		class = "toast-success"
+	case "disqualified":
+		html = "Disqualified submission."
+		class = "toast-success"
+	case "403":
+		html = "User lacks permissions."
+		class = "toast-error"
+	case "placement":
+		html = "Changed placement."
+		class = "toast-success"
 	}
 
 	sess.Values["error"] = ""

@@ -1,0 +1,54 @@
+
+	// FIELD & VALUE
+	querySELECT := `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+					challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
+					challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
+					GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+					FROM challenges
+					INNER JOIN users ON challenges.user_id = users.id
+					LEFT JOIN beats ON challenges.id = beats.challenge_id
+					LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+					LEFT JOIN tags ON tags.id = challenges_tags.tag_id`
+					
+	queryWHERE := "WHERE " + field + "=?"
+	queryGROUP := "GROUP BY challenges.id"
+	queryORDER := "ORDER BY challenges.deadline DESC"
+
+	if field == "tags.tag" {
+		queryORDER = "ORDER BY challenges.deadline ASC"
+	}
+
+	if field == "challenges.status" {
+		if value == "entry" {
+			querySELECT = `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+							challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
+							challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
+							GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+							FROM challenges
+							INNER JOIN users ON challenges.user_id = users.id
+							LEFT JOIN beats ON challenges.id = beats.challenge_id
+							LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+							LEFT JOIN tags ON tags.id = challenges_tags.tag_id
+							WHERE challenges.status = 'voting'
+							GROUP BY challenges.id
+							UNION ALL
+							SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
+							challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
+							challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
+							GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
+							FROM challenges
+							INNER JOIN users ON challenges.user_id = users.id
+							LEFT JOIN beats ON challenges.id = beats.challenge_id
+							LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
+							LEFT JOIN tags ON tags.id = challenges_tags.tag_id
+							WHERE challenges.status = ?
+							GROUP BY challenges.id`
+			queryWHERE = ""
+			queryGROUP = ""
+			queryORDER = ""
+		}
+
+		if value == "past" {
+			queryORDER = "ORDER BY challenges.voting_deadline DESC"
+		}
+	}

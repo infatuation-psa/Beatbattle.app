@@ -1,5 +1,5 @@
 {{ define "ViewBattles" }}
-  {{ template "Header" .Title }}
+  {{ template "Header" .Meta }}
   {{ template "Menu" .Me }}
   {{ template "Advertisement" .Ads }}
   <div class="container">
@@ -12,22 +12,7 @@
         </ul>
       </nav>
     </div>
-    {{ template "BattleGrid" }}
+    {{ template "BattleGrid" .Battles }}
   </div>
-  <script>
-    window.addEventListener('load',()=>{
-      // Initialize Zing Grid.
-      var data='{{.Battles}}';
-      const zgRef = document.querySelector('zing-grid');
-      zgRef.setData(data);
-
-      // Load images.
-      zgRef.executeOnLoad(function() {
-        const observer = lozad();
-        observer.observe();
-        $(".tooltipped").tooltip()
-      });
-    })
-  </script>
   {{ template "Footer" .Toast }}
 {{ end }}

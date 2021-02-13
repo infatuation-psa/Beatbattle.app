@@ -148,9 +148,9 @@ CREATE TABLE IF NOT EXISTS `likes` (
   KEY `fk_user_likes_idx` (`user_id`),
   KEY `fk_beat_likes_idx` (`beat_id`),
   KEY `likes_idx_user_id_beat_id` (`user_id`,`beat_id`),
-  KEY `fk_challenge_likes` (`challenge_id`),
+  KEY `fk_battle_likes` (`battle_id`),
   CONSTRAINT `fk_beat_likes` FOREIGN KEY (`beat_id`) REFERENCES `beats` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_challenge_likes` FOREIGN KEY (`challenge_id`) REFERENCES `challenges` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_battle_likes` FOREIGN KEY (`battle_id`) REFERENCES `challenges` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_user_likes` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

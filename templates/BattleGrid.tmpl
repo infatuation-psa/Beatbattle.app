@@ -1,18 +1,82 @@
 {{define "BattleGrid"}}
-    <zing-grid no-data="No battles are currently active." caption="Battles" layout-controls="disabled" sort search pager page-size="25" page-size-options="10, 25, 50" layout="row" viewport-stop>
-        <zg-colgroup>
-            <zg-column cell-class="zing-left" header="Battle" index="title" type="url" cell-class="link">
-                <template>
-                <a class="battle-url" href="/battle/[[record.id]]">[[index.title]]</a>
-                <div class="chips zing-chips"><a href="/battles/[[record.Tags.0.tag]]" class="chip">[[record.Tags.0.tag]]</a><a href="/battles/[[record.Tags.1.tag]]" class="chip">[[record.Tags.1.tag]]</a><a href="/battles/[[record.Tags.2.tag]]" class="chip">[[record.Tags.2.tag]]</a></div>
-                </template>
-            </zg-column>
-            <zg-column cell-class="zing-left" index="status"></zg-column>
-            <zg-column cell-class="zing-left" index="type"></zg-column>
-            <zg-column cell-class="zing-left" index="host">
-                <span class="vertical-center">[[record.host.NameHTML]]</span>
-            </zg-column>
-            <zg-column cell-class="zing-both" index="entries"></zg-column>
-        </zg-colgroup> 
-    </zing-grid>    
+  {{ if eq "[]" . }}
+  <div id="BeatBattle" class="battle-grid" ng-app="BeatBattle">
+      <md-content ng-cloak layout="column" flex ng-controller="BeatBattleController">      
+          <md-card>
+              <md-table-container>
+              <table md-table ng-model="selected" md-progress="promise">
+                  <thead md-head md-order="query.order" md-on-reorder="tableChange">
+                    <tr md-row>
+                      <th md-column><span>Title</span></th>
+                      <th md-column><span>Status</span></th>
+                      <th md-column><span>Host</span></th>
+                      <th md-column><span>Entries</span></th>
+                    </tr>
+                  </thead>
+                  <tbody md-body>
+                    <tr md-row>   
+                        <td md-cell>
+                          There aren't any active battles right now. Start your own and invite some friends!
+                        </td>
+                        <td md-cell>
+                        </td>
+                        <td md-cell>
+                        </td>
+                        <td md-cell>
+                        </td>
+                    </tr>
+                  </tbody>
+              </table>
+              </md-table-container>
+              <md-table-pagination md-limit="query.limit" md-limit-options="limitOptions" md-page="query.page" md-page-select="options.pageSelect" md-boundary-links="options.boundaryLinks" md-on-paginate="tableChange"></md-table-pagination>
+          </md-card>
+      </md-content>
+    </div>
+  {{ else }}
+  <div id="BeatBattle" class="battle-grid" ng-app="BeatBattle">
+      <md-content ng-cloak layout="column" flex ng-controller="BeatBattleController">      
+          <md-card>
+              <md-table-container>
+              <table md-table ng-model="selected" md-progress="promise">
+                  <thead md-head md-order="query.order" md-on-reorder="tableChange">
+                    <tr md-row>
+                      <th md-column md-order-by="title"><span>Title</span></th>
+                      <th md-column md-order-by="status"><span>Status</span></th>
+                      <th md-column md-order-by="host.name"><span>Host</span></th>
+                      <th md-column md-order-by="entries"><span>Entries</span></th>
+                    </tr>
+                  </thead>
+                  <tbody md-body>
+                    <tr md-row md-select="battle" ng-repeat="battle in battles.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">   
+                        <td md-cell>
+                          <a class="battle-url" ng-href="/battle/{{`{{battle.id}}`}}">
+                            {{`{{battle.title}}`}}
+                            <div ng-if="battle.tags" class="chips grid-chips">
+                              <a ng-repeat="tag in battle.tags" ng-href="/battles/{{`{{tag}}`}}" class="chip">{{`{{tag}}`}}</a>
+                            </div>
+                          </a>
+                        </td>
+                        <td md-cell>
+                          <span style="text-transform: capitalize">{{`{{battle.status}}`}}</span>
+                          <span ng-class="battle.status == 'complete' ? '' : 'deadline'" deadline='{{`{{battle.parsed_deadline}}`}}'>{{`{{battle.parsed_deadline}}`}}</span>
+                        </td>
+                        <td md-cell>
+                          <a class="battle-url" ng-href="/user/{{`{{battle.host.id}}`}}">
+                              {{`{{battle.host.name}}`}}
+                            </a>
+                        </td>
+                        <td md-cell md-numeric>{{`{{battle.entries}}`}}</td>
+                    </tr>
+                  </tbody>
+              </table>
+              </md-table-container>
+              <md-table-pagination md-limit="query.limit" md-limit-options="limitOptions" md-page="query.page" md-total="{{`{{battles.count}}`}}" md-page-select="options.pageSelect" md-boundary-links="options.boundaryLinks" md-on-paginate="tableChange"></md-table-pagination>
+          </md-card>
+      </md-content>
+    </div>
+    {{ end }}
+  <script>
+    var battlesJSON = JSON.parse('{{.}}');
+  </script>
+  <script src="/static/battle-table-index.js"></script>
 {{end}}

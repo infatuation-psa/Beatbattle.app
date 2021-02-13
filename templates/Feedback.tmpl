@@ -1,34 +1,52 @@
 {{ define "Feedback" }}
-  {{ template "Header" .Title }}
+  {{ template "Header" .Meta }}
   {{ template "Menu" .Me }}
   {{ template "Advertisement" .Ads }}
   <div class="container">
-    <div class="battle-information">
-      {{ template "BattleHeader" . }}
-      <h3>Rules</h3>
-      <div class="battle-rules">{{.Battle.RulesHTML}}</div>
-      {{if .Battle.Tags }}
-      <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.Value}}" class="chip">{{.Value}}</a>{{end}}</div>
-      {{end}}
-    </div>
-    <zing-grid no-data="You haven't received any feedback yet." caption="Feedback" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
-      <zg-colgroup>
-        <zg-column cell-class="zing-left" header="From" index="from"></zg-column>
-        <zg-column header="Feedback" index="feedback"></zg-column>
-      </zg-colgroup>
-    </zing-grid>
-  </div>
-  <script>
-    window.addEventListener('load', () => {
-        const zgRef = document.querySelector('zing-grid');
-        var data = {{.Feedback}};
-        zgRef.setData(data);
+  <!-- This should be templated -->
+      <div class="battle-information {{if .Battle.Settings.Background}}background{{end}}">
+        {{ template "BattleHeader" . }}
+        {{ if .Battle.Rules }}
+        <h3>Rules</h3>
+        <div class="battle-rules">{{.Battle.RulesHTML}}</div>
+        {{ end }}
+        {{if .Battle.Tags }}
+          <div class="chips battle-chips">{{range .Battle.Tags}}<a href="/battles/{{.}}" class="chip">{{.}}</a>{{end}}</div>
+        {{end}}
+      </div>
+      <div id="BeatBattle" ng-app="BeatBattle">
+        <md-content ng-cloak layout="column" flex ng-controller="BeatBattleController">      
+          <md-card>
+            <md-table-container>
+              <table md-table ng-model="selected" md-progress="promise">
+                <thead md-head md-order="query.order" md-on-reorder="tableChange">
+                  <tr md-row>
+                    <th md-column md-order-by="info.feedback"><span>Feedback</span></th>
+                    <th md-column md-order-by="info.from"><span>From</span></th>
+                  </tr>
+                </thead>
+                <tbody md-body>
+                  <tr md-row md-select="info" ng-repeat="info in feedback.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">            
+                    <td md-cell>
+                      {{`{{info.feedback}}`}}
+                    </td>
+                    <td md-cell>
+                      {{`{{info.from}}`}}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </md-table-container>
 
-        zgRef.executeOnLoad(function() {
-            const observer = lozad();
-            observer.observe();
-        });
-    });
-  </script>
+            <md-table-pagination md-limit="query.limit" md-limit-options="limitOptions" md-page="query.page" md-total="{{`{{feedback.count}}`}}" md-page-select="options.pageSelect" md-boundary-links="options.boundaryLinks" md-on-paginate="tableChange"></md-table-pagination>
+          </md-card>
+        </md-content>
+      </div>
+  </div>
+<script>
+var feedbackData = {{.Feedback}};
+var feedback = JSON.parse(feedbackData);
+</script>
+<script src="/static/feedback-table.js"></script>
   {{ template "Footer" .Toast }}
 {{ end }}

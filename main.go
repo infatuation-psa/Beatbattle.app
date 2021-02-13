@@ -41,6 +41,7 @@ var policy *bluemonday.Policy
 
 var whitelist []string
 var state string
+var analyticsKey string
 var dbWrite, dbRead *sql.DB
 var e *echo.Echo
 
@@ -69,6 +70,7 @@ func init() {
 	// Session
 	authKeyOne := []byte(os.Getenv("SECURE_KEY64"))
 	encryptionKeyOne := []byte(os.Getenv("SECURE_KEY32"))
+	analyticsKey = os.Getenv("ANALYTICS_ID")
 
 	store = sessions.NewCookieStore(authKeyOne, encryptionKeyOne)
 	store.Options = &sessions.Options{
@@ -93,7 +95,6 @@ func init() {
 
 	e.Pre(middleware.HTTPSNonWWWRedirect())
 	e.Use(middleware.Secure())
-
 	e.Pre(middleware.RemoveTrailingSlash())
 
 	//e.Use(middleware.Logger())
@@ -143,7 +144,10 @@ func FrequentQuestions(c echo.Context) error {
 	ads := GetAdvertisements()
 
 	m := map[string]interface{}{
-		"Title": "Frequently Asked Questions",
+		"Meta": map[string]interface{}{
+			"Title":   "Frequently Asked Questions",
+			"Analytics":   analyticsKey,
+		},
 		"Me":    me,
 		"Toast": toast,
 		"Ads":   ads,
@@ -164,7 +168,7 @@ func main() {
 	state = os.Getenv("REDDIT_STATE")
 
 	redditAuth = reddit.NewAuthenticator(os.Getenv("REDDIT_KEY"), os.Getenv("REDDIT_SECRET"), os.Getenv("REDDIT_CALLBACK"),
-		"linux:beatbattle:v1.2 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
+		"linux:beatbattle:v1.3 (by /u/infatuationpsa)", state, reddit.ScopeIdentity)
 	redditAuth.RequestPermanentToken = true
 
 	// TODO DEPRECATE GOTHIC/GOTH
@@ -181,34 +185,18 @@ func main() {
 	e.GET("/auth", Auth)
 	e.GET("/logout/:provider", Logout)
 	e.GET("/logout", Logout)
-	e.POST("/feedback/:id", AddFeedback)
+	e.POST("/feedback", AddFeedback)
 	e.POST("/like", AddLike)
+	e.POST("/placement", SetPlacement)
+	e.POST("/disqualify", DisqualifyBeat)
 	e.POST("/vote", AddVote)
 	e.GET("/login", Login)
 	e.GET("/faq", FrequentQuestions)
 
 	// Me
-	e.POST("/user/:id/invite", InsertGroupInvite)
-	e.GET("/user/:id/groups", UserGroups)
 	e.GET("/user/:id/submissions", UserSubmissions)
 	e.GET("/user/:id", UserBattles)
-
-	// Me
-	e.GET("/me/groups/request/:id/:response", GroupRequestResponse)
-	e.GET("/me/groups/invite/:id/:response", GroupInviteResponse)
-	e.GET("/me/groups", UserGroups)
-	e.GET("/me/submissions", UserSubmissions)
-	e.GET("/me", UserBattles)
-
-	// Groups
-	e.POST("/group/submit", InsertGroup)
-	e.GET("/group/submit", SubmitGroup)
-	e.POST("/group/:id/update", UpdateGroupDB) // Update in db
-	e.GET("/group/:id/update", UpdateGroup)    // Update page
-	e.GET("/group/:id/join", InsertGroupRequest)
-	e.GET("/group/:id", GroupHTTP) // Update page
-	e.GET("/groups", ViewPublicGroups)
-
+	
 	// Battles
 	e.GET("/battles/:tag", ViewTaggedBattles)
 
@@ -216,9 +204,9 @@ func main() {
 	e.GET("/battle/:id/update/timezone/:region/:country", UpdateBattle) // Timezone
 	e.POST("/battle/:id/update", UpdateBattleDB)                        // Update in db
 	e.GET("/battle/:id/update", UpdateBattle)                           // Update page
-	e.POST("/battle/:id/delete", DeleteBattle)
+	e.POST("/battle/:id/delete", DeleteBattle)                  
+	e.POST("/battle/:id/close", CloseBattle)
 	e.GET("/battle/:id/feedback", ViewFeedback)
-	e.GET("/battle/:id/recalculate", RecalculateBattle)
 
 	e.POST("/battle/submit", InsertBattle)
 	e.GET("/battle/submit", SubmitBattle)
@@ -247,8 +235,7 @@ func main() {
 		`
 		return c.HTML(http.StatusOK, fmt.Sprintf(format, req.Proto, req.Host, req.RemoteAddr, req.Method, req.URL.Path))
 	})
-
-	//go StartDiscordBot()
+	
 	// We should try to make the alive check only respond to http to unrequire this.
 	go ListenHTTP()
 

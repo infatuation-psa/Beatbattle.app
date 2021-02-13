@@ -9,18 +9,20 @@ import (
 )
 
 // Beat struct.
+// TODO - Battle should be a battle object
 type Beat struct {
 	ID          int    `gorm:"column:id" json:"id"`
 	Artist      User   `json:"artist"`
 	URL         string `gorm:"column:beat_url" json:"url"`
 	Votes       int    `json:"votes"`
-	ChallengeID int    `gorm:"column:challenge_id" json:"challenge_id,omitempty"`
-	LikeColour  string `json:"like_colour"`
-	VoteColour  string `json:"vote_colour"`
+	BattleID int    `gorm:"column:battle_id" json:"battle_id,omitempty"`
+	UserLike  int `json:"user_like"`
+	UserVote  int `json:"user_vote"`
 	Feedback    string `json:"feedback"`
-	Status      string `json:"status"`
-	Battle      string `json:"battle"`
+	Battle      Battle `json:"battle"`
 	Voted       bool   `json:"voted"`
+	Placement       int   `json:"placement"`
+	Index       int   `json:"index"`
 }
 
 // SubmitBeat returns a page that allows a user to submit or update their entry.
@@ -51,15 +53,6 @@ func SubmitBeat(c echo.Context) error {
 		return c.Redirect(302, "/404")
 	}
 
-	if battle.GroupID != 0 {
-		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
-
-		if !hasPermissions {
-			SetToast(c, "notingroup")
-			return c.Redirect(302, "/")
-		}
-	}
-
 	tpl := "SubmitBeat"
 	title := "Submit"
 	if strings.Contains(URL, "update") {
@@ -68,12 +61,15 @@ func SubmitBeat(c echo.Context) error {
 	}
 
 	m := map[string]interface{}{
-		"Title":   title + "Entry",
+		"Meta": map[string]interface{}{
+			"Title":   title + "Entry",
+			"Analytics":   analyticsKey,
+			"Buttons": title,
+		},
 		"Battle":  battle,
 		"Me":      me,
 		"Toast":   toast,
 		"Ads":     ads,
-		"Buttons": title,
 	}
 
 	return c.Render(http.StatusOK, tpl, m)
@@ -94,23 +90,12 @@ func InsertBeat(c echo.Context) error {
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
 	}
-
-	battle := GetBattle(battleID)
-	if battle.GroupID != 0 {
-		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
-
-		if !hasPermissions {
-			SetToast(c, "notingroup")
-			return c.Redirect(302, "/")
-		}
-	}
-
 	redirectURL := "/beat/" + strconv.Itoa(battleID) + "/submit"
 
 	// EFFI - CAN MAYBE MAKE MORE EFFICIENT BY JOINING BEAT TABLE TO SEE IF ENTERED
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
-	err = dbRead.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
+	err = dbRead.QueryRow("SELECT password FROM battles WHERE id = ? AND results = '0'", battleID).Scan(&password)
 	if err != nil {
 		SetToast(c, "notopen")
 		return c.Redirect(302, redirectURL)
@@ -136,12 +121,12 @@ func InsertBeat(c echo.Context) error {
 			}
 	*/
 
-	stmt := "INSERT INTO beats(url, challenge_id, user_id) VALUES(?,?,?)"
+	stmt := "INSERT INTO beats(url, battle_id, user_id) VALUES(?,?,?)"
 	response := "/successadd"
 
 	// IF EXISTS UPDATE
-	if RowExists("SELECT challenge_id FROM beats WHERE user_id = ? AND challenge_id = ?", me.ID, battleID) {
-		stmt = "UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?"
+	if RowExists("SELECT battle_id FROM beats WHERE user_id = ? AND battle_id = ?", me.ID, battleID) {
+		stmt = "UPDATE beats SET url=? WHERE battle_id=? AND user_id=?"
 		response = "/successupdate"
 	}
 
@@ -174,7 +159,7 @@ func UpdateBeat(c echo.Context) error {
 
 	// MIGHT ALLOW ENTRIES PAST DEADLINES IF FORCED ON EDGE CASES
 	password := ""
-	err = dbRead.QueryRow("SELECT password FROM challenges WHERE id = ? AND status = 'entry'", battleID).Scan(&password)
+	err = dbRead.QueryRow("SELECT password FROM battles WHERE id = ? AND results = '0'", battleID).Scan(&password)
 	if err != nil {
 		SetToast(c, "notopen")
 		return c.Redirect(302, "/battle/"+strconv.Itoa(battleID))
@@ -197,7 +182,7 @@ func UpdateBeat(c echo.Context) error {
 				}
 	*/
 
-	ins, err := dbWrite.Prepare("UPDATE beats SET url=? WHERE challenge_id=? AND user_id=?")
+	ins, err := dbWrite.Prepare("UPDATE beats SET url=? WHERE battle_id=? AND user_id=?")
 	if err != nil {
 		SetToast(c, "nobeat")
 		return c.Redirect(302, "/beat/"+strconv.Itoa(battleID)+"/submit")
@@ -225,7 +210,7 @@ func DeleteBeat(c echo.Context) error {
 
 	redirectURL := "/battle/" + strconv.Itoa(battleID)
 
-	stmt := "DELETE FROM beats WHERE user_id = ? AND challenge_id = ?"
+	stmt := "DELETE FROM beats WHERE user_id = ? AND battle_id = ?"
 	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
 		SetToast(c, "validationerror")

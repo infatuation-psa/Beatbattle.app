@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"html"
 
 	"github.com/labstack/echo/v4"
 	"github.com/markbates/goth/gothic"
@@ -19,17 +20,15 @@ import (
 
 // User struct.
 type User struct {
-	ID            int    `gorm:"column:id"`
+	ID            int    `gorm:"column:id" json:"id"`
 	Provider      string `gorm:"column:provider"`
 	ProviderID    string `gorm:"column:provider_id"`
-	Name          string `gorm:"column:nickname"`
-	NameHTML      string
+	Name          string `gorm:"column:nickname" json:"name"`
 	Avatar        string
 	RefreshToken  string
 	AccessToken   string    `gorm:"column:access_token"`
 	ExpiresAt     time.Time `gorm:"column:expiry"`
 	Authenticated bool
-	Patron        bool   `gorm:"column:patron"`
 	Flair         string `gorm:"column:flair"`
 }
 
@@ -63,20 +62,14 @@ func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
 
 // GetUserDB retrieves user from the database using a UserID.
 func GetUserDB(UserID int) User {
-	query := "SELECT provider, provider_id, nickname, patron, flair FROM users WHERE id = ?"
-
+	query := "SELECT provider, provider_id, nickname, flair FROM users WHERE id = ?"
 	user := User{}
 	user.ID = UserID
 
-	err := dbRead.QueryRow(query, UserID).Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Patron, &user.Flair)
+	err := dbRead.QueryRow(query, UserID).Scan(&user.Provider, &user.ProviderID, &user.Name, &user.Flair)
 	if err != nil {
 		log.Println(err)
 		return User{}
-	}
-
-	user.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(user.ID) + `">` + user.Name + `</a>`
-	if user.Patron {
-		user.NameHTML = user.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
 	}
 
 	return user
@@ -194,9 +187,9 @@ func Callback(c echo.Context) error {
 	// If user doesn't exist, add to db.
 	if userID == 0 {
 		sql := `INSERT INTO 
-				users(provider, provider_id, nickname, access_token, expiry, patron, flair) 
+				users(provider, provider_id, nickname, access_token, expiry, flair) 
 				VALUES
-				(?,?,?,?,?,?,?)`
+				(?,?,?,?,?,?)`
 
 		stmt, err := dbWrite.Prepare(sql)
 		if err != nil {
@@ -338,6 +331,17 @@ func GetUser(c echo.Context, validate bool) User {
 					}
 				}
 
+				if user.Provider == "twitch" {
+					newToken, err = twitchProvider.RefreshToken(user.RefreshToken)
+					if err != nil {
+						fmt.Println(fmt.Sprintf("(AUTH) Requesting twitch refresh token failed: %s", err))
+						sess.Values["user"] = User{}
+						sess.Save(c.Request(), c.Response())
+						SetToast(c, "relog")
+						return User{}
+					}
+				}
+
 				// TODO - Refresh reddit token!
 				if user.Provider == "reddit" {
 					return user
@@ -431,16 +435,22 @@ func AddVote(c echo.Context) error {
 	// Get form values.
 	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
+		log.Println("Vote beat ID error.")
+		log.Println(err)
 		return AjaxResponse(c, false, "/", "404")
 	}
 
 	battleID, err := strconv.Atoi(c.FormValue("battleID"))
 	if err != nil {
+		log.Println("Vote battle ID error.")
+		log.Println(err)
 		return AjaxResponse(c, false, "/", "404")
 	}
 
 	beatUserID, err := strconv.Atoi(c.FormValue("userID"))
 	if err != nil {
+		log.Println("Vote user ID error.")
+		log.Println(err)
 		return AjaxResponse(c, false, "/", "404")
 	}
 
@@ -452,25 +462,27 @@ func AddVote(c echo.Context) error {
 	}
 
 	// Get battle status, max votes, and vote array.
-	status := ""
+	var deadline time.Time 
 	maxVotes := 1
 	var voteArray []uint8
 	err = dbRead.QueryRow(
-		`SELECT battle.status, battle.maxvotes, GROUP_CONCAT(DISTINCT IFNULL(votes.beat_id, '')) AS user_votes
-		FROM (SELECT status, maxvotes, id FROM challenges WHERE challenges.id = ?) battle
-		LEFT JOIN (SELECT beat_id, challenge_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id) votes
-		ON battle.id = votes.challenge_id`,
+		`SELECT battle.voting_deadline, battle.maxvotes, GROUP_CONCAT(DISTINCT IFNULL(votes.beat_id, '')) AS user_votes
+		FROM (SELECT voting_deadline, maxvotes, id FROM battles WHERE battles.id = ?) battle
+		LEFT JOIN (SELECT beat_id, battle_id FROM votes WHERE user_id = ? AND battle_id = ? ORDER BY beat_id) votes
+		ON battle.id = votes.battle_id`,
 		// Fill in
 		battleID, me.ID, battleID).Scan(
 		//
-		&status, &maxVotes, &voteArray)
+		&deadline, &maxVotes, &voteArray)
 
 	if err != nil && err != sql.ErrNoRows {
+		log.Println("Vote err, no rows.")
+		log.Println(err)
 		return AjaxResponse(c, true, "/", "502")
 	}
 
 	// Reject if not currently in voting stage or if challenge is invalid.
-	if err == sql.ErrNoRows || status != "voting" {
+	if err == sql.ErrNoRows || time.Until(deadline) < 0  {
 		return AjaxResponse(c, true, redirectURL, "302")
 	}
 
@@ -488,7 +500,7 @@ func AddVote(c echo.Context) error {
 		// If a vote for this beat does not exist
 		if !ContainsInt(userVotes, beatID) {
 			// Add a vote to the vote table for the beat.
-			ins, err := dbWrite.Prepare("INSERT INTO votes(beat_id, user_id, challenge_id) VALUES(?,?,?)")
+			ins, err := dbWrite.Prepare("INSERT INTO votes(beat_id, user_id, battle_id) VALUES(?,?,?)")
 			if err != nil {
 				return AjaxResponse(c, false, redirectURL, "404")
 			}
@@ -501,7 +513,7 @@ func AddVote(c echo.Context) error {
 			return AjaxResponse(c, false, redirectURL, "successvote")
 		} else if ContainsInt(userVotes, beatID) {
 			// Delete vote from the votes table.
-			del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND challenge_id = ?")
+			del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND battle_id = ?")
 			if err != nil {
 				return AjaxResponse(c, true, redirectURL, "404")
 			}
@@ -519,7 +531,7 @@ func AddVote(c echo.Context) error {
 		}
 
 		// Delete vote from the votes table.
-		del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND challenge_id = ?")
+		del, err := dbWrite.Prepare("DELETE FROM votes WHERE beat_id = ? AND user_id = ? AND battle_id = ?")
 		if err != nil {
 			return AjaxResponse(c, false, redirectURL, "404")
 		}
@@ -562,7 +574,7 @@ func AddLike(c echo.Context) error {
 	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
 	if !RowExists("SELECT user_id FROM likes WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
-		ins, err := dbWrite.Prepare("INSERT INTO likes(user_id, beat_id, challenge_id) VALUES (?, ?, ?)")
+		ins, err := dbWrite.Prepare("INSERT INTO likes(user_id, beat_id, battle_id) VALUES (?, ?, ?)")
 		if err != nil {
 			return AjaxResponse(c, false, "/", "502")
 		}
@@ -573,7 +585,7 @@ func AddLike(c echo.Context) error {
 		return AjaxResponse(c, false, redirectURL, "liked")
 	}
 
-	del, err := dbWrite.Prepare("DELETE from likes WHERE user_id = ? AND beat_id = ? AND challenge_id = ?")
+	del, err := dbWrite.Prepare("DELETE from likes WHERE user_id = ? AND beat_id = ? AND battle_id = ?")
 	if err != nil {
 		return AjaxResponse(c, false, "/", "502")
 	}
@@ -596,8 +608,9 @@ func AddFeedback(c echo.Context) error {
 		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
-	beatID, err := strconv.Atoi(c.Param("id"))
+	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
+		log.Println(err)
 		return AjaxResponse(c, false, "/", "404")
 	}
 
@@ -605,8 +618,9 @@ func AddFeedback(c echo.Context) error {
 	var userID int
 	feedback := policy.Sanitize(c.FormValue("feedback"))
 
-	err = dbRead.QueryRow("SELECT challenge_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
+	err = dbRead.QueryRow("SELECT battle_id, user_id FROM beats WHERE id = ?", beatID).Scan(&battleID, &userID)
 	if err != nil {
+		log.Println(err)
 		return AjaxResponse(c, false, "/", "404")
 	}
 
@@ -619,6 +633,7 @@ func AddFeedback(c echo.Context) error {
 	if !RowExists("SELECT id FROM feedback WHERE user_id = ? AND beat_id = ?", me.ID, beatID) {
 		ins, err := dbWrite.Prepare("INSERT INTO feedback(feedback, user_id, beat_id) VALUES (?, ?, ?)")
 		if err != nil {
+			log.Println(err)
 			return AjaxResponse(c, true, "/", "502")
 		}
 		defer ins.Close()
@@ -628,6 +643,7 @@ func AddFeedback(c echo.Context) error {
 
 	update, err := dbWrite.Prepare("UPDATE feedback SET feedback = ? WHERE user_id = ? AND beat_id = ?")
 	if err != nil {
+		log.Println(err)
 		return AjaxResponse(c, true, "/", "502")
 	}
 	defer update.Close()
@@ -667,10 +683,11 @@ func ViewFeedback(c echo.Context) error {
 				FROM beats
 				LEFT JOIN feedback on feedback.beat_id = beats.id
 				LEFT JOIN users on feedback.user_id = users.id
-				WHERE beats.challenge_id = ? AND beats.user_id = ? AND feedback.feedback IS NOT NULL`
+				WHERE beats.battle_id = ? AND beats.user_id = ? AND feedback.feedback IS NOT NULL`
 
 	rows, err := dbRead.Query(query, battleID, me.ID)
 	if err != nil {
+		log.Println(err)
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
 	}
@@ -687,6 +704,7 @@ func ViewFeedback(c echo.Context) error {
 	for rows.Next() {
 		err = rows.Scan(&curFeedback.From, &curFeedback.Feedback)
 		if err != nil {
+			log.Println(err)
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
@@ -701,20 +719,23 @@ func ViewFeedback(c echo.Context) error {
 		log.Println(err)
 	}
 
+	log.Println(feedback)
 	feedbackJSON, err := json.Marshal(feedback)
 
 	m := map[string]interface{}{
-		"Title":    battle.Title,
-		"Buttons":  "Feedback",
+		"Meta": map[string]interface{}{
+			"Title":	battle.Title,
+			"Analytics":	analyticsKey,
+			"Buttons":  "Feedback",
+		},
 		"Battle":   battle,
 		"Feedback": string(feedbackJSON),
 		"Me":       me,
+		"User":     me,
 		"Toast":    toast,
 		"Ads":      ads,
-		// Fix this hardwrite
-		"EnteredBattle": "true",
 	}
-
+	log.Println("test")
 	return c.Render(302, "Feedback", m)
 }
 
@@ -728,41 +749,30 @@ func UserBattles(c echo.Context) error {
 	userID := 0
 	user := User{}
 	me := GetUser(c, false)
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
-	}
 
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	title := ""
+	userID, _ = strconv.Atoi(c.Param("id"))
+	user = GetUserDB(userID)
+	title = user.Name + "'s"
 
-	// Is this a request to check their own account?
-	if c.Request().URL.String() == "/me" {
-		userID = me.ID
-		user = GetUserDB(userID)
-		title = "My"
-	} else {
-		userID, _ = strconv.Atoi(c.Param("id"))
-		user = GetUserDB(userID)
-		title = user.Name + "'s"
-	}
-
-	battles := GetBattles("challenges.user_id", strconv.Itoa(userID))
+	battles := GetBattles("user:" + c.Param("id"))
 	battlesJSON, _ := json.Marshal(battles)
 
 	m := map[string]interface{}{
-		"Title":      title + " Battles",
+		"Meta": map[string]interface{}{
+			"Title":   title + " Battles",
+			"Analytics":   analyticsKey,
+		},
 		"Page":       "battles",
 		"Battles":    string(battlesJSON),
 		"Me":         me,
 		"User":       user,
-		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(c.Param("tag")),
 		"Ads":        ads,
 	}
-
 	return c.Render(302, "UserBattles", m)
 }
 
@@ -776,33 +786,22 @@ func UserSubmissions(c echo.Context) error {
 	userID := 0
 	user := User{}
 	me := GetUser(c, false)
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
-	}
 
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 	title := ""
 
-	// Is this a request to check their own account?
-	if c.Request().URL.String() == "/me/submissions" {
-		userID = me.ID
-		user = GetUserDB(userID)
-		title = "My"
-	} else {
-		userID, _ = strconv.Atoi(c.Param("id"))
-		user = GetUserDB(userID)
-		title = user.Name + "'s"
-	}
+	userID, _ = strconv.Atoi(c.Param("id"))
+	user = GetUserDB(userID)
+	title = user.Name + "'s"
 
 	submission := Beat{}
 	entries := []Beat{}
 
 	query := `
-			SELECT beats.url, beats.votes, beats.voted, challenges.id, challenges.status, challenges.title
+			SELECT beats.url, beats.votes, beats.voted, battles.id, battles.title, battles.results
 			FROM beats
-			LEFT JOIN challenges on challenges.id=beats.challenge_id
+			LEFT JOIN battles on battles.id=beats.battle_id
 			WHERE beats.user_id=?
 			GROUP BY 1
 			ORDER BY beats.id DESC`
@@ -816,16 +815,12 @@ func UserSubmissions(c echo.Context) error {
 
 	for rows.Next() {
 		submission = Beat{}
-		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
+		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.BattleID, &submission.Battle.Title, &submission.Battle.Results)
 		if err != nil {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
-
-		submission.Status = strings.Title(submission.Status)
-		if !submission.Voted && submission.Status == "complete" {
-			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #0D88FF;">(*)</span></span>`
-		}
+		submission.Battle.Title = html.UnescapeString(submission.Battle.Title)
 
 		u, _ := url.Parse(submission.URL)
 		urlSplit := strings.Split(u.RequestURI(), "/")
@@ -858,12 +853,14 @@ func UserSubmissions(c echo.Context) error {
 	}
 
 	m := map[string]interface{}{
-		"Title":      title + " Submissions",
+		"Meta": map[string]interface{}{
+			"Title":   title + " Submissions",
+			"Analytics":   analyticsKey,
+		},
 		"Page":       "submissions",
 		"Beats":      string(submissionsJSON),
 		"Me":         me,
 		"User":       user,
-		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Tag":        policy.Sanitize(c.Param("tag")),
 		"Ads":        ads,
@@ -872,178 +869,110 @@ func UserSubmissions(c echo.Context) error {
 	return c.Render(302, "UserSubmissions", m)
 }
 
-// UserTrophies - Retrieves user's victories and returns a page containing them.
-func UserTrophies(c echo.Context) error {
+// DisqualifyBeat
+func DisqualifyBeat(c echo.Context) error {
+	start := time.Now()
+
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
-	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
-	// This is for the invite functionality.
-	userID := 0
-	user := User{}
-	me := GetUser(c, false)
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
+
+	// Get user, return if not auth.
+	me := GetUser(c, true)
+	if !me.Authenticated {
+		log.Println("Auth error.")
+		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
-	toast := GetToast(c)
-	ads := GetAdvertisements()
-	title := ""
-
-	// Is this a request to check their own account?
-	if c.Request().URL.String() == "/me/submissions" {
-		userID = me.ID
-		user = GetUserDB(userID)
-		title = "My"
-	} else {
-		userID, _ = strconv.Atoi(c.Param("id"))
-		user = GetUserDB(userID)
-		title = user.Name + "'s"
-	}
-
-	submission := Beat{}
-	entries := []Beat{}
-
-	query := `
-			SELECT beats.url, beats.votes, beats.voted, challenges.id, challenges.status, challenges.title
-			FROM beats
-			LEFT JOIN challenges on challenges.id=beats.challenge_id
-			WHERE beats.user_id=?
-			GROUP BY 1
-			ORDER BY beats.id DESC`
-
-	rows, err := dbRead.Query(query, userID)
+	// Get form values.
+	beatID, err := strconv.Atoi(c.FormValue("beatID"))
 	if err != nil {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
+		log.Println("Vote beat ID error.")
+		log.Println(err)
+		return AjaxResponse(c, false, "/", "404")
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		submission = Beat{}
-		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.ChallengeID, &submission.Status, &submission.Battle)
+	battleID, err := strconv.Atoi(c.FormValue("battleID"))
+	if err != nil {
+		log.Println("Vote battle ID error.")
+		log.Println(err)
+		return AjaxResponse(c, false, "/", "404")
+	}
+
+	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
+	battle := GetBattle(battleID)
+	if me.ID == battle.Host.ID {
+		voted := 1
+		err := dbRead.QueryRow("SELECT voted FROM beats WHERE id = ?", beatID).Scan(&voted)
 		if err != nil {
-			SetToast(c, "502")
-			return c.Redirect(302, "/")
+			log.Println(err)
 		}
 
-		submission.Status = strings.Title(submission.Status)
-		if !submission.Voted {
-			submission.Status = `<span class="tooltipped" data-tooltip="Did Not Vote">` + submission.Status + ` <span style="color: #0D88FF;">(*)</span></span>`
-		}
-
-		u, _ := url.Parse(submission.URL)
-		urlSplit := strings.Split(u.RequestURI(), "/")
-
-		if len(urlSplit) >= 4 {
-			secretURL := urlSplit[3]
-			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
-			} else {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
+		if voted == 1 {
+			del, err := dbWrite.Prepare("UPDATE beats SET voted = '0', placement = '0' WHERE id = ?")
+			if err != nil {
+				log.Println(err)
+				return AjaxResponse(c, true, redirectURL, "404")
 			}
+			defer del.Close()
+			del.Exec(beatID)
+			duration := time.Since(start)
+			fmt.Println("DisqualifyBeat time: " + duration.String())
+			return AjaxResponse(c, false, redirectURL, "disqualified")
 		} else {
-			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
+			add, err := dbWrite.Prepare("UPDATE beats SET voted = '1' WHERE id = ?")
+			if err != nil {
+				return AjaxResponse(c, true, redirectURL, "404")
+			}
+			defer add.Close()
+			add.Exec(beatID)
+			duration := time.Since(start)
+			fmt.Println("DisqualifyBeat time: " + duration.String())
+			return AjaxResponse(c, false, redirectURL, "requalified")
 		}
 
-		entries = append(entries, submission)
 	}
-	// Reference: http://go-database-sql.org/errors.html - I'm not really sure if this does anything positive lmao.
-	if err = rows.Err(); err != nil {
-		log.Println(err)
-	}
-	if err = rows.Close(); err != nil {
-		log.Println(err)
-	}
-
-	submissionsJSON, err := json.Marshal(entries)
-	if err != nil {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
-	}
-
-	m := map[string]interface{}{
-		"Title":      title + " Submissions",
-		"Page":       "submissions",
-		"Beats":      string(submissionsJSON),
-		"Me":         me,
-		"User":       user,
-		"UserGroups": userGroups,
-		"Toast":      toast,
-		"Tag":        policy.Sanitize(c.Param("tag")),
-		"Ads":        ads,
-	}
-
-	return c.Render(302, "UserSubmissions", m)
+	duration := time.Since(start)
+	fmt.Println("DisqualifyBeat time: " + duration.String())
+	return AjaxResponse(c, false, redirectURL, "notauth")
 }
 
-// UserGroups - Retrieves user's groups and returns a page containing them.
-func UserGroups(c echo.Context) error {
+// SetPlacement ...
+func SetPlacement(c echo.Context) error {
 	// Set the request to close automatically.
 	c.Request().Header.Set("Connection", "close")
 	c.Request().Close = true
-	// Check if user is authenticated and retrieve any groups that they have invite privileges to.
-	// This is for the invite functionality.
-	user := User{}
-	me := GetUser(c, false)
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "owner")
+	me := GetUser(c, true)
+	if !me.Authenticated {
+		return AjaxResponse(c, true, "/login/", "noauth")
+	}
+	beatID, err := strconv.Atoi(c.FormValue("beatID"))
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "404")
+	}
+	battleID, err := strconv.Atoi(c.FormValue("battleID"))
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "404")
 	}
 
-	toast := GetToast(c)
-	ads := GetAdvertisements()
-	title := ""
+	placement := policy.Sanitize(c.FormValue("placement"))
+	battle := GetBattle(battleID)
+	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
 
-	requestsString, invitesString, groupsString := "", "", ""
-
-	// Is this a request to check their own account?
-	if c.Request().URL.String() == "/me/groups" {
-		user = GetUserDB(me.ID)
-		title = "My"
-
-		requests, invites, groups := GetUserGroups(dbRead, user.ID)
-
-		requestsJSON, _ := json.Marshal(requests)
-		invitesJSON, _ := json.Marshal(invites)
-		groupsJSON, _ := json.Marshal(groups)
-
-		requestsString = string(requestsJSON)
-		invitesString = string(invitesJSON)
-		groupsString = string(groupsJSON)
-
-		if requestsString == "[]" {
-			requestsString = ""
-		}
-		if invitesString == "[]" {
-			invitesString = ""
-		}
-		if groupsString == "[]" {
-			groupsString = ""
-		}
-	} else {
-		userID, _ := strconv.Atoi(c.Param("id"))
-		user = GetUserDB(userID)
-		title = user.Name + "'s"
-
-		groups := GetGroups(dbRead, user.ID)
-		groupsJSON, _ := json.Marshal(groups)
-		groupsString = string(groupsJSON)
+	if battle.Host.ID != me.ID {
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "403")
 	}
 
-	m := map[string]interface{}{
-		"Title":      title + " Groups",
-		"Page":       "groups",
-		"Requests":   requestsString,
-		"Invites":    invitesString,
-		"Groups":     groupsString,
-		"Me":         me,
-		"User":       user,
-		"UserGroups": userGroups,
-		"Toast":      toast,
-		"Ads":        ads,
+	ins, err := dbWrite.Prepare("UPDATE beats SET placement = ? WHERE id = ?")
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "502")
 	}
+	defer ins.Close()
+	ins.Exec(placement, beatID)
 
-	return c.Render(302, "UserGroups", m)
+	return AjaxResponse(c, false, redirectURL, "placement")
 }

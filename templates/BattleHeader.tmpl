@@ -2,34 +2,25 @@
 <!-- NEEDS TO HANDLE FEEDBACK AS A TYPE -->
     <span class="battle-host">
         <a class="battle-url" href="/user/{{.Battle.Host.ID}}">{{ .Battle.Host.Name }}</a>
-        {{ if .Battle.Host.Patron }}&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>{{ end }}
-        <span>&nbsp;- {{.Battle.Type}} Battle |&nbsp;</span>
-        {{if eq "entry" .Battle.Status}}
-            <span style="color: #ff5800">Open</span>
-        {{else if eq "voting" .Battle.Status}}
-            <span style="color: #0D88FF; font-weight: bold;">Voting</span>
-        {{else}}
-            Finished
-        {{end}}
     </span>
     <nav class="battle-title">
         <div class="nav-left">
         <h1>{{.Battle.Title}}</h1>
-        <span class="battle-deadline">
-            <!-- StatusDisplay should be removed -->
-            {{ if eq "entry" .Battle.Status }}
-                {{ trimPrefix "Open - " .Battle.StatusDisplay }}
-            {{ else if eq "voting" .Battle.Status }}
-                {{ trimPrefix "Voting - " .Battle.StatusDisplay }}
-            {{ else }}
-                {{ .Battle.StatusDisplay }}
-            {{ end }}
+        <span class="battle-deadline">{{.Battle.Type}} Battle |
+        {{if eq "entry" .Battle.Status}}
+            <span style="color: #ff5800">Open - <span class='deadline' deadline='{{.Battle.ParsedDeadline}}'>{{.Battle.ParsedDeadline}}</span></span>
+        {{else if eq "voting" .Battle.Status}}
+            <span style="color: #0D88FF; font-weight: bold;">Voting - <span class='deadline' deadline='{{.Battle.ParsedDeadline}}'>{{.Battle.ParsedDeadline}}</span></span>
+        {{else}}
+            Finished - <span>{{.Battle.ParsedDeadline}}</span>
+        {{end}}
         </span>
         </div>
         <ul class="nav-links">        
-            {{ if eq "Battle" .Buttons }}
+            {{ if eq "Battle" .Meta.Buttons }}
                 <!-- If owner, give elevated access buttons -->
                 {{ if .IsOwner }}
+                    {{ if eq "entry" .Battle.Status }}<li class="nav-item nav-secondary"><a class="modal-trigger" href="#endBattle">CLOSE</a></li>{{ end }}
                     <li class="nav-item nav-secondary"><a class="modal-trigger" href="#deleteBattle">DELETE</a></li>
                     {{ if eq "complete" .Battle.Status }}<li class="nav-item nav-disabled"><a>CLOSED</a></li>
                     {{ else }}<li class="nav-item nav-cta"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
@@ -46,16 +37,17 @@
                         {{ if .EnteredBattle }}<li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/update">UPDATE</a></li>
                         <!-- Check if user can join the battle -->
                         {{ else }}
-                            {{ if .CanEnter }}<li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/submit">ENTER</a></li>
-                            {{ else }}<li class="nav-item nav-disabled"><a>NOT IN GROUP</a></li>
-                            {{ end }}
+                            <li class="nav-item nav-cta"><a href="/beat/{{.Battle.ID}}/submit">ENTER</a></li>
                         {{ end }}
                     {{ else }}<li class="nav-item nav-disabled"><a>CLOSED</a></li>
                     {{ end }}
                 {{ end }}
-            {{ else if eq "Feedback" .Buttons }}
+            {{ else if eq "Feedback" .Meta.Buttons }}
                 <!-- If owner, give elevated access buttons -->
                 {{ if .IsOwner }}
+                    {{ if ne "complete" .Battle.Status}}
+                        <li class="nav-item nav-secondary"><a class="modal-trigger" href="#endBattle">CLOSE</a></li>
+                    {{ end }}
                     <li class="nav-item nav-secondary"><a class="modal-trigger" href="#deleteBattle">DELETE</a></li>
                     {{ if eq "complete" .Battle.Status }}<li class="nav-item nav-disabled"><a>CLOSED</a></li>
                     {{ else }}<li class="nav-item nav-cta"><a id="edit-button" href="/battle/{{.Battle.ID}}/update/">EDIT</a></li>
@@ -67,7 +59,7 @@
                         {{ else }}<li class="nav-item nav-secondary"><a href="{{.Battle.Attachment}}">SAMPLES</a></li>
                         {{ end }}
                     {{ end }}
-                    <li class="nav-item nav-secondary"><a onclick="history.back()">BACK</a></li>
+                    <li class="nav-item nav-secondary"><a href="/battle/{{.Battle.ID}}">BATTLE</a></li>
                 {{ end }}
             {{ else }}
                 <!-- Get attachment -->
@@ -77,7 +69,7 @@
                     {{ else }}<li class="nav-item nav-secondary"><a href="{{.Battle.Attachment}}">SAMPLES</a></li>
                     {{ end }}
                 {{ end }}
-                {{ if eq "Update" .Buttons }}
+                {{ if eq "Update" .Meta.Buttons }}
                     <li class="nav-item nav-secondary">
                         <a onclick="return confirm('Are you sure you want to delete your battle entry?')" href="/beat/{{.Battle.ID}}/delete">DELETE</a>
                     </li>

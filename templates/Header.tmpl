@@ -3,43 +3,62 @@
 <html lang="en-US">
     <head>
         <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-175671853-1"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{.Analytics}}"></script>
         <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
 
-        gtag('config', 'UA-175671853-1');
+        gtag('config', '{{.Analytics}}');
         </script>
         
-        <title>{{.}}</title>
+        <title>{{.Title}}</title>
         <!--Import Google Icon Font-->
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
         <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
         <link rel="manifest" href="/static/favicon/site.webmanifest">
-        <script src="https://cdn.zinggrid.com/zinggrid.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/autosize@4.0.2/dist/autosize.min.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js"></script>
         <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="/static/style.min.css">
         <link rel="stylesheet" href="/static/materialize.min.css">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="keywords" content="Beat,Battle,Beatbattle,App,Application,Rap,RapBattle,Rap Battle,Beat Battle,Beat Battle App,ArtBattle,Art,Art Battle,RapBattle,Producer,Competition,VST,Fruity Loops,FL Studio,Ableton,Ableton Live,AbletonLive">
         <meta name="description" content="Host and participate in internet beat battles. Submit tracks and vote on your favourite beats to determine who's the best producer.">
-        <meta property="og:title" content="Beatbattle.app - {{.}}">
+        <meta property="og:title" content="Beat Battle - {{.Title}}">
         <meta property="og:description" content="Host and participate in internet beat battles. Submit tracks and vote on your favourite beats to determine who's the best producer.">
         <meta property="og:image" content="http://beatbattle.app/static/img/beatbattle-meta.jpg">
         <meta property="og:url" content="https://beatbattle.app/">
         <meta property="og:url" content="website">
-        <meta name="twitter:title" content="Beatbattle.app - {{.}}">
+        <meta name="twitter:title" content="Beat Battle - {{.Title}}">
         <meta name="twitter:description" content="Host and participate in internet beat battles. Submit tracks and vote on your favourite beats to determine who's the best producer.">
         <meta name="twitter:image" content="http://beatbattle.app/static/img/beatbattle-meta.jpg">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:site" content="@beatbattleapp" />
-        <script src="https://cdn.jsdelivr.net/gh/infatuation-psa/Darkmode.js@master/lib/darkmode-js.min.js"></script>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.countdown/2.2.0/jquery.countdown.min.js" integrity="sha512-lteuRD+aUENrZPTXWFRPTBcDDxIGWe5uu0apPEn+3ZKYDwDaEErIK9rvR0QzUGmUQ55KFE2RqGTVoZsKctGMVw==" crossorigin="anonymous"></script>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-sanitize.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-animate.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-aria.min.js"></script>
+    
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.2.2/angular-material.min.js" integrity="sha512-d33Yhig4j7KzFwP6m2cqIOpLlDKJBgi1XyE909d4bKaNwdZb1TF6XRbsyHHk37Sp8p7aP2u9gyykeU1SRKzPHQ==" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.2.2/angular-material.min.css" integrity="sha512-dMahqxu9L2XnPgHEO4mWksNGfyvOsV2rtMt5TX7OJdWbky+sw9dyMPw8gwhohmwVXAJW5zVCfdyvhutemjYuzg==" crossorigin="anonymous" />
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material-icons/0.7.1/angular-material-icons.min.js"></script>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.min.js"></script>
+
+        <script src="https://rawgit.com/daniel-nagy/md-data-table/master/dist/md-data-table.js"></script>
+        <link rel="stylesheet" href="/static/md-table.css">
+
+        <script src="https://cdn.jsdelivr.net/npm/autosize@4.0.2/dist/autosize.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js"></script>
+        <link rel="preconnect" href="https://fonts.gstatic.com">
         <meta charset="UTF-8" />
     </head>
     <body>

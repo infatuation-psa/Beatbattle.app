@@ -2,7 +2,6 @@
       <footer>
         <a class="footer-url" href="/faq">FAQ</a>
         <a class="footer-url" href="https://discord.gg/GTYqBfV">DISCORD</a>
-        <button class="chip dark-toggle">dark mode</button>
         <a class="footer-icon" href="https://twitter.com/PSAInfatuation">
         <img src="/static/img/twitter-logo.svg" /></a>
       </footer>
@@ -11,23 +10,6 @@
         {{if index . 1}}
           $(document).ready(function() { M.toast({ html: {{index . 0}}, classes: {{index . 1}} }); });
         {{end}}
-        
-        const darkmode = new Darkmode();
-        if (darkmode.isActivated()) { $(".dark-toggle").html("🌕 dark mode"); }
-        else { $(".dark-toggle").html("🌑 dark mode"); }
-
-        $(document).ready(function() {
-          $(".dark-toggle").click(function() { 
-            darkmode.toggle(); 
-            if (darkmode.isActivated()) {
-              $(".dark-toggle").html("🌕 dark mode");
-              $(".material-icons[style='color: black;']").css("color", "white")
-            } else {
-              $(".dark-toggle").html("🌑 dark mode");
-              $(".material-icons[style='color: white;']").css("color", "black")
-            }
-          });
-        });
       </script>
     </body>
 </html>

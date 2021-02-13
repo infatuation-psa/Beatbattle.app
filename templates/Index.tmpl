@@ -1,5 +1,5 @@
 {{ define "Index" }}
-  {{ template "Header" .Title }}
+  {{ template "Header" .Meta }}
     {{ template "Menu" .Me }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
@@ -12,27 +12,7 @@
           </ul>
         </nav>
       </div>
-    {{ template "BattleGrid" }}
+      {{ template "BattleGrid" .Battles }}
     </div>
-    <script>
-      var onChange = function (event) { 
-        setTimeout(function(){$(".tooltipped").tooltip()},1);
-      };
-      window.addEventListener('load',()=>{
-        const zgRef = document.querySelector('zing-grid');
-        var data = '{{.Battles}}';
-        zgRef.setData(data);
-        zgRef.executeOnLoad(function() {
-          const observer = lozad();
-          observer.observe();
-          onChange();
-        });
-
-        zgRef.addEventListener('grid:ready', onChange);
-        zgRef.addEventListener('grid:refresh', onChange);
-        zgRef.addEventListener('grid:pagesizechange', onChange);
-        zgRef.addEventListener('grid:pagechange', onChange);
-      })
-    </script>
   {{ template "Footer" .Toast }}
 {{ end }}

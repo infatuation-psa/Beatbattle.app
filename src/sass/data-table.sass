@@ -1,0 +1,110 @@
+@import variables
+
+.active-icon
+    color: $main-color
+
+.md-placeholder
+    color: $md-dark-divider !important
+
+.inactive-icon
+    color: $md-dark-secondary
+
+md-card
+    margin: 0 !important
+    background: none
+    border: 1px solid $md-dark-divider
+
+table.md-table th.md-column md-icon.md-sort-icon
+    color: $main-color !important
+
+.md-button[disabled] md-icon
+    color: $md-dark
+
+.md-cell .battle-url.ng-binding
+    margin: 1rem 0
+
+.md-button md-icon
+    color: $main-color
+
+md-option[selected]
+    color: $main-color !important
+
+md-toolbar
+    background-color: transparent !important
+
+md-content
+    background: none
+
+md-content.light
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,.2),0 1px 1px 0 rgba(0,0,0,.14),0 2px 1px -1px rgba(0,0,0,.12)
+
+table.md-table
+    th.md-column
+        color: $md-dark-secondary
+
+        md-icon
+            &.md-sort-icon
+                color: $md-dark-disabled
+
+        &.md-active, &.md-active md-icon
+            color: $md-dark
+    
+    &.md-row-select tbody.md-body > tr.md-row
+        &:not([disabled]):hover
+            background-color: $md-dark-row-hover !important
+
+        &.md-selected
+            background-color: $md-dark-row-select
+
+    td.md-cell
+        color: $md-dark
+    
+    &.md-placeholder
+        color: $md-dark-disabled
+    
+    md-select > .md-select-value > span.md-select-icon
+        color: $md-dark-secondary
+
+md-select.md-table-select
+    > .md-select-value 
+        > span
+            &.md-select-icon
+                color: white
+
+.md-table-pagination
+    color: $md-dark-secondary
+
+    md-select
+        &:not([disabled]):focus .md-select-value
+            color: $md-dark-secondary
+
+        .md-select-value
+            span.md-select-icon
+                color: $md-dark-secondary
+
+md-toolbar.md-table-toolbar
+    &.md-default-theme:not(.md-menu-toolbar).md-default,
+    &:not(.md-menu-toolbar).md-default
+        background-color: $md-light
+        color: $md-dark
+
+    .md-button
+        color: $md-dark
+
+    .md-toolbar-tools
+        md-icon
+            color: $md-dark-icon
+
+md-edit-dialog
+  background-color: $md-table-dialog-color
+
+  > .md-content
+      .md-title 
+        color: $md-dark
+
+      md-input-container
+        .md-errors-spacer
+            color: $md-dark-secondary
+
+md-input-container:not(.md-input-invalid).md-input-focused .md-input
+    border-color: $main-color

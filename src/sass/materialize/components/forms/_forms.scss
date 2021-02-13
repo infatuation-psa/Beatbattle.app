@@ -1,0 +1,12 @@
+// Remove Focus Boxes
+select:focus {
+  outline: none;
+}
+
+button:focus {
+  outline: none;
+}
+
+@import 'input-fields';
+@import 'select';
+@import 'checkboxes';

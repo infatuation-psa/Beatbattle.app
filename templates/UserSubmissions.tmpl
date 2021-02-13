@@ -1,85 +1,66 @@
 {{ define "UserSubmissions" }}
-  {{ template "Header" .Title }}
+  {{ template "Header" .Meta }}
   {{ template "Menu" .Me }}
   {{ template "Advertisement" .Ads }}
   <div class="container">
   <!-- This should be templated -->
     {{ template "UserHeader" . }}
-    <zing-grid no-data="{{.User.Name}} hasn't entered any battles yet." caption="Submissions" layout-controls="disabled" sort search pager page-size="10" page-size-options="10, 25, 50" layout="row" viewport-stop>
-      <zg-colgroup>
-        <zg-column cell-class="zing-left" header="Battle" index="battle" type="url" cell-class="link">
-          <a class="battle-url" href="/battle/[[record.challenge_id]]">[[index.battle]]</a>
-        </zg-column>
-        <zg-column cell-class="zing-left" header="Track" index="url">
-          <div class="embedded-track">
-            <button data-embed='[[index.url]]' class="playButton">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
-                <defs>
-                  <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
-                    <stop offset="0%" stop-color="#ff5500" stop-opacity="1"></stop>
-                    <stop offset="100%" stop-color="#ff2200" stop-opacity="1"></stop>
-                  </linearGradient>
-                </defs>
-                <circle fill="url(#playButton__gradient12)" stroke="#cc4400" cx="21.5" cy="21.5" r="21"></circle>
-                <circle class="playButton__overlay" fill="#000" fill-opacity="0.08" stroke="#cc4400" cx="21.5" cy="21.5" r="21"></circle>
-                <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
-              </svg>
-            </button>
-          </div>
-        </zg-column>
-        <zg-column cell-class="zing-left" header="Votes" index="votes"></zg-column>
-        <zg-column cell-class="zing-both" header="Status" index="status"></zg-column>
-      </zg-colgroup>
-    </zing-grid>
-  </div>
-  {{ if ne .Me.ID .User.ID }}
-    {{ if .UserGroups }}
-      <div id="invite" class="modal">
-        <form id="invite-user" method="POST" action="/user/{{.User.ID}}/invite">
-          <div class="modal-content">
-            <h4 id="modal-header">Invite</h4>
-            <p id="modal-description" style="margin-bottom: 1em;">What group would you like to invite {{.User.Name}} to?</p>
-            <div class="container-form submit-border">   
-            <select name="group">
-              <option value="" disabled selected>Group</option>
-              {{ range .UserGroups }}
-                <option value="{{.ID}}">{{.Title}}</option>
-              {{ end }}
-            </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-                <input type="submit" name="submit" class="nav-item nav-cta" value="INVITE" />
-          </div>
-        </form>
+      <div id="BeatBattle" ng-app="BeatBattle">
+        <md-content ng-cloak layout="column" flex ng-controller="BeatBattleController">      
+          <md-card>
+            <md-table-container>
+              <table md-table ng-model="selected" md-progress="promise">
+                <thead md-head md-order="query.order" md-on-reorder="tableChange">
+                  <tr md-row>
+                    <th md-column md-order-by="beat.battle"><span>Battle</span></th>
+                    <th md-column ><span>Track</span></th>
+                    <th md-column md-order-by="beat.votes" md-numeric><span>Votes</span></th>
+                  </tr>
+                </thead>
+                <tbody md-body>
+                  <tr md-row md-select="beat" ng-repeat="beat in beats.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">            
+                    <td md-cell>
+                      <a class="battle-url" ng-href="/battle/{{`{{beat.battle_id}}`}}">
+                        {{`{{beat.battle.title}}`}}
+                      </a>
+                    </td>
+
+                    <td md-cell>
+                      <div class="embedded-track">
+                        <button data-embed='{{`{{beat.url}}`}}' class="playButton">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
+                            <defs>
+                              <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+                                <stop offset="0%" stop-color="#3a3a3a" stop-opacity="1"></stop>
+                                <stop offset="100%" stop-color="#3a3a3a" stop-opacity="1"></stop>
+                              </linearGradient>
+                            </defs>
+                            <circle fill="url(#playButton__gradient12)" stroke="#3a3a3a" cx="21.5" cy="21.5" r="21"></circle>
+                            <circle class="playButton__overlay" fill="#ff5800" fill-opacity="1" stroke="#ff5800" cx="21.5" cy="21.5" r="21"></circle>
+                            <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                    
+                    <td md-cell>{{`{{beat.battle.results == 1 ? beat.votes : "Battle In Progress"}}`}}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </md-table-container>
+
+            <md-table-pagination md-limit="query.limit" md-limit-options="limitOptions" md-page="query.page" md-total="{{`{{beats.count}}`}}" md-page-select="options.pageSelect" md-boundary-links="options.boundaryLinks" md-on-paginate="tableChange"></md-table-pagination>
+          </md-card>
+        </md-content>
       </div>
-    {{ end }}
-  {{ end }}
-  <script src="/static/battle.min.js"></script>
-  <script>
-    function expandWaveform(){}
-    window.addEventListener("load", () => {
-        var data = '{{ .Beats }}'; 
-        const darkmodeActivated = window.localStorage.getItem('darkmode') === 'true';
-        if(darkmodeActivated) {
-            data = data.replace(/inverse=false/g, "inverse=true");
-        }
-
-        const zgRef = document.querySelector("zing-grid");
-        zgRef.setData(data);
-      
-        zgRef.executeOnLoad(function() {
-          setTimeout(function(){onChange()},1);
-          const observer = lozad();
-          observer.observe();
-          $(".tooltipped").tooltip()
-
-          zgRef.addEventListener('grid:ready', onChange);
-          zgRef.addEventListener('grid:refresh', onChange);
-          zgRef.addEventListener('grid:pagesizechange', onChange);
-          zgRef.addEventListener('grid:pagechange', onChange);
-        });
-    });
-  </script>
+  </div>
+<script>
+var beats = {{.Beats}};
+var battleEntries = JSON.parse(beats);
+for (var i = 0; i < battleEntries.length; i++) {
+  battleEntries[i].index = i
+} 
+</script>
+<script src="/static/battle-table.js"></script>
   {{ template "Footer" .Toast }}
 {{ end }}

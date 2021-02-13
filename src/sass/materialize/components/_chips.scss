@@ -1,0 +1,87 @@
+.chip {
+  &:hover {
+    color: black;
+  }
+
+  &:focus {
+    outline: none;
+    background-color: $chip-selected-color;
+    color: #fff;
+  }
+
+  white-space: nowrap;
+  display: flex !important;
+  height: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0,0,0,.6);
+  line-height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background-color: $chip-bg-color;
+  margin-right: $chip-margin;
+
+  > img {
+    float: left;
+    margin: 0 8px 0 -12px;
+    height: 32px;
+    width: 32px;
+    border-radius: 50%;
+  }
+
+  .close {
+    cursor: pointer;
+    float: right;
+    font-size: 16px;
+    line-height: 32px;
+    padding-left: 8px;
+  }
+}
+
+.chips {
+  border: none;
+  box-shadow: none;
+  min-height: 45px;
+  outline: none;
+  display: flex;
+
+  &:hover {
+    cursor: text;
+  }
+
+  .input {
+    background: none;
+    flex-shrink: 1;
+    border: 0;
+    color: rgba(0,0,0,.6);
+    display: inline-block;
+    font-size: 1rem;
+    height: 3rem;
+    line-height: 32px;
+    outline: 0;
+    margin: 0;
+    padding: 0 !important;
+  }
+
+  .input:focus {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  // Autocomplete
+  .autocomplete-content {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+// Form prefix
+.prefix ~ .chips {
+  margin-left: 3rem;
+  width: 92%;
+  width: calc(100% - 3rem);
+}
+.chips:empty ~ label  {
+  font-size: 0.8rem;
+  transform: translateY(-140%);
+}

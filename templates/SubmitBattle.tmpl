@@ -1,111 +1,146 @@
 {{ define "SubmitBattle" }}
-  {{ template "Header" .Title }}
+  {{ template "Header" .Meta }}
     {{ template "Menu" .Me }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
       <div class="battle-information">
-        <form id="submit-battle" method="POST" action="/battle/submit">
-        <nav class="battle-title">
-            <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title" required>
-            <ul class="nav-links">
-              <li class="nav-item nav-secondary"><input type="submit" name="submit" value="DRAFT" /></li>
-              <li class="nav-item nav-cta"><input type="submit" name="submit" value="PUBLISH" /></li>
-            </ul>
-        </nav>
-        <div class="chips submit-border">
-          <input placeholder="Enter Up To 3 Tags (optional)" maxlength="32" class="submit-nobox custom-class">
-        </div>
-        <div class="container-form submit-border submit-label submit-wide">
-          <span class="submit-text">Battle Type</span>
-          <select class="submit-nobox" name="type">
-            <option value="beat" selected>Beat Battle</option>
-            <option value="rap">Rap Battle</option>
-            <option value="art" disabled>Art Battle</option>
-          </select>
-        </div>
-        <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="3072" placeholder="Battle Rules (Supports Markdown Syntax)" required></textarea>
-        <div class="submit-border submit-label submit-wide">
-            <span class="submit-text">Max Votes</span>
-            <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="3" min="1" max="10" required>
-        </div>
-        <div class="container-form submit-border">
-          <div class="submit-split1">
-              <input type="text" class="datepicker submit-nobox" id="deadline-date" name="deadline-date" placeholder="Deadline Date" required>
+        <form class="form-ajax" id="submit-battle" method="POST" action="/battle/submit">
+          <nav class="battle-title">
+              <input type="text" class="heading-1 submit-header submit-wide" id="title" name="title" maxlength="64" placeholder="Battle Title" required>
+              <ul class="nav-links">
+                <li class="nav-item nav-secondary"><input type="submit" name="submit" value="DRAFT" /></li>
+                <li class="nav-item nav-cta"><input type="submit" name="submit" value="PUBLISH" /></li>
+              </ul>
+          </nav>
+          <div class="chips submit-border">
+            <input placeholder="Enter Up To 3 Tags (optional)" maxlength="32" class="submit-nobox custom-class">
           </div>
-          <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" id="deadline-time" name="deadline-time" placeholder="Deadline Time" required>
+          <div class="container-form submit-border submit-label submit-wide">
+            <span class="submit-text">Battle Type</span>
+            <select class="submit-nobox" name="type">
+              <option value="beat" selected>Beat Battle</option>
+              <option value="rap">Rap Battle</option>
+              <option value="art" disabled>Art Battle</option>
+            </select>
           </div>
-        </div>
-        <div class="container-form submit-border">
-          <div class="submit-split1">
-              <input type="text" class="datepicker submit-nobox" id="votingdeadline-date" name="votingdeadline-date" placeholder="Voting Deadline Date" required>
+          <textarea rows="1" class="submit-border submit-nobox" id="rules" name="rules" maxlength="3072" placeholder="Battle Rules (Supports Markdown Syntax)" required></textarea>
+          <div class="submit-border submit-label submit-wide">
+              <span class="submit-text">Max Votes</span>
+              <input type="number" class="submit-nobox" id="maxvotes" name="maxvotes" value="3" min="1" max="999" required>
           </div>
-          <div class="submit-split2">
-              <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time" placeholder="Voting Deadline Time" required>
-          </div>
-        </div>
-        <input type="url" class="submit-nobox" id="attachment" name="attachment" placeholder="Battle Attachment (URL, Optional)">
-        <ul class="collapsible">
-          <li>
-            <div class="collapsible-header"><i class="material-icons">psychology</i>Advanced Options</div>
-            <div class="collapsible-body">
-              <div class="submit-border submit-label submit-wide">
-                <input type="url" class="submit-nobox" id="logo" name="logo" placeholder="Custom Logo (Direct Image Link)">
-                <!-- <span class="submit-text">Custom Logo</span>
-                <input type="file" class="" id="logo" name="logo" placeholder="Custom logo"> -->
-              </div>
-              <div class="submit-border submit-label submit-wide">
-                <input type="url" class="submit-nobox" id="background" name="background" placeholder="Custom Background (Direct Image Link)">
-                <!-- <span class="submit-text">Custom Background</span>
-                <input type="file" class="" id="background" name="background" placeholder="Custom Background (Direct Image Link)"> -->
-              </div>
-              <div class="submit-border submit-nobox submit-label submit-wide">
-                <span class="submit-text">Custom Color</span>
-                <input type="color" class="" id="color" name="color" placeholder="Custom color">
-              </div>
-              <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="16" placeholder="Password - Keep It Simple (Optional)">
-              <input type="text" class="submit-border submit-nobox" id="analytics" name="analytics" maxlength="40" disabled placeholder="Google Analytics Tracking ID (Coming Soon)">
-              {{ if .UserGroups }}   
-              <div class="container-form submit-border submit-label submit-wide">
-                <span class="submit-text">Group (Optional)</span>
-                <select class="submit-nobox" name="group">
-                  <option value="0" selected>None</option>
-                  {{ range .UserGroups }}
-                  <option value="{{.ID}}">{{.Title}}</option>
-                  {{ end }}
-                </select>
-              </div>
-              {{ end }}
+          <div class="container-form submit-border">
+            <div class="submit-split1">
+                <input type="text" class="datepicker submit-nobox" id="deadline-date" name="deadline-date" placeholder="Deadline Date" required>
             </div>
-          </li>
-        </ul>
-        <input type="hidden" name="timezone" id="timezone" value="">
-        <input type="hidden" name="tags" id="tags" value="">
-        </div>
+            <div class="submit-split2">
+                <input type="text" class="timepicker submit-nobox" id="deadline-time" name="deadline-time" placeholder="Deadline Time" required>
+            </div>
+          </div>
+          <div class="container-form submit-border">
+            <div class="submit-split1">
+                <input type="text" class="datepicker submit-nobox" id="votingdeadline-date" name="votingdeadline-date" placeholder="Voting Deadline Date" required>
+            </div>
+            <div class="submit-split2">
+                <input type="text" class="timepicker submit-nobox" id="votingdeadline-time" name="votingdeadline-time" placeholder="Voting Deadline Time" required>
+            </div>
+          </div>
+          <input type="url" class="submit-nobox" id="attachment" name="attachment" placeholder="Battle Attachment (URL, Optional)">
+          <ul class="collapsible">
+            <li>
+              <div class="collapsible-header"><i class="material-icons">psychology</i>Advanced Options</div>
+              <div class="collapsible-body">
+                <div class="submit-border submit-label submit-wide">
+                  <input type="url" class="submit-nobox" id="logo" name="logo" placeholder="Custom Logo (Direct Image Link)">
+                  <!-- <span class="submit-text">Custom Logo</span>
+                  <input type="file" class="" id="logo" name="logo" placeholder="Custom logo"> -->
+                </div>
+                <div class="submit-border submit-label submit-wide">
+                  <input type="url" class="submit-nobox" id="background"  name="background" placeholder="Custom Background (Direct Image Link)">
+                  <!-- <span class="submit-text">Custom Background</span>
+                  <input type="file" class="" id="background" name="background" placeholder="Custom Background (Direct Image Link)"> -->
+                </div>
+                <!-- MOVE THIS TO SETTINGS -->
+                <input type="text" class="submit-border submit-nobox" id="password" name="password" maxlength="16" placeholder="Password (Optional)">
+                <div class="container-form submit-border">
+                  <div class="submit-split1 submit-nobox">
+                    <input class="styled-checkbox" type="checkbox" name="show_entries" id="show_entries" value="1" />
+                    <label for="show_entries">Show Soundcloud Waveform During Voting</label>
+                  </div>
+                  <div class="submit-split2 submit-nobox">
+                    <input class="styled-checkbox" type="checkbox" name="show_users" id="show_users" value="1" />
+                    <label for="show_users">Show Users During Voting</label>
+                  </div>
+                </div>
+                <div class="container-form submit-border">
+                  <div class="submit-split1 submit-nobox">
+                    <input style="width: 100%;" type="text" id="tracking_id" name="tracking_id" maxlength="64" placeholder="Google Analytics Tracking ID (Optional)">
+                  </div>
+                  <div class="submit-split2 submit-nobox">
+                    <input class="styled-checkbox" type="checkbox" name="private" id="private" value="1" />
+                    <label for="private">Unlisted Battle</label>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <input type="hidden" name="timezone" id="timezone" value="">
+          <input type="hidden" name="tags" id="tags" value="">
+          </div>
         </form>
       </div>
     </div>
     <script>
+      $(".form-ajax").unbind("submit")
+
+      $(".form-ajax").submit(function(t) {
+        t.preventDefault();
+        var e = $(this).attr("action"),
+            o = $(this).attr("method"),
+            n = $(this).serialize();
+        i = $(this).find(".material-icons"), row = $(this).closest("zg-row").attr("aria-rowindex"), col = $(this).closest("zg-cell").attr("aria-colindex"), $.ajax({
+            url: e,
+            type: o,
+            data: n,
+            success: function(t) {
+                t.Redirect ? window.location.replace(t.RedirectPath) : (M.toast({
+                    html: t.ToastHTML,
+                    classes: t.ToastClass,
+                }))
+            }
+        })
+      })
+
+      function arrayToCSV(objArray) {
+        const array = typeof objArray !== 'object' ? JSON.parse(objArray) : objArray;
+        let str = ``;
+
+        return array.reduce((str, next) => {
+          if(str != ``) {
+            str += `,`;
+          }
+          str += `${Object.values(next).map(value => `${value}`)}`;
+          return str;
+        }, str);
+      }
+
+      function chipUpdate() {
+        $('#tags').val(arrayToCSV(this.chipsData))
+      };
+
       $(document).ready(function() {
         $('.collapsible').collapsible();
         $('.modal').modal();
         $('select').formSelect();
-        const observer = lozad();
-        observer.observe();
       });
-
-      function chipUpdate() {
-          $("#tags").val(JSON.stringify(this.chipsData))
-      }
       
       autosize($("textarea")), $(document).ready(function() {
-          $(".chips").chips({
-              limit: 3,
-              placeholder: "Enter Up To 3 Tags",
-              secondaryPlaceholder: "+Tag",
-              onChipAdd: chipUpdate,
-              onChipDelete: chipUpdate
-          }), $(".datepicker").datepicker(), $(".timepicker").timepicker(), $("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)
+        $(".chips").chips({
+            limit: 3,
+            placeholder: "Enter Up To 3 Tags",
+            secondaryPlaceholder: "+Tag",
+            onChipAdd: chipUpdate,
+            onChipDelete: chipUpdate
+        }), $(".datepicker").datepicker(), $(".timepicker").timepicker(), $("#timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)
       });
     </script>
   {{ template "Footer" .Toast }}

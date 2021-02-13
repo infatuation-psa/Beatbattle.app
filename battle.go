@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sort"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -21,105 +22,75 @@ import (
 
 // Battle ...
 type Battle struct {
-	ID             int           `gorm:"column:id" json:"id"`
-	Title          string        `gorm:"column:title" json:"title" validate:"required"`
-	Rules          string        `gorm:"column:rules" validate:"required"`
-	RulesHTML      template.HTML `json:"rules"`
-	Deadline       time.Time     `gorm:"column:deadline" json:"deadline" validate:"required"`
-	VotingDeadline time.Time     `gorm:"column:voting_deadline" json:"voting_deadline" validate:"required"`
-	Attachment     string        `gorm:"column:attachment" json:"attachment"`
-	Status         string        `gorm:"column:status"`
-	StatusDisplay  string        `json:"status"`
-	Password       string        `gorm:"column:password" json:"password"`
-	Host           User          `json:"host"`
-	Entries        int           `json:"entries"`
-	MaxVotes       int           `gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
-	GroupID        int           `gorm:"column:group_id" json:"group_id"`
-	Type           string        `gorm:"column:type" json:"type"`
-	TagNames       []uint8
-	Tags           []Tag
-	StyleID        int    `gorm:"column:style_id" json:"style_id"`
-	Logo           string `gorm:"column:logo" json:"logo"`
-	Background     string `gorm:"column:background" json:"background"`
-	Color          string `gorm:"column:color" json:"color"`
+	// TODO - ADD PRIVATE BATTLE
+	ID             	int           	`gorm:"column:id" json:"id"`
+	Title          	string        	`gorm:"column:title" json:"title" validate:"required"`
+	Rules         	string        	`gorm:"column:rules" validate:"required"`
+	RulesHTML      	template.HTML 	`json:"rules"`
+	Deadline       	time.Time     	`gorm:"column:deadline" json:"deadline" validate:"required"`
+	VotingDeadline 	time.Time     	`gorm:"column:voting_deadline" json:"voting_deadline" validate:"required"`
+	Attachment     	string        	`gorm:"column:attachment" json:"attachment"`
+	Status         	string        	`gorm:"column:status" json:"status"`
+	ParsedDeadline 	string		 	`json:"parsed_deadline"`
+	Password       	string        	`gorm:"column:password" json:"password"`
+	Host           	User          	`json:"host"`
+	Entries        	int           	`json:"entries"`
+	MaxVotes       	int           	`gorm:"column:maxvotes" json:"maxvotes" validate:"required"`
+	Type           	string        	`gorm:"column:type" json:"type"`
+	Tags           	[]string		`json:"tags"`
+	Results        	int			 	`json:"results"`
+	Settings		BattleSettings 	`json:"settings"`
 }
 
-// Tag ...
-type Tag struct {
-	Value string `json:"tag"`
+type BattleSettings struct {
+	ID				int    			`gorm:"column:settings_id" json:"id"`
+	Logo          	string 			`gorm:"column:logo" json:"logo"`
+	Background		string			`gorm:"column:background" json:"background"`
+	ShowUsers		bool			`gorm:"column:show_users" json:"show_users"`
+	ShowEntries     bool			`gorm:"column:show_entries" json:"show_entries"`
+	TrackingID      string			`gorm:"column:tracking_id" json:"tracking_id"`
+	Private     	bool			`gorm:"column:private" json:"private"`
 }
-
 // ParseDeadline returns a human readable deadline & updates the battle status in the database.
-func ParseDeadline(deadline time.Time, battleID int, deadlineType string, shortForm bool) string {
-	var deadlineParsed string = "Open - "
-	var curStatus string
+func ParseDeadline(deadline time.Time, votingDeadline time.Time, battleID int, shortForm bool, homePage bool) (string) {
+	var status string = "entry"
+	var results int
 
-	err := dbRead.QueryRow("SELECT status FROM challenges WHERE id = ?", battleID).Scan(&curStatus)
+	err := dbRead.QueryRow("SELECT results FROM battles WHERE id = ?", battleID).Scan(&results)
 	if err != nil {
+		log.Println(err)
 		return ""
+	}
+
+	if results == -1 {		
+		status = "draft"
+		return status
 	}
 
 	// If deadline has passed and status matches parameter
 	// Adjust status in DB.
-	if time.Until(deadline) < 0 && curStatus == deadlineType {
-		deadlineParsed = "Voting - "
-		sql := "UPDATE challenges SET status = 'voting' WHERE id = ?"
+	if time.Until(deadline) < 0 {
+		status = "voting"
 
-		if curStatus == "voting" {
-			deadlineParsed = "Finished - "
-			sql = "UPDATE challenges SET status = 'complete' WHERE id = ?"
-		}
+		if time.Until(votingDeadline) < 0 {
+			status = "complete"
+			if results != 1 {
+				err = BattleResults(battleID)
+				if err != nil {
+					log.Println(err)
+				}
 
-		updateStatus, err := dbWrite.Prepare(sql)
-		if err != nil {
-			return ""
-		}
-		defer updateStatus.Close()
-
-		if curStatus == "voting" {
-			err = BattleResults(battleID)
-			if err != nil {
-				log.Println(err)
+				updateResults, err := dbWrite.Prepare("UPDATE battles SET results = '1' WHERE id = ?")
+				if err != nil {
+					log.Println(err)
+					return ""
+				}
+				defer updateResults.Close()
+				updateResults.Exec(battleID)
 			}
 		}
-		updateStatus.Exec(battleID)
 	}
-
-	if curStatus == "voting" {
-		deadlineParsed = "Voting - "
-	}
-
-	now := time.Now()
-	diff := deadline.Sub(now)
-	days := int(diff.Hours() / 24)
-	hours := int(diff.Hours() - float64(days*24))
-	minutes := int(diff.Minutes() - float64(days*24*60) - float64(hours*60))
-
-	if days > 0 {
-		deadlineParsed += strconv.Itoa(days) + "d "
-	}
-
-	if hours > 0 {
-		deadlineParsed += strconv.Itoa(hours) + "h "
-	}
-
-	if minutes > 0 {
-		deadlineParsed += strconv.Itoa(minutes) + "m "
-	} else {
-		deadlineParsed += "1m "
-	}
-
-	if !shortForm {
-		if curStatus == "entry" {
-			deadlineParsed += "til voting starts"
-		}
-
-		if curStatus == "voting" {
-			deadlineParsed += "til voting ends"
-		}
-	}
-
-	return deadlineParsed
+	return status
 }
 
 // ViewBattles - Retrieves all battles and displays to user. Homepage.
@@ -129,23 +100,28 @@ func ViewBattles(c echo.Context) error {
 	c.Request().Close = true
 	toast := GetToast(c)
 	ads := GetAdvertisements()
-	URL := c.Request().URL.String()
 
+	// Default to index
 	tpl := "Index"
-	status := "entry"
 	title := "Who's The Best Producer?"
+	status := "open"
+	URL := c.Request().URL.String()
 	if strings.Contains(URL, "past") {
 		tpl = "Past"
-		status = "complete"
 		title = "Past Battles"
+		status = "complete"
 	}
 
-	battles := GetBattles("challenges.status", status)
+	// Get battle & user data
+	battles := GetBattles("status:" + status)
 	battlesJSON, _ := json.Marshal(battles)
 	me := GetUser(c, false)
 
 	m := map[string]interface{}{
-		"Title":   "Beatbattle.app - " + title,
+		"Meta": map[string]interface{}{
+			"Title":   "Beat Battle - " + title,
+			"Analytics":   analyticsKey,
+		},
 		"Battles": string(battlesJSON),
 		"Me":      me,
 		"Toast":   toast,
@@ -163,13 +139,18 @@ func ViewTaggedBattles(c echo.Context) error {
 	me := GetUser(c, false)
 	toast := GetToast(c)
 	ads := GetAdvertisements()
+
+	// Do GetBattles("tag:value")
 	title := "Battles Tagged With " + policy.Sanitize(c.Param("tag"))
-	battles := GetBattles("tags.tag", policy.Sanitize(c.Param("tag")))
+	battles := GetBattles("tag:" + policy.Sanitize(c.Param("tag")))
 	activeTag := policy.Sanitize(c.Param("tag"))
 	battlesJSON, _ := json.Marshal(battles)
 
 	m := map[string]interface{}{
-		"Title":   "Beatbattle.app - " + title,
+		"Meta": map[string]interface{}{
+			"Title":   "Beatbattle.app - " + title,
+			"Analytics":   analyticsKey,
+		},
 		"Battles": string(battlesJSON),
 		"Me":      me,
 		"Toast":   toast,
@@ -181,103 +162,81 @@ func ViewTaggedBattles(c echo.Context) error {
 }
 
 // GetBattles retrieves battles from the database using a field and value.
-// Review - If selecting by tags, it only returns one of the tags.
 // TODO - This is really messy. Think about splitting up the parts into each part of the query and combining.
-func GetBattles(field string, value string) []Battle {
+func GetBattles(filter string) []Battle {
+
 	start := time.Now()
 	// FIELD & VALUE
-	querySELECT := `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-					challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
-					challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
-					GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
-					FROM challenges
-					INNER JOIN users ON challenges.user_id = users.id
-					LEFT JOIN beats ON challenges.id = beats.challenge_id
-					LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
-					LEFT JOIN tags ON tags.id = challenges_tags.tag_id`
-	queryWHERE := "WHERE " + field + "=?"
-	queryGROUP := "GROUP BY challenges.id"
-	queryORDER := "ORDER BY challenges.deadline DESC"
+	// TODO - SET UP PROPER USER GETTING
+	query := `SELECT battles.id, battles.title, battles.deadline, battles.voting_deadline, 
+			battles.type, battles.results, battles.tags, COUNT(DISTINCT beats.id) as entry_count,
+			users.id, users.nickname, users.flair, IFNULL(battle_settings.private, 0)
+			FROM battles
+			LEFT JOIN users ON users.id = battles.user_ID
+			LEFT JOIN beats ON battles.id = beats.battle_id
+			LEFT JOIN battle_settings ON battle_settings.id = battles.settings_id`
 
-	if field == "tags.tag" {
-		queryORDER = "ORDER BY challenges.deadline ASC"
-	}
-
-	if field == "challenges.status" {
-		if value == "entry" {
-			querySELECT = `SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-							challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
-							challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
-							GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
-							FROM challenges
-							INNER JOIN users ON challenges.user_id = users.id
-							LEFT JOIN beats ON challenges.id = beats.challenge_id
-							LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
-							LEFT JOIN tags ON tags.id = challenges_tags.tag_id
-							WHERE challenges.status = 'voting'
-							GROUP BY challenges.id
-							UNION ALL
-							SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-							challenges.id, challenges.title, challenges.deadline, challenges.voting_deadline, 
-							challenges.status, challenges.type, COUNT(DISTINCT beats.id) as entry_count,
-							GROUP_CONCAT(DISTINCT IFNULL(tags.tag, ''))
-							FROM challenges
-							INNER JOIN users ON challenges.user_id = users.id
-							LEFT JOIN beats ON challenges.id = beats.challenge_id
-							LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
-							LEFT JOIN tags ON tags.id = challenges_tags.tag_id
-							WHERE challenges.status = ?
-							GROUP BY challenges.id`
-			queryWHERE = ""
-			queryGROUP = ""
-			queryORDER = ""
+	where := ""
+	filterParams := strings.Split(filter, ":")
+	switch filterParams[0] {
+	case "status":
+		switch filterParams[1] {
+		case "complete":
+			where = "WHERE results = 1"
+		case "open":
+			where = "WHERE results = 0 AND IFNULL(battle_settings.private, 0) = 0"
 		}
-
-		if value == "past" {
-			queryORDER = "ORDER BY challenges.voting_deadline DESC"
-		}
+	case "user":
+		where = "WHERE battles.user_id = '" + policy.Sanitize(filterParams[1]) + "'"
+	case "tag":
+		// PERF: Like query is heavy.
+		where = "WHERE battles.tags LIKE '%" + policy.Sanitize(filterParams[1]) + "%' AND IFNULL(battle_settings.private, 0) = 0 "
 	}
+	log.Println(policy.Sanitize(filterParams[1]))
 
-	query := querySELECT + " " + queryWHERE + " " + queryGROUP + " " + queryORDER
-	rows, err := dbRead.Query(query, value)
+	query += " " + where + " " + `GROUP BY battles.id
+								ORDER BY battles.deadline DESC`
+
+	rows, err := dbRead.Query(query)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 	defer rows.Close()
 
+	tags := ""
+
 	battle := Battle{}
 	battles := []Battle{}
 	for rows.Next() {
-		err = rows.Scan(&battle.Host.ID, &battle.Host.Provider, &battle.Host.ProviderID, &battle.Host.Name,
-			&battle.Host.Patron, &battle.Host.Flair, &battle.ID, &battle.Title, &battle.Deadline,
-			&battle.VotingDeadline, &battle.Status, &battle.Type, &battle.Entries, &battle.TagNames)
+		err = rows.Scan(&battle.ID, &battle.Title, &battle.Deadline, &battle.VotingDeadline, 
+						&battle.Type, &battle.Results, &tags, &battle.Entries,
+						&battle.Host.ID, &battle.Host.Name, &battle.Host.Flair, 
+						&battle.Settings.Private)
 		if err != nil {
 			log.Println(err)
 			return nil
 		}
 
-		battle.Tags = SetTags(battle.TagNames)
+		battle.Title = html.UnescapeString(battle.Title)
+		battle.Status = ParseDeadline(battle.Deadline, battle.VotingDeadline, battle.ID, true, true)
+		battle.Tags = SetTags(tags)
+		deadlineString := ""
 
-		battle.Host.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(battle.Host.ID) + `">` + battle.Host.Name + `</a>`
-		if battle.Host.Patron {
-			battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
+		if battle.Status=="entry" {
+			deadlineString += strconv.Itoa(int(battle.Deadline.UnixNano() / 1000000))
+		}
+	
+		if battle.Status=="voting" {
+			deadlineString += strconv.Itoa(int(battle.VotingDeadline.UnixNano() / 1000000))
 		}
 
-		switch battle.Status {
-		case "entry":
-			battle.StatusDisplay = ParseDeadline(battle.Deadline, battle.ID, "entry", true)
-		case "voting":
-			battle.StatusDisplay = ParseDeadline(battle.VotingDeadline, battle.ID, "voting", true)
-		case "draft":
-			battle.StatusDisplay = "Draft"
-		default:
-			layoutUS := "January 2, 2006"
-			battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
+		if battle.Status == "complete" {
+			layoutUS := "01/02/06"
+			deadlineString += battle.VotingDeadline.Format(layoutUS)
 		}
 
-		//battle.Tags = GetTags(battle.ID)
-		battle.Type = strings.Title(battle.Type)
+		battle.ParsedDeadline = deadlineString
 		battles = append(battles, battle)
 	}
 
@@ -295,52 +254,19 @@ func GetBattles(field string, value string) []Battle {
 	return battles
 }
 
-// RecalculateBattle ...
-func RecalculateBattle(c echo.Context) error {
-	// Set the request to close automatically.
-	c.Request().Header.Set("Connection", "close")
-	c.Request().Close = true
-
-	me := GetUser(c, false)
-	if !me.Authenticated {
-		SetToast(c, "relog")
-		return c.Redirect(302, "/login")
-	}
-
-	// Validate that ID is an int.
-	battleID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		SetToast(c, "404")
-		return c.Redirect(302, "/")
-	}
-
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "member")
-	}
-
-	for i := range userGroups {
-		if userGroups[i].ID == 8 {
-			BattleResults(battleID)
-		}
-	}
-
-	return c.Redirect(302, "/")
-}
-
 // BattleResults updates the voted and votes columns of a battle.
 func BattleResults(battleID int) error {
 	start := time.Now()
 	log.Println("test")
 	sql := `UPDATE beats
-			LEFT JOIN (SELECT beat_id, COUNT(beat_id) as beat_votes FROM votes WHERE challenge_id = ? GROUP BY beat_id) beat_votes
+			LEFT JOIN (SELECT beat_id, COUNT(beat_id) as beat_votes FROM votes WHERE battle_id = ? GROUP BY beat_id) beat_votes
 				ON beat_votes.beat_id = beats.id
-			LEFT JOIN (SELECT DISTINCT user_id, IF(user_id IS NOT NULL, true, false) as user_voted FROM votes WHERE challenge_id = ? GROUP BY user_id) user_votes
+			LEFT JOIN (SELECT DISTINCT user_id, IF(user_id IS NOT NULL, true, false) as user_voted FROM votes WHERE battle_id = ? GROUP BY user_id) user_votes
 				ON user_votes.user_id = beats.user_id
 			SET
 				beats.votes = IFNULL(beat_votes, 0),
 				beats.voted = IFNULL(user_voted, FALSE)
-			WHERE beats.challenge_id = ?`
+			WHERE beats.battle_id = ?`
 
 	upd, err := dbWrite.Prepare(sql)
 	if err != nil {
@@ -349,6 +275,28 @@ func BattleResults(battleID int) error {
 	defer upd.Close()
 
 	upd.Exec(battleID, battleID, battleID)
+	if err != nil {
+		return err
+	}
+
+	sql = `UPDATE beats target
+			JOIN
+			(
+				SELECT id, (@rownumber := @rownumber + 1) as rownum
+				FROM beats         
+				CROSS JOIN (SELECT @rownumber := 0) r
+					WHERE beats.battle_id = ? AND beats.voted = 1
+				ORDER BY votes DESC
+			) source ON target.id = source.id    
+			SET placement = rownum`
+
+	placement, err := dbWrite.Prepare(sql)
+	if err != nil {
+		return err
+	}
+	defer upd.Close()
+
+	placement.Exec(battleID)
 	if err != nil {
 		return err
 	}
@@ -371,12 +319,10 @@ func BattleHTTP(c echo.Context) error {
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
-	// Probably unnecessary.
-	canEnter := true
-
 	// Validate that ID is an int.
 	battleID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		log.Println(err)
 		SetToast(c, "404")
 		return c.Redirect(302, "/")
 	}
@@ -388,18 +334,12 @@ func BattleHTTP(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 
-	// Get user and check if they're in the battle's group.
-	me := GetUser(c, false)
-	if battle.GroupID != 0 {
-		canEnter = RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, battle.GroupID)
-	}
-
+	// Get user's liked beats.
 	var lastVotes []int
 	var lastLikes []int
-
-	// Get beats user has liked.
+	me := GetUser(c, false)
 	if me.Authenticated {
-		likes, err := dbRead.Query("SELECT beat_id FROM likes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
+		likes, err := dbRead.Query("SELECT beat_id FROM likes WHERE user_id = ? AND battle_id = ? ORDER BY beat_id", me.ID, battleID)
 		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
@@ -419,7 +359,7 @@ func BattleHTTP(c echo.Context) error {
 
 	// Get beats user has voted for if in voting stage.
 	if battle.Status == "voting" && me.Authenticated {
-		votes, err := dbRead.Query("SELECT beat_id FROM votes WHERE user_id = ? AND challenge_id = ? ORDER BY beat_id", me.ID, battleID)
+		votes, err := dbRead.Query("SELECT beat_id FROM votes WHERE user_id = ? AND battle_id = ? ORDER BY beat_id", me.ID, battleID)
 		if err != nil && err != sql.ErrNoRows {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
@@ -439,28 +379,29 @@ func BattleHTTP(c echo.Context) error {
 
 	var count int
 	entries := []Beat{}
+	likes := []Beat{}
 	didntVote := []Beat{}
 	submission := Beat{}
 
 	query := `SELECT 
-			users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair,
-			beats.id, beats.url, beats.votes, beats.voted
+			users.id, users.provider, users.provider_id, users.nickname, users.flair,
+			beats.id, beats.url, beats.votes, beats.voted, beats.placement, IFNULL(feedback.feedback, '')
 			FROM beats
-			INNER JOIN users
-			ON beats.user_id = users.id
-			WHERE beats.challenge_id = ?
-			GROUP BY 1
-			ORDER BY votes DESC`
+			LEFT JOIN users ON beats.user_id = users.id
+			LEFT JOIN feedback ON feedback.user_id=? AND feedback.beat_id=beats.id
+			WHERE beats.battle_id = ?
+			GROUP BY 1`
 	scanArgs := []interface{}{
 		// Artist
 		&submission.Artist.ID, &submission.Artist.Provider, &submission.Artist.ProviderID,
-		&submission.Artist.Name, &submission.Artist.Patron, &submission.Artist.Flair,
+		&submission.Artist.Name, &submission.Artist.Flair,
 		// Beat
-		&submission.ID, &submission.URL, &submission.Votes, &submission.Voted}
+		&submission.ID, &submission.URL, &submission.Votes,
+		&submission.Voted, &submission.Placement, &submission.Feedback}
 
-	rows, err := dbRead.Query(query, battleID)
+	rows, err := dbRead.Query(query, me.ID, battleID)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		SetToast(c, "502")
 		return c.Redirect(302, "/")
 	}
@@ -473,32 +414,21 @@ func BattleHTTP(c echo.Context) error {
 	for rows.Next() {
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
-
-		if submission.Artist.ID == me.ID {
-			canEnter = false
-		}
-
-		submission.Artist.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(submission.Artist.ID) + `">` + submission.Artist.Name + `</a>`
-		if submission.Artist.Patron {
-			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
-		}
-
-		if battle.Status == "complete" && !submission.Voted {
-			submission.Artist.NameHTML = submission.Artist.NameHTML + `&nbsp;<span class="tooltipped" style="color: #0D88FF;" data-tooltip="Did Not Vote">(*)</span>`
-		}
 		count++
 
-		submission.ChallengeID = battle.ID
+		if submission.Placement == 0 {
+			submission.Placement = 999
+		}
+		submission.BattleID = battle.ID
 
-		// VoteColour & LikeColour are workarounds to the limits of ZingGrid.
-		submission.VoteColour = ""
+		submission.UserVote = 0
 		if battle.Status == "voting" {
 			if ContainsInt(lastVotes, submission.ID) {
-				submission.VoteColour = "#ff5800"
+				submission.UserVote = 1
 				if battle.Status == "complete" && submission.Artist.ID == me.ID {
 					userVotes++
 				}
@@ -508,11 +438,6 @@ func BattleHTTP(c echo.Context) error {
 			}
 		}
 
-		submission.LikeColour = ""
-		if ContainsInt(lastLikes, submission.ID) {
-			submission.LikeColour = "#ff5800"
-		}
-
 		u, err := url.Parse(submission.URL)
 		if err != nil {
 			u, _ = url.Parse("https://soundcloud.com/")
@@ -520,7 +445,8 @@ func BattleHTTP(c echo.Context) error {
 		urlSplit := strings.Split(u.RequestURI(), "/")
 
 		width := "width='100%'"
-		if battle.Status != "complete" {
+		// TODO make this a variable for scrubbing on userend
+		if battle.Status != "complete" && !battle.Settings.ShowEntries {
 			width = "width='20px'"
 		}
 
@@ -528,12 +454,12 @@ func BattleHTTP(c echo.Context) error {
 		if len(urlSplit) >= 4 {
 			secretURL := urlSplit[3]
 			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=true&auto_play=true&show_user=false'></iframe>`
 			} else {
-				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+				submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=true&auto_play=true&show_user=false'></iframe>`
 			}
 		} else {
-			submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&auto_play=true&show_user=false'></iframe>`
+			submission.URL = `<iframe ` + width + ` height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=true&auto_play=true&show_user=false'></iframe>`
 		}
 
 		if battle.Status == "complete" && !submission.Voted {
@@ -543,6 +469,12 @@ func BattleHTTP(c echo.Context) error {
 				entryPosition = len(didntVote)
 			}
 			continue
+		}
+
+		submission.UserLike = 0
+		if ContainsInt(lastLikes, submission.ID) {
+			submission.UserLike = 1
+			likes = append(likes, submission)
 		}
 
 		entries = append(entries, submission)
@@ -567,8 +499,7 @@ func BattleHTTP(c echo.Context) error {
 	if hasEntered && battle.Status == "voting" {
 		query := `SELECT count(*)+1
 					FROM beats
-					WHERE challenge_id=? AND votes > (SELECT votes FROM beats WHERE user_id=? AND challenge_id=?)`
-
+					WHERE battle_id=? AND votes > (SELECT votes FROM beats WHERE user_id=? AND battle_id=?)`
 		dbRead.QueryRow(query, battleID, me.ID, battleID).Scan(&entryPosition)
 	}
 
@@ -587,6 +518,17 @@ func BattleHTTP(c echo.Context) error {
 		})
 	}
 
+	filter := c.QueryParam("filter")
+	if filter == "likes" {
+		entries = likes
+	}
+
+	if battle.Status == "complete" {
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].Placement < entries[j].Placement
+		})
+	}	
+
 	// Convert the entries to JSON.
 	e, err := json.Marshal(entries)
 	if err != nil {
@@ -596,18 +538,21 @@ func BattleHTTP(c echo.Context) error {
 	}
 
 	m := map[string]interface{}{
-		"Title":          battle.Title,
+		"Meta": map[string]interface{}{
+			"Title":   battle.Title,
+			"Analytics":   analyticsKey,
+			"Buttons":        "Battle",
+		},
 		"Battle":         battle,
 		"Beats":          string(e),
 		"Me":             me,
-		"CanEnter":       canEnter,
 		"EnteredBattle":  hasEntered,
 		"EntryPosition":  entryPosition,
 		"IsOwner":        isOwner,
 		"Toast":          toast,
 		"VotesRemaining": battle.MaxVotes - userVotes,
 		"Ads":            ads,
-		"Buttons":        "Battle",
+		"Filter":	filter,
 	}
 
 	duration := time.Since(start)
@@ -620,28 +565,28 @@ func BattleHTTP(c echo.Context) error {
 func GetBattle(battleID int) Battle {
 	start := time.Now()
 	battle := Battle{}
-
 	query := `
-			SELECT users.id, users.provider, users.provider_id, users.nickname, users.patron, users.flair, 
-			challenges.id, challenges.title, challenges.rules, challenges.deadline, challenges.voting_deadline, 
-			challenges.attachment, challenges.status, challenges.password, challenges.maxvotes, 
-			challenges.group_id, challenges.type, GROUP_CONCAT(DISTINCT IFNULL(tags.tag, '')),
-			challenges.style_id, IFNULL(styles.logo, ''), IFNULL(styles.background, ''), IFNULL(styles.color, '')
-			FROM challenges
-			INNER JOIN users ON users.id = challenges.user_id
-			LEFT JOIN challenges_tags ON challenges_tags.challenge_id = challenges.id
-			LEFT JOIN tags ON tags.id = challenges_tags.tag_id
-			LEFT JOIN styles ON styles.id = challenges.style_id
-			WHERE challenges.id = ?`
+			SELECT users.id, users.nickname, users.flair, 
+			battles.id, battles.title, battles.rules, battles.deadline, battles.voting_deadline, 
+			battles.attachment, battles.password, battles.maxvotes, battles.type, battles.tags,
+			battles.settings_id, IFNULL(battle_settings.logo, ''), IFNULL(battle_settings.background, ''),
+			IFNULL(battle_settings.show_users, 0), IFNULL(battle_settings.show_entries, 0), 
+			IFNULL(battle_settings.tracking_id, ""), IFNULL(battle_settings.private, 0)
+			FROM battles
+			INNER JOIN users ON users.id = battles.user_id
+			LEFT JOIN battle_settings ON battle_settings.id = battles.settings_id
+			WHERE battles.id = ?`
 
+	tags := ""
 	err := dbRead.QueryRow(query, battleID).Scan(
 		// Battle Host
-		&battle.Host.ID, &battle.Host.Provider, &battle.Host.ProviderID,
-		&battle.Host.Name, &battle.Host.Patron, &battle.Host.Flair,
+		&battle.Host.ID, &battle.Host.Name, &battle.Host.Flair,
 		// Battle
 		&battle.ID, &battle.Title, &battle.Rules, &battle.Deadline, &battle.VotingDeadline,
-		&battle.Attachment, &battle.Status, &battle.Password, &battle.MaxVotes, &battle.GroupID,
-		&battle.Type, &battle.TagNames, &battle.StyleID, &battle.Logo, &battle.Background, &battle.Color)
+		&battle.Attachment, &battle.Password, &battle.MaxVotes, &battle.Type, &tags, 
+		&battle.Settings.ID, &battle.Settings.Logo, &battle.Settings.Background,
+		&battle.Settings.ShowUsers, &battle.Settings.ShowEntries,
+		&battle.Settings.TrackingID, &battle.Settings.Private)
 	if err != nil {
 		log.Println(err)
 		return battle
@@ -651,30 +596,25 @@ func GetBattle(battleID int) Battle {
 	md := []byte(html.UnescapeString(battle.Rules))
 	battle.Rules = html.UnescapeString(battle.Rules)
 	battle.RulesHTML = template.HTML(markdown.ToHTML(md, nil, nil))
+	battle.Status = ParseDeadline(battle.Deadline, battle.VotingDeadline, battle.ID, true, false)
+	battle.Tags = SetTags(tags)
+	battle.Type = strings.Title(battle.Type)
 
-	battle.Host.NameHTML = `<a class="battle-url" href="/user/` + strconv.Itoa(battle.Host.ID) + `">` + battle.Host.Name + `</a>`
-	if battle.Host.Patron {
-		battle.Host.NameHTML = battle.Host.NameHTML + `&nbsp;<span class="user-flair material-icons tooltipped" data-tooltip="Patron">local_fire_department</span>`
-	}
-
+	// Create parsed deadline. 
+	deadlineString := ""
 	switch battle.Status {
 	case "entry":
-		battle.StatusDisplay = ParseDeadline(battle.Deadline, battleID, "entry", false)
+		deadlineString += strconv.Itoa(int(battle.Deadline.UnixNano() / 1000000))
 	case "voting":
-		battle.StatusDisplay = ParseDeadline(battle.VotingDeadline, battleID, "voting", false)
-	case "draft":
-		battle.StatusDisplay = "Draft"
+		deadlineString += strconv.Itoa(int(battle.VotingDeadline.UnixNano() / 1000000))
 	default:
-		layoutUS := "January 2, 2006"
-		battle.StatusDisplay = "Finished - " + battle.VotingDeadline.Format(layoutUS) // Complete case
+		layoutUS := "01/02/06"
+		deadlineString += battle.VotingDeadline.Format(layoutUS)
 	}
-
-	battle.Tags = SetTags(battle.TagNames)
-	battle.Type = strings.Title(battle.Type)
+	battle.ParsedDeadline = deadlineString
 
 	duration := time.Since(start)
 	fmt.Println("GetBattle time: " + duration.String())
-
 	return battle
 }
 
@@ -694,15 +634,12 @@ func SubmitBattle(c echo.Context) error {
 	toast := GetToast(c)
 	ads := GetAdvertisements()
 
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "member")
-	}
-
-	m := map[string]interface{}{
-		"Title":      "Submit Battle",
+	m := map[string]interface{}{		
+		"Meta": map[string]interface{}{
+			"Title":   "Submit Battle",
+			"Analytics":   analyticsKey,
+		},
 		"Me":         me,
-		"UserGroups": userGroups,
 		"Toast":      toast,
 		"Ads":        ads,
 	}
@@ -736,6 +673,7 @@ func UpdateBattle(c echo.Context) error {
 
 	loc, err := time.LoadLocation(policy.Sanitize(region + "/" + country))
 	if err != nil {
+		log.Println(err)
 		loc, _ = time.LoadLocation("America/Toronto")
 	}
 
@@ -746,26 +684,23 @@ func UpdateBattle(c echo.Context) error {
 	}
 
 	if battle.Host.ID != me.ID {
-		SetToast(c, "notuser")
+		SetToast(c, "403")
 		return c.Redirect(302, "/")
-	}
-
-	userGroups := []Group{}
-	if me.Authenticated {
-		userGroups = GetGroupsByRole(dbRead, me.ID, "member")
 	}
 
 	// For time.Parse
 	layout := "Jan 2, 2006-03:04 PM"
-
 	deadline := strings.Split(battle.Deadline.In(loc).Format(layout), "-")
 	votingDeadline := strings.Split(battle.VotingDeadline.In(loc).Format(layout), "-")
 
 	m := map[string]interface{}{
+		"Meta": map[string]interface{}{
+			"Title":   "Update Battle",
+			"Analytics":   analyticsKey,
+		},
 		"Title":              "Update Battle",
 		"Battle":             battle,
 		"Me":                 me,
-		"UserGroups":         userGroups,
 		"DeadlineDate":       deadline[0],
 		"DeadlineTime":       deadline[1],
 		"VotingDeadlineDate": votingDeadline[0],
@@ -789,108 +724,66 @@ func UpdateBattleDB(c echo.Context) error {
 	// Check if user is authenticated, if not kick them out.
 	me := GetUser(c, true)
 	if !me.Authenticated {
-		SetToast(c, "relog")
-		return c.Redirect(302, "/login")
+		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
 	battleID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		SetToast(c, "404")
-		return c.Redirect(302, "/")
-	}
-
-	groupID, err := strconv.Atoi(policy.Sanitize(c.FormValue("group")))
-	if err != nil {
-		groupID = 0
-	}
-
-	// Check if user has permissions to modify battle. This check seems to be redundant?
-	if groupID != 0 {
-		if !RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID) {
-			SetToast(c, "notuser")
-			return c.Redirect(302, "/battle/submit")
-		}
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "502")
 	}
 
 	// Check if battle type is valid.
 	battleType := policy.Sanitize(c.FormValue("type"))
 	if battleType != "beat" && battleType != "rap" && battleType != "art" {
-		SetToast(c, "invalidtype")
-		return c.Redirect(302, "/battle/submit")
+		return AjaxResponse(c, false, "/battle/submit", "invalidtype")
 	}
 
-	// Check if battle is open and able to be edited. Checks if user ID matches the battle's ID.
-	curStatus := "entry"
+	// Check if user owns battle
 	userID := -1
-	err = dbRead.QueryRow("SELECT status, user_id FROM challenges WHERE id = ?", battleID).Scan(&curStatus, &userID)
-	if err != nil || userID != me.ID {
-		SetToast(c, "notuser")
-		return c.Redirect(302, "/")
+	err = dbRead.QueryRow("SELECT user_id FROM battles WHERE id = ?", battleID).Scan(&userID)
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "502")
+	}
+	if userID != me.ID {
+		return AjaxResponse(c, true, "/", "403")
 	}
 
 	// Handle time localization and deadline parsing.
 	loc, err := time.LoadLocation(policy.Sanitize(c.FormValue("timezone")))
 	if err != nil {
+		log.Println(err)
 		loc, _ = time.LoadLocation("America/Toronto")
 	}
 
-	// For time.Parse
+	// Parse Deadlines
 	layout := "Jan 2, 2006 03:04 PM"
-
 	unparsedDeadline := policy.Sanitize(c.FormValue("deadline-date") + " " + c.FormValue("deadline-time"))
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
-	if deadline.Before(time.Now()) {
-		if curStatus == "entry" {
-			SetToast(c, "deadb4")
-			return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
-		}
-	}
-
 	if err != nil {
-		SetToast(c, "502")
-		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/"+c.Param("id")+"/update", "502")
 	}
-
 	unparsedVotingDeadline := policy.Sanitize(c.FormValue("votingdeadline-date") + " " + c.FormValue("votingdeadline-time"))
 	votingDeadline, err := time.ParseInLocation(layout, unparsedVotingDeadline, loc)
-	if err != nil || votingDeadline.Before(deadline) {
-		SetToast(c, "voteb4")
-		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
-	}
-
-	maxVotes, err := strconv.Atoi(policy.Sanitize(c.FormValue("maxvotes")))
-	if err != nil || maxVotes < 1 || maxVotes > 10 {
-		SetToast(c, "maxvotesinvalid")
-		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
-	}
-
-	/* PERF - Removed URL whitelist temporarily.
-	attachmentURL, err := url.Parse(policy.Sanitize(c.FormValue("attachment")))
 	if err != nil {
-		SetToast(c, "unapprovedurl")
-		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/"+c.Param("id")+"/update", "502")
 	}
-
-	attachment := ""
-	// PERF - MIGHT IMPACT A LOT*
-		if attachmentURL.String() != "" {
-			if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
-				SetToast(c, "unapprovedurl")
-				return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
-			}
-		}
-	*/
+	if votingDeadline.Before(deadline) {
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/"+c.Param("id")+"/update", "voteb4")
+	}
 
 	attachment := policy.Sanitize(c.FormValue("attachment"))
+	maxVotes, err := strconv.Atoi(policy.Sanitize(c.FormValue("maxvotes")))
+	if err != nil {
+		maxVotes = 3
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/"+c.Param("id")+"/update", "502")
+	}
 
-	// Determine if this is an update, pushing it live, or something else.
-	status := curStatus
-	if status == "draft" && c.FormValue("submit") == "PUBLISH" {
-		status = "entry"
-	}
-	if c.FormValue("submit") == "DRAFT" {
-		status = "draft"
-	}
 
 	battle := &Battle{
 		Title:          policy.Sanitize(c.FormValue("title")),
@@ -901,35 +794,37 @@ func UpdateBattleDB(c echo.Context) error {
 		Host:           me,
 		Password:       policy.Sanitize(c.FormValue("password")),
 		MaxVotes:       maxVotes,
-		Status:         status,
-		GroupID:        groupID,
 		Type:           battleType,
 	}
 
 	// Validate the struct. This might be unnecessary.
 	v := validator.New()
 	err = v.Struct(battle)
-
 	if err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
 			fmt.Println(err.Namespace())
 		}
-		SetToast(c, "validationerror")
-		return c.Redirect(302, "/battle/"+c.Param("id")+"/update")
+		return AjaxResponse(c, false, "/battle/"+c.Param("id")+"/update", "validationerror")
 	}
 
 	logo := policy.Sanitize(c.FormValue("logo"))
 	background := policy.Sanitize(c.FormValue("background"))
-	color := policy.Sanitize(c.FormValue("color"))
-	if color == "#000000" {
-		color = ""
-	}
-
+	showUsers, _ := strconv.Atoi(policy.Sanitize(c.FormValue("show_users")))
+	showEntries, _ := strconv.Atoi(policy.Sanitize(c.FormValue("show_entries")))
+	trackingID := policy.Sanitize(c.FormValue("tracking_id"))
+	private, _ := strconv.Atoi(policy.Sanitize(c.FormValue("private")))
+	log.Println(logo)
+	log.Println(background)
+	log.Println(showUsers)
+	log.Println(showEntries)
+	log.Println(trackingID)
+	log.Println(private)
 	// If style ID exists, update. Otherwise, insert.
-	styleID, _ := strconv.Atoi(policy.Sanitize(c.FormValue("style_id")))
-	if styleID == 0 {
-		if len(logo) > 0 || len(background) > 0 || len(color) > 0 {
-			stmt := "INSERT INTO styles(user_id, logo, background, color) VALUES(?,?,?,?)"
+	settingsID, _ := strconv.Atoi(policy.Sanitize(c.FormValue("settings_id")))
+	log.Println(settingsID)
+	if settingsID == 0 {
+		if len(logo) > 0 || len(background) > 0 || len(trackingID) > 0 || showUsers == 1 || showEntries == 1 || private == 1 {
+			stmt := "INSERT INTO battle_settings(logo, background, show_users, show_entries, tracking_id, private) VALUES(?,?,?,?,?,?)"
 			ins, err := dbWrite.Prepare(stmt)
 			if err != nil {
 				log.Println(err)
@@ -938,17 +833,17 @@ func UpdateBattleDB(c echo.Context) error {
 			}
 			defer ins.Close()
 
-			res, err := ins.Exec(me.ID, logo, background, color)
+			res, err := ins.Exec(logo, background, showUsers, showEntries, trackingID, private)
 			if err != nil {
 				log.Println(err)
 				SetToast(c, "502")
 				return c.Redirect(302, "/")
 			}
 			lastInsertID, _ := res.LastInsertId()
-			styleID = int(lastInsertID) // truncated on machines with 32-bit ints
+			settingsID = int(lastInsertID) // truncated on machines with 32-bit ints
 		}
 	} else {
-		stmt := "UPDATE styles SET logo = ?, background = ?, color = ? WHERE user_id = ? AND id = ?"
+		stmt := "UPDATE battle_settings SET logo = ?, background = ?, show_users = ?, show_entries = ?, tracking_id = ?, private = ? WHERE id = ?"
 		upd, err := dbWrite.Prepare(stmt)
 		if err != nil {
 			log.Println(err)
@@ -956,12 +851,17 @@ func UpdateBattleDB(c echo.Context) error {
 			return c.Redirect(302, "/")
 		}
 		defer upd.Close()
-		upd.Exec(logo, background, color, me.ID, styleID)
+		upd.Exec(logo, background, showUsers, showEntries, trackingID, private, settingsID)
+	}
+
+	results := 0
+	if c.FormValue("submit") == "DRAFT" {
+		results = -1
 	}
 
 	query := `
-			UPDATE challenges 
-			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, status = ?, group_id = ?, type = ?, style_id = ?
+			UPDATE battles 
+			SET title = ?, rules = ?, deadline = ?, attachment = ?, password = ?, voting_deadline = ?, maxvotes = ?, type = ?, settings_id = ?, results = ?, tags = ?
 			WHERE id = ? AND user_id = ?`
 
 	ins, err := dbWrite.Prepare(query)
@@ -972,14 +872,15 @@ func UpdateBattleDB(c echo.Context) error {
 	}
 	defer ins.Close()
 
-	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Password, battle.VotingDeadline, battle.MaxVotes, battle.Status, battle.GroupID, battle.Type, styleID, battleID, me.ID)
+	ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, 
+			battle.Password, battle.VotingDeadline, battle.MaxVotes,
+			battle.Type, settingsID, results, c.FormValue("tags"), battleID, me.ID)
 	if err != nil {
 		log.Println(err)
 		SetToast(c, "failadd")
 		return c.Redirect(302, "/")
 	}
 
-	TagsDB(true, c.FormValue("tags"), int64(battleID))
 	SetToast(c, "successupdate")
 
 	duration := time.Since(start)
@@ -997,92 +898,47 @@ func InsertBattle(c echo.Context) error {
 	// Check if user is authenticated.
 	me := GetUser(c, true)
 	if !me.Authenticated {
-		SetToast(c, "relog")
-		return c.Redirect(302, "/login")
-	}
-
-	entries := 0
-	err := dbRead.QueryRow("SELECT COUNT(id) FROM challenges WHERE status=? AND user_id=?", "entry", me.ID).Scan(&entries)
-	if err != nil && err != sql.ErrNoRows {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
-	}
-
-	groupID, err := strconv.Atoi(policy.Sanitize(c.FormValue("group")))
-	if err != nil {
-		groupID = 0
-	}
-
-	if groupID != 0 {
-		hasPermissions := RowExists("SELECT user_id FROM users_groups WHERE user_id = ? AND group_id = ?", me.ID, groupID)
-
-		if !hasPermissions {
-			SetToast(c, "notuser")
-			return c.Redirect(302, "/battle/submit")
-		}
+		return AjaxResponse(c, true, "/login/", "noauth")
 	}
 
 	battleType := policy.Sanitize(c.FormValue("type"))
-
 	if battleType != "beat" && battleType != "rap" && battleType != "art" {
-		SetToast(c, "invalidtype")
-		return c.Redirect(302, "/battle/submit")
+		return AjaxResponse(c, false, "/battle/submit", "invalidtype")
 	}
 
-	if entries >= 3 {
-		SetToast(c, "maxbattles")
-		return c.Redirect(302, "/")
-	}
-
+	// Handle time localization and deadline parsing.
 	loc, err := time.LoadLocation(policy.Sanitize(c.FormValue("timezone")))
 	if err != nil {
+		log.Println(err)
 		loc, _ = time.LoadLocation("America/Toronto")
 	}
-	// For time.Parse
-	layout := "Jan 2, 2006 03:04 PM"
 
+	// Parse Deadlines
+	layout := "Jan 2, 2006 03:04 PM"
 	unparsedDeadline := policy.Sanitize(c.FormValue("deadline-date") + " " + c.FormValue("deadline-time"))
 	deadline, err := time.ParseInLocation(layout, unparsedDeadline, loc)
-	if err != nil || deadline.Before(time.Now()) {
-		SetToast(c, "deadb4")
-		return c.Redirect(302, "/battle/submit")
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/submit", "502")
 	}
 
 	unparsedVotingDeadline := policy.Sanitize(c.FormValue("votingdeadline-date") + " " + c.FormValue("votingdeadline-time"))
 	votingDeadline, err := time.ParseInLocation(layout, unparsedVotingDeadline, loc)
-	if err != nil || votingDeadline.Before(deadline) {
-		SetToast(c, "voteb4")
-		return c.Redirect(302, "/battle/submit")
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/submit", "502")
+	}
+	if votingDeadline.Before(deadline) {
+		return AjaxResponse(c, false, "/battle/submit", "voteb4")
 	}
 
-	maxVotes, err := strconv.Atoi(policy.Sanitize(c.FormValue("maxvotes")))
-	if err != nil || maxVotes < 1 || maxVotes > 10 {
-		SetToast(c, "maxvotesinvalid")
-		return c.Redirect(302, "/battle/submit")
-	}
-
-	/*
-		attachmentURL, err := url.Parse(policy.Sanitize(c.FormValue("attachment")))
-		if err != nil {
-			SetToast(c, "unapprovedurl")
-			return c.Redirect(302, "/battle/submit")
-		}
-
-		attachment := ""
-		// PERF - MIGHT IMPACT A LOT
-			if attachmentURL.String() != "" {
-				if !contains(whitelist, strings.TrimPrefix(attachmentURL.Host, "www.")) {
-					SetToast(c, "unapprovedurl")
-					return c.Redirect(302, "/battle/submit")
-				}
-			}
-	*/
-
+	// TO DO - If max votes 0 then unlimited votes.
 	attachment := policy.Sanitize(c.FormValue("attachment"))
-
-	status := "entry"
-	if c.FormValue("submit") == "DRAFT" {
-		status = "draft"
+	maxVotes, err := strconv.Atoi(policy.Sanitize(c.FormValue("maxvotes")))
+	if err != nil {
+		maxVotes = 3
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/submit", "502")
 	}
 
 	battle := &Battle{
@@ -1092,13 +948,16 @@ func InsertBattle(c echo.Context) error {
 		VotingDeadline: votingDeadline,
 		Attachment:     attachment,
 		Host:           me,
-		Status:         status,
 		Password:       policy.Sanitize(c.FormValue("password")),
 		Entries:        0,
 		ID:             0,
 		MaxVotes:       maxVotes,
-		GroupID:        groupID,
 		Type:           battleType,
+	}
+
+	results := 0
+	if c.FormValue("submit") == "DRAFT" {
+		results = -1
 	}
 
 	v := validator.New()
@@ -1108,147 +967,113 @@ func InsertBattle(c echo.Context) error {
 		for _, err := range err.(validator.ValidationErrors) {
 			fmt.Println(err.Namespace())
 		}
-		SetToast(c, "validationerror")
-		return c.Redirect(302, "/battle/submit")
-	}
-
-	if RowExists("SELECT id FROM challenges WHERE user_id = ? AND title = ?", me.ID, battle.Title) {
-		SetToast(c, "titleexists")
-		return c.Redirect(302, "/battle/submit")
+		return AjaxResponse(c, false, "/battle/submit", "validationerror")
 	}
 
 	logo := policy.Sanitize(c.FormValue("logo"))
 	background := policy.Sanitize(c.FormValue("background"))
-	color := policy.Sanitize(c.FormValue("color"))
-	if color == "#000000" {
-		color = ""
+	showUsers, _ := strconv.Atoi(policy.Sanitize(c.FormValue("show_users")))
+	showEntries, _ := strconv.Atoi(policy.Sanitize(c.FormValue("show_entries")))
+	trackingID := policy.Sanitize(c.FormValue("tracking_id"))
+	private, _ := strconv.Atoi(policy.Sanitize(c.FormValue("private")))
+
+	// If style ID exists, update. Otherwise, insert.
+	settingsID, _ := strconv.Atoi(policy.Sanitize(c.FormValue("settings_id")))
+	log.Println(settingsID)
+	if settingsID == 0 {
+		if len(logo) > 0 || len(background) > 0 ||
+			showUsers == 1 || showEntries == 1 ||
+			len(trackingID) > 0 || private == 1 {
+			stmt := "INSERT INTO battle_settings(logo, background, show_users, show_entries, tracking_id, private) VALUES(?,?,?,?,?,?)"
+			ins, err := dbWrite.Prepare(stmt)
+			if err != nil {
+				log.Println(err)
+				return AjaxResponse(c, false, "/battle/submit", "502")
+			}
+			defer ins.Close()
+
+			res, err := ins.Exec(logo, background, showUsers, showEntries, trackingID, private)
+			if err != nil {
+				log.Println(err)
+				return AjaxResponse(c, false, "/battle/submit", "502")
+			}
+			lastInsertID, _ := res.LastInsertId()
+			settingsID = int(lastInsertID) // truncated on machines with 32-bit ints
+		}
 	}
 
-	var styleID int64 = 0
-	if len(logo) > 0 || len(background) > 0 || len(color) > 0 {
-		stmt := "INSERT INTO styles(user_id, logo, background, color) VALUES(?,?,?,?)"
-		ins, err := dbWrite.Prepare(stmt)
-		if err != nil {
-			log.Println(err)
-			SetToast(c, "502")
-			return c.Redirect(302, "/")
-		}
-		defer ins.Close()
-
-		res, err := ins.Exec(me.ID, logo, background, color)
-		if err != nil {
-			log.Println(err)
-			SetToast(c, "502")
-			return c.Redirect(302, "/")
-		}
-		styleID, _ = res.LastInsertId()
-	}
-
-	stmt := "INSERT INTO challenges(title, rules, deadline, attachment, status, password, user_id, voting_deadline, maxvotes, group_id, type, style_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+	stmt := `INSERT INTO battles
+			(title, rules, results, deadline, attachment, password, user_id, 
+			voting_deadline, maxvotes, type, settings_id, tags)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`
 	ins, err := dbWrite.Prepare(stmt)
 	if err != nil {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/submit", "502")
 	}
 	defer ins.Close()
-
-	var battleInsertedID int64 = 0
-	res, err := ins.Exec(battle.Title, battle.Rules, battle.Deadline, battle.Attachment, battle.Status, battle.Password,
-		battle.Host.ID, battle.VotingDeadline, battle.MaxVotes, battle.GroupID, battle.Type, styleID)
+	res, err := ins.Exec(battle.Title, battle.Rules, results, battle.Deadline, battle.Attachment, battle.Password,
+			battle.Host.ID, battle.VotingDeadline, battle.MaxVotes, battle.Type, settingsID, c.FormValue("tags"))
 	if err != nil {
-		SetToast(c, "502")
-		return c.Redirect(302, "/")
+		log.Println(err)
+		return AjaxResponse(c, false, "/battle/submit", "502")
 	}
-
-	battleInsertedID, _ = res.LastInsertId()
-	TagsDB(false, c.FormValue("tags"), battleInsertedID)
-
-	SetToast(c, "successadd")
+	battleInsertedID, _ := res.LastInsertId()
 
 	duration := time.Since(start)
 	fmt.Println("InsertBattle time: " + duration.String())
-
-	return c.Redirect(302, "/battle/"+strconv.FormatInt(battleInsertedID, 10))
-}
-
-// TagsDB adds / updates tags in the DB.
-func TagsDB(update bool, tagsJSON string, battleID int64) {
-	start := time.Now()
-	var tagIDs []int64
-
-	// TODO - MIGHT BE SQL INJECTABLE OR SOMETHING
-	var tags []Tag
-	err := json.Unmarshal([]byte(tagsJSON), &tags)
-	if err != nil {
-		return
-	}
-
-	// Only accept 3 tags.
-	for i, tag := range tags {
-		if i > 2 {
-			break
-		}
-
-		ins, err := dbWrite.Prepare("INSERT INTO tags(tag) VALUES(?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)")
-		if err != nil {
-			return
-		}
-		defer ins.Close()
-
-		res, err := ins.Exec(strings.TrimSpace(policy.Sanitize(tag.Value)))
-		if err != nil {
-			return
-		}
-
-		insertedID, err := res.LastInsertId()
-		if err != nil {
-			return
-		}
-		tagIDs = append(tagIDs, insertedID)
-	}
-
-	if update {
-		del, err := dbWrite.Prepare("DELETE FROM challenges_tags WHERE challenge_id = ?")
-		if err != nil {
-			return
-		}
-		defer del.Close()
-
-		del.Exec(battleID)
-	}
-
-	for i, tagID := range tagIDs {
-		if i > 2 {
-			break
-		}
-
-		ins, err := dbWrite.Prepare("INSERT INTO challenges_tags VALUES(?, ?)")
-		if err != nil {
-			return
-		}
-		defer ins.Close()
-
-		ins.Exec(battleID, tagID)
-	}
-
-	duration := time.Since(start)
-	fmt.Println("InsertTags time: " + duration.String())
+	return AjaxResponse(c, true, "/battle/"+strconv.FormatInt(battleInsertedID, 10), "successadd")
 }
 
 // SetTags resolves a battle's tags.
-func SetTags(tagNames []uint8) []Tag {
-	names := string(tagNames)
+func SetTags(tags string) []string {
+	names := string(tags)
 	tagValues := strings.Split(names, ",")
-
-	// REVIEW - Is this loop necessary? Do I need to cast to the struct?
-	var tags []Tag
-	for _, s := range tagValues {
-		newTag := Tag{Value: ""}
-		newTag.Value = html.UnescapeString(s)
-		tags = append(tags, newTag)
+	if names == "" {
+		tagValues = nil
 	}
 
-	return tags
+	return tagValues
+}
+
+// CloseBattle ...
+func CloseBattle(c echo.Context) error {
+	// Set the request to close automatically.
+	c.Request().Header.Set("Connection", "close")
+	c.Request().Close = true
+	// Check if user is authenticated.
+	me := GetUser(c, true)
+	if !me.Authenticated {
+		SetToast(c, "relog")
+		return c.Redirect(302, "/login")
+	}
+
+	// Get battle ID from the request.
+	battleID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		SetToast(c, "404")
+		return c.Redirect(302, "/")
+	}
+
+	// Check if the delete request was sent through the form.
+	if c.FormValue("close") == "yes" {
+		stmt := "UPDATE battles SET deadline = NOW() WHERE user_id = ? AND id = ?"
+
+		del, err := dbWrite.Prepare(stmt)
+		if err != nil {
+			SetToast(c, "502")
+			return c.Redirect(302, "/")
+		}
+		defer del.Close()
+		del.Exec(me.ID, battleID)
+
+		SetToast(c, "successclose")
+		return c.Redirect(302, "/")
+	}
+
+	// Return not user by default.
+	SetToast(c, "403")
+	return c.Redirect(302, "/")
 }
 
 // DeleteBattle ...
@@ -1272,7 +1097,7 @@ func DeleteBattle(c echo.Context) error {
 
 	// Check if the delete request was sent through the form.
 	if c.FormValue("delete") == "yes" {
-		stmt := "DELETE FROM challenges WHERE user_id = ? AND id = ?"
+		stmt := "DELETE FROM battles WHERE user_id = ? AND id = ?"
 
 		del, err := dbWrite.Prepare(stmt)
 		if err != nil {
@@ -1287,6 +1112,6 @@ func DeleteBattle(c echo.Context) error {
 	}
 
 	// Return not user by default.
-	SetToast(c, "notuser")
+	SetToast(c, "403")
 	return c.Redirect(302, "/")
 }

@@ -1,5 +1,5 @@
 {{ define "FAQ" }}
-    {{ template "Header" .Title }}
+    {{ template "Header" .Meta }}
     {{ template "Menu" .Menu }}
     {{ template "Advertisement" .Ads }}
     <div class="container">
@@ -56,8 +56,6 @@
     <script>
         window.addEventListener('load',()=>{
         $('.collapsible').collapsible();
-        const observer = lozad();
-        observer.observe();
         })
     </script>
     {{ template "Footer" .Toast }}
