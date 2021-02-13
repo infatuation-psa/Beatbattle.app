@@ -198,7 +198,7 @@ func Callback(c echo.Context) error {
 			return c.Redirect(302, "/login")
 		}
 		defer stmt.Close()
-		stmt.Exec(user.Provider, user.ProviderID, user.Name, accessTokenEncrypted, user.ExpiresAt, 0, "")
+		stmt.Exec(user.Provider, user.ProviderID, user.Name, accessTokenEncrypted, user.ExpiresAt, "")
 	} else {
 		sql := `UPDATE
 				users 
