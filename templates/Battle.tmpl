@@ -206,6 +206,22 @@
         </form>
       </div>
     </div>
+{{if .Battle.Settings.Background}}
+<style>
+#BeatBattle {
+  background: #121212;
+}
+
+body {
+  background: none;
+}
+
+html {
+  background-image: url({{.Battle.Settings.Background}});
+  background-size: cover;
+}
+</style>
+{{end}}
     {{end}}
 {{ if .Battle.Settings.TrackingID }}
 <script async src="https://www.googletagmanager.com/gtag/js?id={{.Battle.Settings.TrackingID}}"></script>
@@ -230,6 +246,6 @@ $(document).ready(function() {
   $("#edit-button").attr("href", _href + "timezone/" + Intl.DateTimeFormat().resolvedOptions().timeZone);
 });
 </script>
-<script src="/static/battle-table.js"></script>
+<script src="/static/js/battle-table.min.js"></script>
 {{ template "Footer" .Toast }}
 {{ end }}

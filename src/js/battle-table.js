@@ -31,6 +31,7 @@ angular
     function ($mdEditDialog, $q, $scope, $timeout) {
       "use strict";
 
+      $scope.drawTable = true;
       $scope.selected = [];
       $scope.limitOptions = [10, 25, 100];
 
@@ -50,16 +51,23 @@ angular
       };
 
       $scope.editPlacement = function (event, beat) {
-        // if auto selection is enabled you will want to stop the event
-        // from propagating and selecting the row
         event.stopPropagation();
         
-        /* 
-        * messages is commented out because there is a bug currently
-        * with ngRepeat and ngMessages were the messages are always
-        * displayed even if the error property on the ngModelController
-        * is not set, I've included it anyway so you get the idea
-        */
+        function updateCascade(beat) {
+          var sortedBeats = JSON.parse(JSON.stringify($scope.beats.data));
+          sortedBeats.splice(beat.index, 1);
+          sortedBeats.sort(function(a, b) {
+            return a.placement > b.placement;
+          });
+          
+          var x = 1
+          for(var i = 0; i < sortedBeats.length; i++) {
+            if(sortedBeats[i].placement >= beat.placement && sortedBeats[i].voted == 1 && sortedBeats[i].id != beat.id) {
+              $scope.beats.data[sortedBeats[i].index].placement = i + 2;
+            }
+          }
+          $scope.refreshTable();
+        }
         
         var promise = $mdEditDialog.small({
           modelValue: beat.placement,
@@ -74,7 +82,11 @@ angular
                       html: t.ToastHTML,
                       classes: t.ToastClass,
                       displayLength: 1500,
-                  }))
+                  }));
+                  
+                  if(t.ToastQuery == "placement") {
+                    updateCascade(beat);
+                  }
                 }
             });
           },
@@ -226,6 +238,14 @@ angular
         console.log("changed");
         onChange();
       };
+
+      $scope.refreshTable = function() {
+        var beats = JSON.parse(JSON.stringify($scope.beats.data));
+        $scope.beats.data = []
+        $timeout(function () {
+          $scope.beats.data = beats
+        }, 50);
+      }
     }
   ]);
 

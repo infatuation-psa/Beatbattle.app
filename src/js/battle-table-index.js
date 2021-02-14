@@ -1,4 +1,3 @@
-
 function onChange() {
   $(".tooltipped").tooltip();
   

@@ -951,6 +951,8 @@ func SetPlacement(c echo.Context) error {
 		log.Println(err)
 		return AjaxResponse(c, true, "/", "404")
 	}
+
+	// maybe ignore battleID and get battle from the beat id.
 	battleID, err := strconv.Atoi(c.FormValue("battleID"))
 	if err != nil {
 		log.Println(err)
@@ -965,6 +967,24 @@ func SetPlacement(c echo.Context) error {
 		log.Println(err)
 		return AjaxResponse(c, true, "/", "403")
 	}
+
+	upd, err := dbWrite.Prepare(`UPDATE
+									beats AS m
+								JOIN
+									( SELECT id, row_number() OVER (ORDER BY placement) AS rn 
+									FROM beats
+									WHERE beats.placement >= ? AND beats.voted AND beats.battle_id = ? AND beats.id NOT IN (?)
+									) AS sub
+								ON  m.id = sub.id
+								SET
+									m.placement = sub.rn + ?
+								WHERE m.placement >= ? AND m.voted AND m.battle_id = ? AND m.id NOT IN (?)`)
+	if err != nil {
+		log.Println(err)
+		return AjaxResponse(c, true, "/", "502")
+	}
+	defer upd.Close()
+	upd.Exec(placement, battleID, beatID, placement, placement, battleID, beatID)
 
 	ins, err := dbWrite.Prepare("UPDATE beats SET placement = ? WHERE id = ?")
 	if err != nil {
