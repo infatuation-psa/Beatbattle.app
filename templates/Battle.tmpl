@@ -24,7 +24,7 @@
                   {{if eq "voting" .Battle.Status}}
                     {{ if .EnteredBattle }}Entry Submitted | {{end}}
                   {{end}}
-                  {{.Battle.Entries}} Entries {{ if and .IsOwner (eq "complete" .Battle.Status) }}| Click on placements to manually change them.{{ end }}
+                  {{.Battle.Entries}} Entries {{if eq "entry" .Battle.Status}}| Beats Hidden During Entry{{end}}{{ if and .IsOwner (eq "complete" .Battle.Status) }}| Click on placements to manually change them.{{ end }}
                   {{if eq "voting" .Battle.Status}}
                   |&nbsp;<span class="votes-remaining">{{.VotesRemaining}}</span>&nbsp;Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Left
                   {{if eq "likes" .Filter}}<div flex></div><a href="?">View All</a>{{else}}<div flex></div><a href="?filter=likes">View Likes</a>{{end}}
