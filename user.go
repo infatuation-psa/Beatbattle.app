@@ -952,39 +952,29 @@ func SetPlacement(c echo.Context) error {
 		return AjaxResponse(c, true, "/", "404")
 	}
 
-	// maybe ignore battleID and get battle from the beat id.
-	battleID, err := strconv.Atoi(c.FormValue("battleID"))
+	var battleID, hostID, curPlacement int
+	placement, _ := strconv.Atoi(policy.Sanitize(c.FormValue("placement")))
+
+	/* This should be simplified into singular queries. */
+
+	err = dbRead.QueryRow("SELECT battle_id, placement FROM beats WHERE id = ?", beatID).Scan(&battleID, &curPlacement)
 	if err != nil {
 		log.Println(err)
 		return AjaxResponse(c, true, "/", "404")
 	}
 
-	placement := policy.Sanitize(c.FormValue("placement"))
-	battle := GetBattle(battleID)
-	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
-
-	if battle.Host.ID != me.ID {
-		log.Println(err)
-		return AjaxResponse(c, true, "/", "403")
-	}
-
-	upd, err := dbWrite.Prepare(`UPDATE
-									beats AS m
-								JOIN
-									( SELECT id, row_number() OVER (ORDER BY placement) AS rn 
-									FROM beats
-									WHERE beats.placement >= ? AND beats.voted AND beats.battle_id = ? AND beats.id NOT IN (?)
-									) AS sub
-								ON  m.id = sub.id
-								SET
-									m.placement = sub.rn + ?
-								WHERE m.placement >= ? AND m.voted AND m.battle_id = ? AND m.id NOT IN (?)`)
+	err = dbRead.QueryRow("SELECT user_id FROM battles WHERE id = ?", battleID).Scan(&hostID)
 	if err != nil {
 		log.Println(err)
-		return AjaxResponse(c, true, "/", "502")
+		return AjaxResponse(c, true, "/", "404")
 	}
-	defer upd.Close()
-	upd.Exec(placement, battleID, beatID, placement, placement, battleID, beatID)
+
+	redirectURL := "/battle/" + strconv.Itoa(battleID) + "/"
+	log.Println(hostID)
+	log.Println(me.ID)
+	if hostID != me.ID {
+		return AjaxResponse(c, true, "/", "403")
+	}
 
 	ins, err := dbWrite.Prepare("UPDATE beats SET placement = ? WHERE id = ?")
 	if err != nil {
@@ -994,5 +984,80 @@ func SetPlacement(c echo.Context) error {
 	defer ins.Close()
 	ins.Exec(placement, beatID)
 
+	if placement < curPlacement {
+		log.Println("<")
+		upd1, err := dbWrite.Prepare(`UPDATE
+										beats AS m
+									JOIN
+										( SELECT id, row_number() OVER (ORDER BY placement) AS rn 
+										FROM beats
+										WHERE beats.voted AND beats.battle_id = ? AND beats.placement < ?
+										) AS sub
+									ON m.id = sub.id
+									SET
+										m.placement = sub.rn
+									WHERE m.voted AND m.battle_id = ?`)
+		if err != nil {
+			log.Println(err)
+			return AjaxResponse(c, true, "/", "502")
+		}
+		defer upd1.Close()
+		upd1.Exec(battleID, placement, battleID)
+
+		upd2, err := dbWrite.Prepare(`UPDATE
+										beats AS m
+									JOIN
+										( SELECT id, row_number() OVER (ORDER BY placement) AS rn 
+										FROM beats
+										WHERE beats.voted AND beats.battle_id = ? AND beats.placement >= ? AND beats.id NOT IN (?)
+										) AS sub
+									ON m.id = sub.id
+									SET
+										m.placement = sub.rn + ?
+									WHERE m.voted AND m.battle_id = ?`)
+		if err != nil {
+			log.Println(err)
+			return AjaxResponse(c, true, "/", "502")
+		}
+		defer upd2.Close()
+		upd2.Exec(battleID, placement, beatID, placement, battleID)
+	} else {
+		log.Println(">")
+		upd1, err := dbWrite.Prepare(`UPDATE
+										beats AS m
+									JOIN
+										( SELECT id, row_number() OVER (ORDER BY placement) AS rn 
+										FROM beats
+										WHERE beats.voted AND beats.battle_id = ? AND beats.placement <= ? AND beats.id NOT IN (?)
+										) AS sub
+									ON m.id = sub.id
+									SET
+										m.placement = sub.rn
+									WHERE m.voted AND m.battle_id = ?`)
+		if err != nil {
+			log.Println(err)
+			return AjaxResponse(c, true, "/", "502")
+		}
+		defer upd1.Close()
+		upd1.Exec(battleID, placement, beatID, battleID)
+
+		upd2, err := dbWrite.Prepare(`UPDATE
+										beats AS m
+									JOIN
+										( SELECT id, row_number() OVER (ORDER BY placement) AS rn 
+										FROM beats
+										WHERE beats.voted AND beats.battle_id = ? AND beats.placement > ?
+										) AS sub
+									ON m.id = sub.id
+									SET
+										m.placement = sub.rn + ?
+									WHERE m.voted AND m.battle_id = ?`)
+		if err != nil {
+			log.Println(err)
+			return AjaxResponse(c, true, "/", "502")
+		}
+		defer upd2.Close()
+		upd2.Exec(battleID, placement, placement, battleID)
+	}
 	return AjaxResponse(c, false, redirectURL, "placement")
 }

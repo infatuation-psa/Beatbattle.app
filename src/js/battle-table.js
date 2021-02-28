@@ -1,5 +1,3 @@
-
-
 function onChange() {
     // AJAX should be changed to match the other ajax form.
     $(".tooltipped").tooltip();
@@ -52,19 +50,16 @@ angular
 
       $scope.editPlacement = function (event, beat) {
         event.stopPropagation();
-        
+      
         function updateCascade(beat) {
           var sortedBeats = JSON.parse(JSON.stringify($scope.beats.data));
           sortedBeats.splice(beat.index, 1);
-          sortedBeats.sort(function(a, b) {
-            return a.placement > b.placement;
-          });
+          sortedBeats.splice(beat.placement-1, 0, beat)
           
-          var x = 1
           for(var i = 0; i < sortedBeats.length; i++) {
-            if(sortedBeats[i].placement >= beat.placement && sortedBeats[i].voted == 1 && sortedBeats[i].id != beat.id) {
-              $scope.beats.data[sortedBeats[i].index].placement = i + 2;
-            }
+              if(sortedBeats[i].voted == 1) {
+                $scope.beats.data[sortedBeats[i].index].placement = i + 1;
+              }
           }
           $scope.refreshTable();
         }
