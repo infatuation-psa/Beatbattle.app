@@ -1,12 +1,40 @@
+function embed(button) {
+  /* Todo - width */
+  embedUrl = button.data("embed")
+  if(getHostnameFromRegex(embedUrl) == "soundcloud.com") {
+      console.log("soundcloud")
+      var urlSplit = embedUrl.split("/")
+      console.log(urlSplit)
+
+      embedData = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=`
+      // If secret URL
+      if(urlSplit.length >= 6) {
+          embedUrl = "https://soundcloud.com/" + urlSplit[3] + "/" + urlSplit[4] + `?secret_token=` + urlSplit[5]
+      }
+
+      embedData += embedUrl
+      embedData += `&color=%23ff5500&inverse=true&auto_play=true&show_user=false'></iframe>`
+      var toembed = button.closest(".embedded-track");
+      toembed.html(embedData);
+  } else if(getHostnameFromRegex(embedUrl) == "audius.co") {
+
+  }
+}
+
+const getHostnameFromRegex = (url) => {
+  // run against regex
+  const matches = url.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+  // extract hostname (will be null if no match is found)
+  return matches && matches[1];
+}
+
 function onChange() {
     // AJAX should be changed to match the other ajax form.
     $(".tooltipped").tooltip();
       
     $(".playButton").click(function () {
       var button = $(this);
-      embed = button.data("embed");
-      var toembed = button.closest(".embedded-track");
-      toembed.html(embed);
+      embed(button)
     });
 }
 

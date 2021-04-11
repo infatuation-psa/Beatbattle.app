@@ -8,12 +8,32 @@
         <h3>Rules</h3>
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/submit">
-          {{if .Battle.Password}}<input type="text" class="submit-password" id="password" name="password" placeholder="Password" required>{{end}}
+          {{if .Battle.Password}}<input type="text" data-lpignore="true" class="submit-password" id="password" name="password" placeholder="Password" required>{{end}}
           <div class="break"></div>
-          <input type="url" class="submit-url" id="track" name="track" placeholder="SoundCloud Track (Use Share Link For Private Tracks)" required>
+          {{ if .Battle.Settings.Field1 }}
+            <input type="text" class="submit-password" id="field_1" name="field_1" placeholder="{{.Battle.Settings.Field1}}" required>
+          {{ end}}
+          {{ if .Battle.Settings.Field2 }}
+            <input type="text" class="submit-password" id="field_2" name="field_2" placeholder="{{.Battle.Settings.Field2}}" required>
+          {{ end}}
+          {{ if .Battle.Settings.Field3 }}
+            <input type="text" class="submit-password" id="field_3" name="field_3" placeholder="{{.Battle.Settings.Field3}}" required>
+          {{ end}}
+          <input type="url" class="submit-url" id="track" name="track" placeholder="SoundCloud Track (Use Share Link For Private Tracks)" required>          
           <input type="submit" class="nav-cta" value="SUBMIT" />
         </form>
       </div>
     </div>
+    <script>  
+    $(document).ready(function() {   
+        $('.deadline').each(function(index, obj){
+            $(this).countdown($(this).attr("deadline"), function(event) {
+                $(this).text(
+                    event.strftime('%Dd %Hh %Mm %Ss')
+                );
+            });
+        });
+    })      
+    </script>
   {{ template "Footer" .Toast }}
 {{ end }}

@@ -29,46 +29,70 @@
                   |&nbsp;<span class="votes-remaining">{{.VotesRemaining}}</span>&nbsp;Vote{{if eq .VotesRemaining 1}}{{else}}s{{end}} Left
                   {{if eq "likes" .Filter}}<div flex></div><a href="?">View All</a>{{else}}<div flex></div><a href="?filter=likes">View Likes</a>{{end}}
                   {{end}}
+                  {{ if eq "complete" .Battle.Status }}
+                  {{if .IsOwner}}
+                  {{if eq "data" .Filter}}<div flex></div><a href="?">View Entries</a>{{else}}<div flex></div><a href="?filter=data">View Fields</a>{{end}}
+                  {{ end }}
+                  {{ end }}
               </div>
             </md-toolbar>
             <md-table-container>
               <table md-table ng-model="selected" md-progress="promise">
                 <thead md-head md-order="query.order" md-on-reorder="tableChange">
                   <tr md-row>
-                    {{ if eq "complete" .Battle.Status }}
-                        <th md-column md-order-by="placement"><span>Placement</span></th>
-                    {{ end }}
 
-                    {{ if ne "voting" .Battle.Status }}
+                    {{ if and (eq "data" .Filter) .IsOwner  }}
+
+                      <th md-column md-order-by="placement"><span>Placement</span></th>
                       <th md-column md-order-by="artist.name"><span>Artist</span></th>
-                    {{ else if .Battle.Settings.ShowUsers }}
-                      <th md-column md-order-by="artist.name"><span>Artist</span></th>
-                    {{ end }}
-
-                    {{ if ne "entry" .Battle.Status }}
-                      <th md-column><span>Track</span></th>
-                    {{ end }}
-
-                    {{ if eq "voting" .Battle.Status }}
-                      <th md-column><span>Feedback</span></th>
-                    {{ end }}
-              
-                    {{ if eq "complete" .Battle.Status }}
-                      <th md-column md-numeric md-order-by="votes"><span>Votes</span></th>
-                      {{ if eq .Battle.Host.ID .Me.ID  }}
-                      <th md-column md-numeric md-order-by="voted"><span>DQ</span></th>
+                      {{ if .Battle.Settings.Field1 }}
+                        <th md-column><span>{{ .Battle.Settings.Field1 }}</span></th>
                       {{ end }}
-                    {{ end }}
-              
-                    {{ if eq "voting" .Battle.Status }}
-                      <th md-column md-order-by="user_vote"><span>Vote</span></th>
-                      <th md-column md-order-by="user_like"><span>Bookmark</span></th>
+                      {{ if .Battle.Settings.Field2 }}
+                        <th md-column><span>{{ .Battle.Settings.Field2 }}</span></th>
+                      {{ end }}
+                      {{ if .Battle.Settings.Field3 }}
+                        <th md-column><span>{{ .Battle.Settings.Field3 }}</span></th>
+                      {{ end }}
+
+                    {{ else }}
+
+                      {{ if eq "complete" .Battle.Status }}
+                          <th md-column md-order-by="placement"><span>Placement</span></th>
+                      {{ end }}
+
+                      {{ if ne "voting" .Battle.Status }}
+                        <th md-column md-order-by="artist.name"><span>Artist</span></th>
+                      {{ else if .Battle.Settings.ShowUsers }}
+                        <th md-column md-order-by="artist.name"><span>Artist</span></th>
+                      {{ end }}
+
+                      {{ if ne "entry" .Battle.Status }}
+                        <th md-column><span>Track</span></th>
+                      {{ end }}
+
+                      {{ if eq "voting" .Battle.Status }}
+                        <th md-column><span>Feedback</span></th>
+                      {{ end }}
+                
+                      {{ if eq "complete" .Battle.Status }}
+                        <th md-column md-numeric md-order-by="votes"><span>Votes</span></th>
+                        {{ if eq .Battle.Host.ID .Me.ID  }}
+                        <th md-column md-numeric md-order-by="voted"><span>DQ</span></th>
+                        {{ end }}
+                      {{ end }}
+                
+                      {{ if eq "voting" .Battle.Status }}
+                        <th md-column md-order-by="user_vote"><span>Vote</span></th>
+                        <th md-column md-order-by="user_like"><span>Bookmark</span></th>
+                      {{ end }}
+
                     {{ end }}
                   </tr>
                 </thead>
                 <tbody md-body>
-                  <tr md-row md-select="beat" ng-repeat="beat in beats.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">            
-                    {{ if eq "complete" .Battle.Status }}
+                  <tr md-row md-select="beat" ng-repeat="beat in beats.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">  
+                    {{ if and (eq "data" .Filter) .IsOwner  }}
                       <td md-cell {{ if eq .Battle.Host.ID .Me.ID  }} ng-click="editPlacement($event, beat)" {{end}}>{{`{{beat.placement}}`}}</td>
                       <td md-cell>
                         <a class="battle-url" ng-href="/user/{{`{{beat.artist.id}}`}}">
@@ -78,90 +102,112 @@
                                 data-tooltip={{`{{beat.voted == 1 ? "" : "Disqualified"}}`}} 
                                 style='color: #0D88FF;'>{{`{{beat.voted == 1 ? "" : "(*)"}}`}}</span>
                       </td>
-                    {{ end }}
+                      {{ if .Battle.Settings.Field1 }}
+                        <td md-cell>{{`{{beat.field_1}}`}}</td>
+                      {{ end }}
+                      {{ if .Battle.Settings.Field2 }}
+                        <td md-cell>{{`{{beat.field_2}}`}}</td>
+                      {{ end }}
+                      {{ if .Battle.Settings.Field3 }}
+                        <td md-cell>{{`{{beat.field_3}}`}}</td>
+                      {{ end }}
 
-                    {{ if eq "entry" .Battle.Status }}
-                      <td md-cell>
-                        <a class="battle-url" ng-href="/user/{{`{{beat.artist.id}}`}}">
-                          {{`{{beat.artist.name}}`}}
-                        </a>
-                      </td>
-                    {{ end }}
+                    {{ else }}          
+                      {{ if eq "complete" .Battle.Status }}
+                        <td md-cell {{ if eq .Battle.Host.ID .Me.ID  }} ng-click="editPlacement($event, beat)" {{end}}>{{`{{beat.placement}}`}}</td>
+                        <td md-cell>
+                          <a class="battle-url" ng-href="/user/{{`{{beat.artist.id}}`}}">
+                              {{`{{beat.artist.name}}`}}
+                            </a>
+                            <span class={{`{{beat.voted == 1 ? "" : "tooltipped"}}`}} 
+                                  data-tooltip={{`{{beat.voted == 1 ? "" : "Disqualified"}}`}} 
+                                  style='color: #0D88FF;'>{{`{{beat.voted == 1 ? "" : "(*)"}}`}}</span>
+                        </td>
+                      {{ end }}
 
-                    {{ if eq "complete" .Battle.Status }}
-                      <td md-cell>
-                        <div class="embedded-track">
-                          <button data-embed='{{`{{beat.url}}`}}' class="playButton">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
-                              <defs>
-                                <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
-                                  <stop offset="0%" stop-color="#3a3a3a" stop-opacity="1"></stop>
-                                  <stop offset="100%" stop-color="#3a3a3a" stop-opacity="1"></stop>
-                                </linearGradient>
-                              </defs>
-                              <circle fill="url(#playButton__gradient12)" stroke="#3a3a3a" cx="21.5" cy="21.5" r="21"></circle>
-                              <circle class="playButton__overlay" fill="#ff5800" fill-opacity="1" stroke="#ff5800" cx="21.5" cy="21.5" r="21"></circle>
-                              <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    {{ end }}
-
-                    {{ if eq "voting" .Battle.Status }}
-                      {{ if .Battle.Settings.ShowUsers }}
+                      {{ if eq "entry" .Battle.Status }}
                         <td md-cell>
                           <a class="battle-url" ng-href="/user/{{`{{beat.artist.id}}`}}">
                             {{`{{beat.artist.name}}`}}
                           </a>
                         </td>
                       {{ end }}
-                      <td md-cell>
-                        <div class="embedded-track">
-                          <button data-embed='{{`{{beat.url}}`}}' class="playButton">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
-                              <defs>
-                                <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
-                                  <stop offset="0%" stop-color="#3a3a3a" stop-opacity="1"></stop>
-                                  <stop offset="100%" stop-color="#3a3a3a" stop-opacity="1"></stop>
-                                </linearGradient>
-                              </defs>
-                              <circle fill="url(#playButton__gradient12)" stroke="#3a3a3a" cx="21.5" cy="21.5" r="21"></circle>
-                              <circle class="playButton__overlay" fill="#ff5800" fill-opacity="1" stroke="#ff5800" cx="21.5" cy="21.5" r="21"></circle>
-                              <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                      <td md-cell ng-click="editFeedback($event, beat)" ng-class="!beat.feedback == '' ? '' : 'md-placeholder'">{{`{{beat.feedback || 'Add your feedback'}}`}}</td>
-                      <td md-cell>
-                        <button type="submit" ng-click="voteBeat($event, beat)" class="btn-link">
-                          <span class="material-icons" row-class="dark" ng-class="beat.user_vote == 1 ? 'active-icon' : 'inactive-icon'">
-                          done
-                          </span>
-                        </button>
-                      </td>
 
-                      <td md-cell>
-                        <button type="submit" ng-click="likeBeat($event, beat)" class="btn-link">
-                          <span class="material-icons" row-class="dark" ng-class="beat.user_like == 1 ? 'active-icon' : 'inactive-icon'">
-                          favorite_border
-                          </span>
-                        </button>
-                      </td>
-                    {{ end }}
-                    
-                    {{ if eq "complete" .Battle.Status }}
-                      <td md-cell>{{`{{beat.votes}}`}}</td>
-                      {{ if eq .Battle.Host.ID .Me.ID  }}
+                      {{ if eq "complete" .Battle.Status }}
                         <td md-cell>
-                          <button ng-click="disqualifyBeat($event, beat)" type="submit" class="btn-link">
-                            <span class="material-icons" row-class="dark" ng-class="beat.voted == 0 ? 'active-icon' : 'inactive-icon'">
-                            clear
+                          <div class="embedded-track">
+                            <button data-embed='{{`{{beat.url}}`}}' class="playButton">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
+                                <defs>
+                                  <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+                                    <stop offset="0%" stop-color="#3a3a3a" stop-opacity="1"></stop>
+                                    <stop offset="100%" stop-color="#3a3a3a" stop-opacity="1"></stop>
+                                  </linearGradient>
+                                </defs>
+                                <circle fill="url(#playButton__gradient12)" stroke="#3a3a3a" cx="21.5" cy="21.5" r="21"></circle>
+                                <circle class="playButton__overlay" fill="#ff5800" fill-opacity="1" stroke="#ff5800" cx="21.5" cy="21.5" r="21"></circle>
+                                <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      {{ end }}
+
+                      {{ if eq "voting" .Battle.Status }}
+                        {{ if .Battle.Settings.ShowUsers }}
+                          <td md-cell>
+                            <a class="battle-url" ng-href="/user/{{`{{beat.artist.id}}`}}">
+                              {{`{{beat.artist.name}}`}}
+                            </a>
+                          </td>
+                        {{ end }}
+                        <td md-cell>
+                          <div class="embedded-track">
+                            <button data-embed='{{`{{beat.url}}`}}' class="playButton">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
+                                <defs>
+                                  <linearGradient id="playButton__gradient12" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="pad">
+                                    <stop offset="0%" stop-color="#3a3a3a" stop-opacity="1"></stop>
+                                    <stop offset="100%" stop-color="#3a3a3a" stop-opacity="1"></stop>
+                                  </linearGradient>
+                                </defs>
+                                <circle fill="url(#playButton__gradient12)" stroke="#3a3a3a" cx="21.5" cy="21.5" r="21"></circle>
+                                <circle class="playButton__overlay" fill="#ff5800" fill-opacity="1" stroke="#ff5800" cx="21.5" cy="21.5" r="21"></circle>
+                                <path class="playButton__play" fill="#fff" d="M31,21.5L17,33l2.5-11.5L17,10L31,21.5z"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                        <td md-cell ng-click="editFeedback($event, beat)" ng-class="!beat.feedback == '' ? '' : 'md-placeholder'">{{`{{beat.feedback || 'Add your feedback'}}`}}</td>
+                        <td md-cell>
+                          <button type="submit" ng-click="voteBeat($event, beat)" class="btn-link">
+                            <span class="material-icons" row-class="dark" ng-class="beat.user_vote == 1 ? 'active-icon' : 'inactive-icon'">
+                            done
                             </span>
                           </button>
                         </td>
-                      {{end}}
+
+                        <td md-cell>
+                          <button type="submit" ng-click="likeBeat($event, beat)" class="btn-link">
+                            <span class="material-icons" row-class="dark" ng-class="beat.user_like == 1 ? 'active-icon' : 'inactive-icon'">
+                            favorite_border
+                            </span>
+                          </button>
+                        </td>
+                      {{ end }}
+                      
+                      {{ if eq "complete" .Battle.Status }}
+                        <td md-cell>{{`{{beat.votes}}`}}</td>
+                        {{ if eq .Battle.Host.ID .Me.ID  }}
+                          <td md-cell>
+                            <button ng-click="disqualifyBeat($event, beat)" type="submit" class="btn-link">
+                              <span class="material-icons" row-class="dark" ng-class="beat.voted == 0 ? 'active-icon' : 'inactive-icon'">
+                              clear
+                              </span>
+                            </button>
+                          </td>
+                        {{end}}
+                      {{ end }}
                     {{ end }}
                   </tr>
                 </tbody>

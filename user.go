@@ -4,13 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"html"
 
 	"github.com/labstack/echo/v4"
 	"github.com/markbates/goth/gothic"
@@ -462,7 +461,7 @@ func AddVote(c echo.Context) error {
 	}
 
 	// Get battle status, max votes, and vote array.
-	var deadline time.Time 
+	var deadline time.Time
 	maxVotes := 1
 	var voteArray []uint8
 	err = dbRead.QueryRow(
@@ -482,7 +481,7 @@ func AddVote(c echo.Context) error {
 	}
 
 	// Reject if not currently in voting stage or if challenge is invalid.
-	if err == sql.ErrNoRows || time.Until(deadline) < 0  {
+	if err == sql.ErrNoRows || time.Until(deadline) < 0 {
 		return AjaxResponse(c, true, redirectURL, "302")
 	}
 
@@ -724,9 +723,9 @@ func ViewFeedback(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Meta": map[string]interface{}{
-			"Title":	battle.Title,
-			"Analytics":	analyticsKey,
-			"Buttons":  "Feedback",
+			"Title":     battle.Title,
+			"Analytics": analyticsKey,
+			"Buttons":   "Feedback",
 		},
 		"Battle":   battle,
 		"Feedback": string(feedbackJSON),
@@ -762,16 +761,16 @@ func UserBattles(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Meta": map[string]interface{}{
-			"Title":   title + " Battles",
-			"Analytics":   analyticsKey,
+			"Title":     title + " Battles",
+			"Analytics": analyticsKey,
 		},
-		"Page":       "battles",
-		"Battles":    string(battlesJSON),
-		"Me":         me,
-		"User":       user,
-		"Toast":      toast,
-		"Tag":        policy.Sanitize(c.Param("tag")),
-		"Ads":        ads,
+		"Page":    "battles",
+		"Battles": string(battlesJSON),
+		"Me":      me,
+		"User":    user,
+		"Toast":   toast,
+		"Tag":     policy.Sanitize(c.Param("tag")),
+		"Ads":     ads,
 	}
 	return c.Render(302, "UserBattles", m)
 }
@@ -822,20 +821,6 @@ func UserSubmissions(c echo.Context) error {
 		}
 		submission.Battle.Title = html.UnescapeString(submission.Battle.Title)
 
-		u, _ := url.Parse(submission.URL)
-		urlSplit := strings.Split(u.RequestURI(), "/")
-
-		if len(urlSplit) >= 4 {
-			secretURL := urlSplit[3]
-			if strings.Contains(secretURL, "s-") {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' show_user='false' src='https://w.soundcloud.com/player/?url=https://soundcloud.com/` + urlSplit[1] + "/" + urlSplit[2] + `?secret_token=` + urlSplit[3] + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
-			} else {
-				submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
-			}
-		} else {
-			submission.URL = `<iframe height='20' scrolling='no' frameborder='no' allow='autoplay' src='https://w.soundcloud.com/player/?url=` + submission.URL + `&color=%23ff5500&inverse=false&autoplay=true&show_user=false'></iframe>`
-		}
-
 		entries = append(entries, submission)
 	}
 	// Reference: http://go-database-sql.org/errors.html - I'm not really sure if this does anything positive lmao.
@@ -854,16 +839,16 @@ func UserSubmissions(c echo.Context) error {
 
 	m := map[string]interface{}{
 		"Meta": map[string]interface{}{
-			"Title":   title + " Submissions",
-			"Analytics":   analyticsKey,
+			"Title":     title + " Submissions",
+			"Analytics": analyticsKey,
 		},
-		"Page":       "submissions",
-		"Beats":      string(submissionsJSON),
-		"Me":         me,
-		"User":       user,
-		"Toast":      toast,
-		"Tag":        policy.Sanitize(c.Param("tag")),
-		"Ads":        ads,
+		"Page":  "submissions",
+		"Beats": string(submissionsJSON),
+		"Me":    me,
+		"User":  user,
+		"Toast": toast,
+		"Tag":   policy.Sanitize(c.Param("tag")),
+		"Ads":   ads,
 	}
 
 	return c.Render(302, "UserSubmissions", m)

@@ -60,7 +60,7 @@
                 <input type="file" class="" id="background" name="background" placeholder="Custom Background (Direct Image Link)"> -->
               </div>
               <!-- MOVE THIS TO SETTINGS -->
-              <input type="text" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="16" placeholder="Password (Optional)">
+              <input type="text" data-lpignore="true" class="submit-border submit-nobox" id="password" name="password" value="{{.Battle.Password}}" maxlength="16" placeholder="Password (Optional)">
               <div class="container-form submit-border">
                 <div class="submit-split1 submit-nobox">
                   <input class="styled-checkbox" type="checkbox" name="show_entries" id="show_entries" {{ if .Battle.Settings.ShowEntries }}checked{{ end }} value="1" />
@@ -79,6 +79,15 @@
                   <input class="styled-checkbox" type="checkbox" name="private" id="private" {{ if .Battle.Settings.Private }}checked{{ end }} value="1" />
                   <label for="private">Unlisted Battle</label>
                 </div>
+              </div>
+              <div class="submit-border submit-label submit-wide">
+                <input type="text" class="submit-nobox" id="field_1" name="field_1" value="{{.Battle.Settings.Field1}}" placeholder="Custom Submission Field 1">
+              </div>
+              <div class="submit-border submit-label submit-wide">
+                <input type="text" class="submit-nobox" id="field_2" name="field_2" value="{{.Battle.Settings.Field2}}" placeholder="Custom Submission Field 2">
+              </div>
+              <div class="submit-border submit-label submit-wide">
+                <input type="text" class="submit-nobox" id="field_3" name="field_3" value="{{.Battle.Settings.Field3}}" placeholder="Custom Submission Field 3">
               </div>
             </div>
           </li>

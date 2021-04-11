@@ -8,10 +8,30 @@
         <h3>Rules</h3>
         <div class="battle-rules">{{.Battle.RulesHTML}}</div>
         <form method="POST" class="submit-form" action="/beat/{{.Battle.ID}}/update">
-          <input type="url" class="submit-url" id="track" name="track" placeholder="Submit your SoundCloud track (use the share link for private tracks)." required>
+          {{ if .Battle.Settings.Field1 }}
+            <input type="text" class="submit-password" id="field_1" name="field_1" value={{.Beat.Field1}} placeholder="{{.Battle.Settings.Field1}}" required>
+          {{ end}}
+          {{ if .Battle.Settings.Field2 }}
+            <input type="text" class="submit-password" id="field_2" name="field_2" value={{.Beat.Field2}} placeholder="{{.Battle.Settings.Field2}}" required>
+          {{ end}}
+          {{ if .Battle.Settings.Field3 }}
+            <input type="text" class="submit-password" id="field_3" name="field_3" value={{.Beat.Field3}} placeholder="{{.Battle.Settings.Field3}}" required>
+          {{ end}}
+          <input type="url" class="submit-url" id="track" name="track" value={{.Beat.URL}} placeholder="Submit your SoundCloud track (use the share link for private tracks)." required>
           <input type="submit" class="nav-cta" value="UPDATE" />
         </form>
       </div>
     </div>    
+    <script>  
+    $(document).ready(function() {   
+        $('.deadline').each(function(index, obj){
+            $(this).countdown($(this).attr("deadline"), function(event) {
+                $(this).text(
+                    event.strftime('%Dd %Hh %Mm %Ss')
+                );
+            });
+        });
+    })      
+    </script>
   {{ template "Footer" .Toast }}
 {{ end }}
