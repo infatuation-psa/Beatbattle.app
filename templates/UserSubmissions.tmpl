@@ -12,6 +12,7 @@
               <table md-table ng-model="selected" md-progress="promise">
                 <thead md-head md-order="query.order" md-on-reorder="tableChange">
                   <tr md-row>
+                    <th md-column md-order-by="beat.placement"><span>Placement</span></th>
                     <th md-column md-order-by="beat.battle"><span>Battle</span></th>
                     <th md-column ><span>Track</span></th>
                     <th md-column md-order-by="beat.votes" md-numeric><span>Votes</span></th>
@@ -19,6 +20,7 @@
                 </thead>
                 <tbody md-body>
                   <tr md-row md-select="beat" ng-repeat="beat in beats.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">            
+                    <td md-cell>{{`{{beat.placement}}`}}</td>
                     <td md-cell>
                       <a class="battle-url" ng-href="/battle/{{`{{beat.battle_id}}`}}">
                         {{`{{beat.battle.title}}`}}
@@ -26,7 +28,7 @@
                     </td>
 
                     <td md-cell>
-                      <div class="embedded-track">
+                      <div ng-if="beat.battle.results == 1" class="embedded-track">
                         <button data-embed='{{`{{beat.url}}`}}' class="playButton">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 43 43">
                             <defs>

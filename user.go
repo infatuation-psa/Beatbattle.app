@@ -796,14 +796,15 @@ func UserSubmissions(c echo.Context) error {
 
 	submission := Beat{}
 	entries := []Beat{}
+	disqualified := []Beat{}
 
 	query := `
-			SELECT beats.url, beats.votes, beats.voted, battles.id, battles.title, battles.results
+			SELECT beats.url, beats.votes, beats.voted, battles.id, battles.title, battles.results, beats.placement
 			FROM beats
 			LEFT JOIN battles on battles.id=beats.battle_id
 			WHERE beats.user_id=?
 			GROUP BY 1
-			ORDER BY beats.id DESC`
+			ORDER BY beats.placement ASC`
 
 	rows, err := dbRead.Query(query, userID)
 	if err != nil {
@@ -814,15 +815,24 @@ func UserSubmissions(c echo.Context) error {
 
 	for rows.Next() {
 		submission = Beat{}
-		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.BattleID, &submission.Battle.Title, &submission.Battle.Results)
+		err = rows.Scan(&submission.URL, &submission.Votes, &submission.Voted, &submission.BattleID, &submission.Battle.Title, &submission.Battle.Results, &submission.Placement)
 		if err != nil {
 			SetToast(c, "502")
 			return c.Redirect(302, "/")
 		}
+
 		submission.Battle.Title = html.UnescapeString(submission.Battle.Title)
+
+		if submission.Placement == 0 {
+			submission.Placement = 999
+			disqualified = append(disqualified, submission)
+			continue
+		}
 
 		entries = append(entries, submission)
 	}
+	entries = append(entries, disqualified...)
+	
 	// Reference: http://go-database-sql.org/errors.html - I'm not really sure if this does anything positive lmao.
 	if err = rows.Err(); err != nil {
 		log.Println(err)
