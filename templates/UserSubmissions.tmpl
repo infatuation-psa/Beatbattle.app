@@ -20,7 +20,7 @@
                 </thead>
                 <tbody md-body>
                   <tr md-row md-select="beat" ng-repeat="beat in beats.data | filter: filter.search | orderBy: query.order | limitTo: query.limit : (query.page -1) * query.limit">            
-                    <td md-cell>{{`{{beat.placement}}`}}</td>
+                    <td md-cell>{{`{{beat.battle.results == 1 ? beat.placement : "?"}}`}}</td>
                     <td md-cell>
                       <a class="battle-url" ng-href="/battle/{{`{{beat.battle_id}}`}}">
                         {{`{{beat.battle.title}}`}}

@@ -252,6 +252,7 @@
         </form>
       </div>
     </div>
+    {{end}}
 {{if .Battle.Settings.Background}}
 <style>
 #BeatBattle {
@@ -268,7 +269,6 @@ html {
 }
 </style>
 {{end}}
-    {{end}}
 {{ if .Battle.Settings.TrackingID }}
 <script async src="https://www.googletagmanager.com/gtag/js?id={{.Battle.Settings.TrackingID}}"></script>
 <script>
