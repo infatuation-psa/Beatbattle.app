@@ -269,6 +269,15 @@ html {
 }
 </style>
 {{end}}
+{{if eq "voting" .Battle.Status}}
+  {{if not .Battle.Settings.ShowEntries}}
+    <style>
+    iframe {
+      width: 20px;
+    }
+    </style>
+  {{ end }}
+{{end}}
 {{ if .Battle.Settings.TrackingID }}
 <script async src="https://www.googletagmanager.com/gtag/js?id={{.Battle.Settings.TrackingID}}"></script>
 <script>
